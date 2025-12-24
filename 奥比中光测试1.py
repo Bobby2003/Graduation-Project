@@ -276,7 +276,6 @@ class SimplePointCloudProcessor:
             traceback.print_exc()
             return False
 
-
     def depth_to_pointcloud(self, depth_frame):
         """将深度图转换为点云"""
         if depth_frame is None:
@@ -288,22 +287,30 @@ class SimplePointCloudProcessor:
         # 创建像素坐标网格
         u, v = np.meshgrid(np.arange(width), np.arange(height))
 
-        # 计算3D坐标
+        # 计算3D坐标（核心修改在这里）
         z = depth_frame.astype(np.float32) * self.depth_scale
         x = (u - self.cx) * z / self.fx
         y = (v - self.cy) * z / self.fy
 
-        # 创建点云
-        points = np.stack([x, y, z], axis=-1).reshape(-1, 3)
+        # 【修改点1：修正坐标系】通常需要翻转Y轴和Z轴
+        # 假设原始坐标系为：X向右，Y向下，Z向前
+        # 目标坐标系为：X向右，Y向上，Z向后（OpenGL/大多数3D软件）
+        x_corrected = x
+        y_corrected = -y  # 翻转Y轴，解决上下颠倒
+        z_corrected = -z  # 翻转Z轴，使正方向向后，更符合直觉（可选，但建议）
 
-        # 过滤无效点
+        # 创建点云
+        points = np.stack([x_corrected, y_corrected, z_corrected], axis=-1).reshape(-1, 3)
+
+        # 过滤无效点 (保持不变)
         valid_mask = (z.reshape(-1) > self.min_depth) & (z.reshape(-1) < self.max_depth)
         points = points[valid_mask]
 
-        # 生成颜色（基于深度）
+        # 生成颜色（基于深度，可选修改颜色以匹配新坐标系）
         if len(points) > 0:
-            z_vals = points[:, 2]
-            depth_norm = (z_vals - self.min_depth) / (self.max_depth - self.min_depth)
+            # 使用校正后的Z值计算颜色
+            z_vals_corrected = -points[:, 2]  # 因为z_corrected = -z
+            depth_norm = (z_vals_corrected - self.min_depth) / (self.max_depth - self.min_depth)
             depth_norm = np.clip(depth_norm, 0, 1)
 
             colors = np.zeros((len(points), 3))
