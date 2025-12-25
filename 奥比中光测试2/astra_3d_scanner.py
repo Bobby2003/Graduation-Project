@@ -117,52 +117,74 @@ class AstraCameraManager:
             return False
 
     def _capture_loop(self):
-        """采集循环 - 简化稳定版本"""
+        """简化的采集循环 - 避免内存问题"""
         print("[采集线程] 开始运行")
+
+        frame_interval = 0.033  # 30FPS
+        last_time = time.time()
 
         while self.running:
             try:
-                # 采集深度帧
+                current_time = time.time()
+                elapsed = current_time - last_time
+
+                if elapsed < frame_interval:
+                    time.sleep(frame_interval - elapsed)
+
+                # 深度帧采集 - 使用更安全的方式
+                depth_array = None
                 if self.depth_stream:
-                    depth_frame = self.depth_stream.read_frame()
-                    if depth_frame:
-                        depth_data = depth_frame.get_buffer_as_uint16()
-                        depth_array = np.frombuffer(depth_data, dtype=np.uint16).reshape(480, 640)
+                    try:
+                        frame = self.depth_stream.read_frame()
+                        if frame:
+                            # 使用np.copy创建副本，避免直接使用buffer
+                            depth_data = frame.get_buffer_as_uint16()
+                            depth_array = np.frombuffer(depth_data, dtype=np.uint16).copy()
+                            depth_array = depth_array.reshape(480, 640)
 
-                        # 转换为米并移除过远的点
-                        depth_array = depth_array.astype(np.float32) * self.depth_scale
-                        depth_array[depth_array > 2.0] = 0  # 移除2米以外的点
+                            # 立即释放frame引用
+                            del frame
+                    except Exception as e:
+                        print(f"[深度采集] 错误: {e}")
+                        depth_array = None
 
-                        if not self.depth_queue.full():
-                            self.depth_queue.put(depth_array)
-
-                # 采集红外帧
+                # 红外帧采集
+                ir_array = None
                 if self.ir_stream:
-                    ir_frame = self.ir_stream.read_frame()
-                    if ir_frame:
-                        ir_data = ir_frame.get_buffer_as_uint16()
-                        ir_array = np.frombuffer(ir_data, dtype=np.uint16).reshape(480, 640)
+                    try:
+                        frame = self.ir_stream.read_frame()
+                        if frame:
+                            ir_data = frame.get_buffer_as_uint16()
+                            ir_array = np.frombuffer(ir_data, dtype=np.uint16).copy()
+                            ir_array = ir_array.reshape(480, 640)
 
-                        # 转换为8位用于显示
-                        if ir_array.max() > ir_array.min():
-                            ir_8bit = cv2.normalize(ir_array, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-                        else:
-                            ir_8bit = ir_array.astype(np.uint8)
+                            # 转换为8位
+                            ir_array = cv2.normalize(
+                                ir_array, None, 0, 255,
+                                cv2.NORM_MINMAX, cv2.CV_8U
+                            )
 
-                        if not self.ir_queue.full():
-                            self.ir_queue.put(ir_8bit)
+                            # 立即释放frame引用
+                            del frame
+                    except Exception as e:
+                        print(f"[红外采集] 错误: {e}")
+                        ir_array = None
+
+                # 放入队列
+                if depth_array is not None and not self.depth_queue.full():
+                    self.depth_queue.put(depth_array)
+
+                if ir_array is not None and not self.ir_queue.full():
+                    self.ir_queue.put(ir_array)
 
                 self.frame_count += 1
-
-                # 控制采集频率
-                elapsed = time.time() - self.last_frame_time
-                if elapsed < 0.033:  # 约30FPS
-                    time.sleep(0.033 - elapsed)
-                self.last_frame_time = time.time()
+                last_time = current_time
 
             except Exception as e:
-                print(f"[采集线程] 错误: {e}")
-                time.sleep(0.01)
+                print(f"[采集线程] 捕获到异常: {e}")
+                import traceback
+                traceback.print_exc()
+                time.sleep(0.1)
 
         print("[采集线程] 停止运行")
 
