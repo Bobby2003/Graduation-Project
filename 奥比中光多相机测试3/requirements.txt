@@ -1,0 +1,9 @@
+opencv-python>=4.5.0
+numpy>=1.21.0
+open3d>=0.15.0
+openni2>=0.0.1
+pyrealsense2>=2.50.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+matplotlib>=3.5.0
+trimesh>=3.9.0

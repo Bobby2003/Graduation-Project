@@ -1,6 +1,6 @@
 """
 奥比中光Astra相机 - 彩色3D重建系统
-专门优化彩色模型导出，确保所有格式都包含颜色信息
+使用独立的SDK接口层，代码更清晰
 """
 
 import cv2
@@ -11,31 +11,40 @@ import os
 import gc
 import traceback
 import time
+import sys
 from datetime import datetime
 import warnings
+
 warnings.filterwarnings('ignore')
 
-# 动态导入OpenNI2
+# 导入独立的SDK接口层
 try:
-    from primesense import openni2
-    OPENNI2_AVAILABLE = True
+    # 确保当前目录在Python路径中
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from orbbec_sdk import OrbbecCameraSDK, get_default_sdk_path
+
+    SDK_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ OpenNI2导入失败: {e}")
-    OPENNI2_AVAILABLE = False
+    print(f"⚠️ SDK接口层导入失败: {e}")
+    SDK_AVAILABLE = False
+
 
 class Color3DReconstructor:
-    """彩色3D重建器 - 专注于彩色模型导出"""
+    """彩色3D重建器 - 使用独立的SDK接口层"""
 
-    def __init__(self, driver_path=""):
-        self.driver_path = driver_path
+    def __init__(self, sdk_path=None):
+        """初始化重建器
 
-        if not OPENNI2_AVAILABLE:
-            print("❌ OpenNI2不可用，无法使用相机功能")
+        Args:
+            sdk_path: SDK路径，如果为None则使用默认路径
+        """
+        if not SDK_AVAILABLE:
+            print("❌ SDK接口层不可用，无法使用相机功能")
             return
 
-        # 相机相关资源
-        self.device = None
-        self.depth_stream = None
+        # 使用独立的SDK接口层
+        self.sdk_path = sdk_path if sdk_path else get_default_sdk_path()
+        self.camera_sdk = None
         self.camera_initialized = False
         self.frame_counter = 0
 
@@ -99,46 +108,53 @@ class Color3DReconstructor:
         self.mesh_count = 0
 
         print("🎨 彩色3D重建器初始化完成")
+        print("   使用独立的SDK接口层")
         print("   专为彩色模型导出优化")
 
     def setup_camera(self):
-        """设置相机"""
-        if not OPENNI2_AVAILABLE:
+        """设置相机 - 使用独立的SDK接口层"""
+        if not SDK_AVAILABLE:
             return False
 
         print("=" * 50)
-        print("设置相机")
+        print("设置相机 (使用独立SDK接口层)")
         print("=" * 50)
 
         try:
-            # 清理之前的资源
-            if self.depth_stream:
-                try:
-                    self.depth_stream.stop()
-                except:
-                    pass
+            # 1. 初始化SDK接口层
+            print("初始化相机SDK...")
+            self.camera_sdk = OrbbecCameraSDK(self.sdk_path)
 
-            if self.device:
-                try:
-                    self.device.close()
-                except:
-                    pass
+            if not self.camera_sdk.initialize():
+                print("❌ SDK初始化失败")
+                return False
 
-            # 初始化OpenNI2
-            if self.driver_path and os.path.exists(self.driver_path):
-                openni2.initialize(self.driver_path)
-            else:
-                openni2.initialize()
+            # 2. 获取设备列表
+            print("扫描设备...")
+            devices = self.camera_sdk.get_device_list()
+            if not devices:
+                print("⚠️  未检测到奥比中光设备")
 
-            # 打开设备
-            self.device = openni2.Device.open_any()
+            # 3. 打开设备
+            if not self.camera_sdk.open_device(device_index=0):
+                print("❌ 打开设备失败")
+                self.camera_sdk.cleanup()
+                return False
 
-            # 只启动深度流
-            self.depth_stream = self.device.create_depth_stream()
-            self.depth_stream.start()
-            print("✅ 深度流已启动")
+            # 4. 创建深度流
+            if not self.camera_sdk.create_stream(self.camera_sdk.ONI_SENSOR_DEPTH):
+                print("❌ 创建深度流失败")
+                self.camera_sdk.cleanup()
+                return False
 
-            # 设置RGB摄像头
+            # 5. 启动深度流
+            if not self.camera_sdk.start_stream():
+                print("❌ 启动深度流失败")
+                self.camera_sdk.destroy_stream()
+                self.camera_sdk.close_device()
+                return False
+
+            # 6. 设置RGB摄像头
             print("设置RGB摄像头...")
             self.cv_camera = cv2.VideoCapture(self.params['camera_index'])
 
@@ -170,86 +186,71 @@ class Color3DReconstructor:
 
         except Exception as e:
             print(f"❌ 相机设置失败: {e}")
+            traceback.print_exc()
             return False
 
     def cleanup(self):
         """清理资源"""
+        print("\n清理所有资源...")
         try:
+            # 清理SDK资源
+            if self.camera_sdk:
+                self.camera_sdk.cleanup()
+                self.camera_sdk = None
+                print("✅ SDK资源已清理")
+
+            # 清理OpenCV摄像头
             if self.cv_camera:
                 self.cv_camera.release()
+                print("✅ OpenCV摄像头已释放")
 
-            if self.depth_stream:
-                try:
-                    self.depth_stream.stop()
-                except:
-                    pass
+            # 清理Open3D资源
+            self.tsdf_volume = None
 
-            if self.device:
-                try:
-                    self.device.close()
-                except:
-                    pass
+            # 强制垃圾回收
+            gc.collect()
 
             self.camera_initialized = False
+            print("✅ 所有资源已清理")
 
         except Exception as e:
             print(f"⚠️ 清理资源时出错: {e}")
 
-    def init_tsdf(self):
-        """初始化TSDF体积"""
-        print("初始化TSDF体积...")
-
-        try:
-            # 使用支持颜色的TSDF
-            self.tsdf_volume = o3d.pipelines.integration.ScalableTSDFVolume(
-                voxel_length=self.params['tsdf_voxel_length'],
-                sdf_trunc=self.params['tsdf_sdf_trunc'],
-                color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8
-            )
-
-            print(f"✅ TSDF体积初始化完成")
-            print(f"   体素大小: {self.params['tsdf_voxel_length']}米")
-            return True
-
-        except Exception as e:
-            print(f"❌ TSDF初始化失败: {e}")
-            return False
-
     def capture_frames(self):
-        """采集深度和颜色帧 - 修复版本"""
-        depth_frame = None
+        """采集深度和颜色帧 - 使用SDK接口层"""
         try:
-            # 采集深度
-            depth_frame = self.depth_stream.read_frame()
+            # 使用SDK接口层捕获深度帧
+            result = self.camera_sdk.capture_depth_frame(timeout=1000)
+            if not result:
+                print("⚠️  深度帧读取失败")
+                return None, None
 
-            # !!! 关键修复：立即复制数据，然后解除帧引用 !!!
-            depth_data = depth_frame.get_buffer_as_uint16()
-            # 使用copy()确保数据独立于原始缓冲区
-            depth = np.frombuffer(depth_data, dtype=np.uint16).copy().reshape(480, 640)
-            depth = depth.astype(np.float32) * self.params['depth_scale']
+            depth_array, frame_info = result
 
-            # !!! 立即解除对原始帧的引用，帮助垃圾回收 !!!
-            del depth_data
-            # 注意：OpenNI2的frame对象没有显式release()方法
-            # 但减少引用计数可以帮助底层释放
+            # 深度数据单位转换: mm -> m
+            depth_mm = depth_array.astype(np.float32)
+            depth = depth_mm * 0.001  # 转换为米
 
-            # 采集颜色...
+            # 采集颜色帧
             color = None
             if self.cv_camera_initialized:
                 ret, frame = self.cv_camera.read()
                 if ret and frame is not None:
-                    color = frame.copy()  # 也使用copy()
+                    # 调整大小以匹配深度
+                    if frame.shape[:2] != (480, 640):
+                        frame = cv2.resize(frame, (640, 480))
+                    color = frame.copy()
+
+                    # 颜色增强
+                    if self.params['color_enhance']:
+                        color = self.enhance_color(color)
 
             self.frame_counter += 1
             return depth, color
 
         except Exception as e:
             print(f"❌ 帧采集失败: {e}")
-            # 确保在异常情况下也尝试清理
             return None, None
-        finally:
-            # 虽然没有显式release，但确保变量作用域结束
-            depth_frame = None
 
     def enhance_color(self, image):
         """增强颜色"""
@@ -289,14 +290,35 @@ class Color3DReconstructor:
 
         return depth_processed
 
+    def init_tsdf(self):
+        """初始化TSDF体积"""
+        print("初始化TSDF体积...")
+
+        try:
+            # 使用支持颜色的TSDF
+            self.tsdf_volume = o3d.pipelines.integration.ScalableTSDFVolume(
+                voxel_length=self.params['tsdf_voxel_length'],
+                sdf_trunc=self.params['tsdf_sdf_trunc'],
+                color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8
+            )
+
+            print(f"✅ TSDF体积初始化完成")
+            print(f"   体素大小: {self.params['tsdf_voxel_length']}米")
+            return True
+
+        except Exception as e:
+            print(f"❌ TSDF初始化失败: {e}")
+            return False
+
     def fuse_frame(self, depth, color):
         """融合一帧"""
         if depth is None:
             return False
 
         try:
-            # 创建深度图像
-            depth_image = o3d.geometry.Image((depth * 1000).astype(np.uint16))
+            # 创建深度图像 (单位: mm)
+            depth_mm = (depth * 1000).astype(np.uint16)
+            depth_image = o3d.geometry.Image(depth_mm)
 
             # 创建颜色图像
             if color is not None:
@@ -506,7 +528,7 @@ class Color3DReconstructor:
         """运行彩色重建"""
         print("=" * 70)
         print("奥比中光Astra相机 - 彩色3D重建")
-        print("专门导出带颜色的3D模型")
+        print("使用独立SDK接口层 - 解决0xC0000374堆损坏问题")
         print("=" * 70)
 
         # 创建输出目录
@@ -521,9 +543,9 @@ class Color3DReconstructor:
         with open(config_file, 'w', encoding='utf-8') as f:
             json.dump(self.params, f, indent=2, ensure_ascii=False)
 
-        # 检查OpenNI2
-        if not OPENNI2_AVAILABLE:
-            print("❌ OpenNI2不可用")
+        # 检查SDK可用性
+        if not SDK_AVAILABLE:
+            print("❌ SDK接口层不可用")
             return False
 
         # 设置相机
@@ -573,7 +595,7 @@ class Color3DReconstructor:
                     print("✅ 帧融合成功")
 
                     # 保存中间结果
-                    if self.params['save_intermediate']:
+                    if self.params['save_intermediate'] and (i % 2 == 0 or i == self.params['max_iterations'] - 1):
                         mesh = self.extract_color_mesh()
                         if mesh is not None:
                             print(f"💾 保存中间模型 ({len(mesh.vertices)}顶点)...")
@@ -581,7 +603,8 @@ class Color3DReconstructor:
                             del mesh
 
                     # 保存图像
-                    self.save_frame_images(self.iteration, depth, color_raw)
+                    if self.params['save_every_frame']:
+                        self.save_frame_images(self.iteration, depth, color_raw)
 
                     # 进度显示
                     elapsed = time.time() - start_time
@@ -746,10 +769,12 @@ class Color3DReconstructor:
         except Exception as e:
             print(f"⚠️ 生成报告失败: {e}")
 
+
 def main():
     """主函数"""
     print("=" * 70)
     print("奥比中光Astra相机彩色3D重建系统")
+    print("基于独立SDK接口层 - 解决0xC0000374堆损坏问题")
     print("专门导出带颜色的3D模型 - PLY/OBJ/STL格式")
     print("=" * 70)
 
@@ -762,15 +787,14 @@ def main():
         print(f"❌ 依赖检查失败: {e}")
         return
 
-    # 设置驱动路径
-    driver_path = r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs"
-
-    if not os.path.exists(driver_path):
-        print(f"⚠️ 驱动路径不存在，尝试自动查找...")
-        driver_path = ""
+    # 获取SDK路径
+    sdk_path = get_default_sdk_path()
+    if not os.path.exists(sdk_path):
+        print(f"⚠️ 默认SDK路径不存在，尝试自动查找...")
+        sdk_path = ""
 
     # 创建重建器
-    reconstructor = Color3DReconstructor(driver_path)
+    reconstructor = Color3DReconstructor(sdk_path)
 
     # 运行重建
     print("\n🚀 开始彩色3D重建...")
@@ -805,9 +829,18 @@ def main():
     print("1. PLY格式在MeshLab中打开可查看颜色")
     print("2. 确保重建对象光照充足")
     print("3. 相机与对象距离建议0.3-2米")
+    print("4. 此版本使用独立的SDK接口层，已解决堆损坏问题")
     print("=" * 70)
 
     input("\n按Enter键退出...")
 
+
 if __name__ == "__main__":
+    # 设置环境变量
+    default_sdk_path = r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs"
+    if os.path.exists(default_sdk_path):
+        drivers_dir = os.path.join(default_sdk_path, "OpenNI2", "Drivers")
+        if os.path.exists(drivers_dir):
+            os.environ['PATH'] = drivers_dir + ';' + os.environ['PATH']
+
     main()

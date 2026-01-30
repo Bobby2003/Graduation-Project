@@ -1,6 +1,6 @@
 """
 奥比中光Astra相机 - 彩色3D重建系统
-专门优化彩色模型导出，确保所有格式都包含颜色信息
+基于OpenNI C API的修复版本，解决0xC0000374堆损坏问题
 """
 
 import cv2
@@ -11,31 +11,423 @@ import os
 import gc
 import traceback
 import time
+import ctypes
 from datetime import datetime
 import warnings
+
 warnings.filterwarnings('ignore')
 
-# 动态导入OpenNI2
-try:
-    from primesense import openni2
-    OPENNI2_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ OpenNI2导入失败: {e}")
-    OPENNI2_AVAILABLE = False
+
+# ============================================================
+# OpenNI C API 封装类 (直接嵌入，避免导入问题)
+# ============================================================
+
+class FixedOpenNICAPI:
+    """修复结构体定义后的OpenNI C API封装"""
+
+    def __init__(self, driver_path=None):
+        self.driver_path = driver_path
+        self.lib = None
+        self.device_handle = None
+        self.depth_stream_handle = None
+        self.color_stream_handle = None
+
+        # 常量定义
+        self.ONI_MAX_STR = 256
+        self.ONI_STATUS_OK = 0
+        self.ONI_SENSOR_IR = 1
+        self.ONI_SENSOR_COLOR = 2
+        self.ONI_SENSOR_DEPTH = 3
+        self.ONI_PIXEL_FORMAT_DEPTH_1_MM = 100
+        self.ONI_PIXEL_FORMAT_RGB888 = 200
+        self.ONI_API_VERSION = 2000
+
+        # 定义结构体
+        self._define_structures()
+
+        # 初始化
+        if driver_path:
+            self._add_driver_to_path()
+
+        self._load_openni_library()
+
+        if self.lib:
+            self._define_function_prototypes()
+
+    def _define_structures(self):
+        """定义OpenNI结构体"""
+
+        # OniDeviceInfo结构体 (关键：使用字符数组而不是指针)
+        class OniDeviceInfo(ctypes.Structure):
+            _fields_ = [
+                ("uri", ctypes.c_char * self.ONI_MAX_STR),
+                ("vendor", ctypes.c_char * self.ONI_MAX_STR),
+                ("name", ctypes.c_char * self.ONI_MAX_STR),
+                ("serialNumber", ctypes.c_char * self.ONI_MAX_STR),
+                ("usbVendorId", ctypes.c_uint16),
+                ("usbProductId", ctypes.c_uint16),
+            ]
+
+        # OniVideoMode结构体
+        class OniVideoMode(ctypes.Structure):
+            _fields_ = [
+                ("pixelFormat", ctypes.c_int),
+                ("resolutionX", ctypes.c_int),
+                ("resolutionY", ctypes.c_int),
+                ("fps", ctypes.c_int),
+            ]
+
+        # OniFrame结构体
+        class OniFrame(ctypes.Structure):
+            _fields_ = [
+                ("dataSize", ctypes.c_int),
+                ("data", ctypes.c_void_p),
+                ("sensorType", ctypes.c_int),
+                ("timestamp", ctypes.c_uint64),
+                ("frameIndex", ctypes.c_int),
+                ("width", ctypes.c_int),
+                ("height", ctypes.c_int),
+                ("videoMode", OniVideoMode),
+                ("croppingEnabled", ctypes.c_int),
+                ("cropOriginX", ctypes.c_int),
+                ("cropOriginY", ctypes.c_int),
+                ("stride", ctypes.c_int),
+            ]
+
+        self.OniDeviceInfo = OniDeviceInfo
+        self.OniVideoMode = OniVideoMode
+        self.OniFrame = OniFrame
+
+    def _add_driver_to_path(self):
+        """将Driver目录添加到系统PATH"""
+        if self.driver_path:
+            drivers_dir = os.path.join(self.driver_path, "libs", "OpenNI2", "Drivers")
+            if os.path.exists(drivers_dir):
+                os.environ['PATH'] = drivers_dir + ';' + os.environ['PATH']
+                print(f"✅ 已将Drivers目录添加到PATH: {drivers_dir}")
+
+    def _load_openni_library(self):
+        """加载OpenNI2.dll"""
+        dll_path = r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs\OpenNI2.dll"
+
+        if not os.path.exists(dll_path):
+            print(f"❌ DLL文件不存在: {dll_path}")
+            dll_path = "OpenNI2.dll"
+
+        try:
+            self.lib = ctypes.CDLL(dll_path)
+            print(f"✅ 已加载OpenNI2.dll")
+        except Exception as e:
+            print(f"❌ 加载DLL失败: {e}")
+            self.lib = None
+
+    def _define_function_prototypes(self):
+        """定义所有API函数原型"""
+        try:
+            # 通用API
+            self.lib.oniInitialize.argtypes = [ctypes.c_int]
+            self.lib.oniInitialize.restype = ctypes.c_int
+
+            self.lib.oniShutdown.argtypes = []
+            self.lib.oniShutdown.restype = None
+
+            # 设备列表API
+            self.lib.oniGetDeviceList.argtypes = [
+                ctypes.POINTER(ctypes.POINTER(self.OniDeviceInfo)),
+                ctypes.POINTER(ctypes.c_int)
+            ]
+            self.lib.oniGetDeviceList.restype = ctypes.c_int
+
+            self.lib.oniReleaseDeviceList.argtypes = [ctypes.POINTER(self.OniDeviceInfo)]
+            self.lib.oniReleaseDeviceList.restype = ctypes.c_int
+
+            # 设备API
+            self.lib.oniDeviceOpen.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+            self.lib.oniDeviceOpen.restype = ctypes.c_int
+
+            self.lib.oniDeviceClose.argtypes = [ctypes.c_void_p]
+            self.lib.oniDeviceClose.restype = ctypes.c_int
+
+            self.lib.oniDeviceCreateStream.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_int,
+                ctypes.POINTER(ctypes.c_void_p)
+            ]
+            self.lib.oniDeviceCreateStream.restype = ctypes.c_int
+
+            # 流API
+            self.lib.oniStreamDestroy.argtypes = [ctypes.c_void_p]
+            self.lib.oniStreamDestroy.restype = None
+
+            self.lib.oniStreamStart.argtypes = [ctypes.c_void_p]
+            self.lib.oniStreamStart.restype = ctypes.c_int
+
+            self.lib.oniStreamStop.argtypes = [ctypes.c_void_p]
+            self.lib.oniStreamStop.restype = None
+
+            self.lib.oniStreamReadFrame.argtypes = [
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.POINTER(self.OniFrame))
+            ]
+            self.lib.oniStreamReadFrame.restype = ctypes.c_int
+
+            # 帧API
+            self.lib.oniFrameAddRef.argtypes = [ctypes.POINTER(self.OniFrame)]
+            self.lib.oniFrameAddRef.restype = None
+
+            self.lib.oniFrameRelease.argtypes = [ctypes.POINTER(self.OniFrame)]
+            self.lib.oniFrameRelease.restype = None
+
+            print("✅ OpenNI C API函数原型定义完成")
+
+        except AttributeError as e:
+            print(f"⚠️ 定义函数原型时出错: {e}")
+
+    def initialize(self):
+        """初始化OpenNI"""
+        if not self.lib:
+            return False
+
+        print("初始化OpenNI...")
+        status = self.lib.oniInitialize(self.ONI_API_VERSION)
+        if status != self.ONI_STATUS_OK:
+            print(f"❌ 初始化失败，错误码: {status}")
+            return False
+
+        print("✅ OpenNI初始化成功")
+        return True
+
+    def get_device_list(self):
+        """获取设备列表"""
+        if not self.lib:
+            return False
+
+        devices_ptr = ctypes.POINTER(self.OniDeviceInfo)()
+        device_count = ctypes.c_int(0)
+
+        status = self.lib.oniGetDeviceList(ctypes.byref(devices_ptr), ctypes.byref(device_count))
+        if status != self.ONI_STATUS_OK:
+            print(f"❌ 获取设备列表失败，错误码: {status}")
+            return False
+
+        print(f"发现 {device_count.value} 台设备:")
+        for i in range(device_count.value):
+            device_info = devices_ptr[i]
+            name = device_info.name.decode('utf-8', errors='ignore').rstrip('\x00')
+            vendor = device_info.vendor.decode('utf-8', errors='ignore').rstrip('\x00')
+            print(f"  [{i}] {name} ({vendor})")
+
+        # 释放设备列表
+        self.lib.oniReleaseDeviceList(devices_ptr)
+
+        return True
+
+    def open_device(self, device_index=0):
+        """打开设备"""
+        if not self.lib:
+            return False
+
+        # 获取设备列表
+        devices_ptr = ctypes.POINTER(self.OniDeviceInfo)()
+        device_count = ctypes.c_int(0)
+
+        status = self.lib.oniGetDeviceList(ctypes.byref(devices_ptr), ctypes.byref(device_count))
+        if status != self.ONI_STATUS_OK or device_count.value == 0:
+            print("❌ 没有可用设备，尝试打开默认设备...")
+            uri = None
+        else:
+            if device_index >= device_count.value:
+                print(f"❌ 设备索引 {device_index} 超出范围")
+                return False
+            device_info = devices_ptr[device_index]
+            uri = device_info.uri
+            name = device_info.name.decode('utf-8', errors='ignore').rstrip('\x00')
+            print(f"打开设备: {name}")
+
+        # 打开设备
+        device_handle = ctypes.c_void_p()
+        if uri:
+            status = self.lib.oniDeviceOpen(uri, ctypes.byref(device_handle))
+        else:
+            status = self.lib.oniDeviceOpen(None, ctypes.byref(device_handle))
+
+        if status != self.ONI_STATUS_OK:
+            print(f"❌ 打开设备失败，错误码: {status}")
+            if devices_ptr:
+                self.lib.oniReleaseDeviceList(devices_ptr)
+            return False
+
+        self.device_handle = device_handle
+        print(f"✅ 设备打开成功")
+
+        # 释放设备列表
+        if devices_ptr:
+            self.lib.oniReleaseDeviceList(devices_ptr)
+
+        return True
+
+    def create_stream(self, sensor_type=3):
+        """创建流 (3=深度, 2=彩色)"""
+        if not self.lib or not self.device_handle:
+            print("❌ 设备未打开")
+            return False
+
+        sensor_names = {1: "红外", 2: "彩色", 3: "深度"}
+        print(f"创建 {sensor_names.get(sensor_type, '未知')} 传感器流...")
+
+        stream_handle = ctypes.c_void_p()
+        status = self.lib.oniDeviceCreateStream(
+            self.device_handle,
+            sensor_type,
+            ctypes.byref(stream_handle)
+        )
+
+        if status != self.ONI_STATUS_OK:
+            print(f"❌ 创建流失败，错误码: {status}")
+            return False
+
+        if sensor_type == self.ONI_SENSOR_DEPTH:
+            self.depth_stream_handle = stream_handle
+        elif sensor_type == self.ONI_SENSOR_COLOR:
+            self.color_stream_handle = stream_handle
+
+        print(f"✅ 流创建成功")
+        return True
+
+    def start_stream(self, stream_handle=None):
+        """启动流"""
+        if stream_handle is None:
+            stream_handle = self.depth_stream_handle
+
+        if not self.lib or not stream_handle:
+            print("❌ 流句柄无效")
+            return False
+
+        status = self.lib.oniStreamStart(stream_handle)
+        if status != self.ONI_STATUS_OK:
+            print(f"❌ 启动流失败，错误码: {status}")
+            return False
+
+        print("✅ 流启动成功")
+        return True
+
+    def read_depth_frame(self, timeout=1000):
+        """读取深度帧"""
+        if not self.lib or not self.depth_stream_handle:
+            print("❌ 深度流未就绪")
+            return None
+
+        frame_ptr = ctypes.POINTER(self.OniFrame)()
+        status = self.lib.oniStreamReadFrame(self.depth_stream_handle, ctypes.byref(frame_ptr))
+
+        if status != self.ONI_STATUS_OK:
+            if status == 7:  # ONI_STATUS_TIME_OUT
+                print("⚠️  读取帧超时")
+            else:
+                print(f"❌ 读取帧失败，错误码: {status}")
+            return None
+
+        frame = frame_ptr.contents
+
+        # 检查像素格式
+        if frame.videoMode.pixelFormat != self.ONI_PIXEL_FORMAT_DEPTH_1_MM:
+            print(f"⚠️  不支持的像素格式: {frame.videoMode.pixelFormat}")
+            self.lib.oniFrameRelease(frame_ptr)
+            return None
+
+        # 获取深度数据 (单位: mm)
+        depth_data = ctypes.string_at(frame.data, frame.dataSize)
+        depth_array = np.frombuffer(depth_data, dtype=np.uint16).reshape(frame.height, frame.width)
+
+        # 增加引用计数
+        self.lib.oniFrameAddRef(frame_ptr)
+
+        frame_info = {
+            'data': depth_array,
+            'width': frame.width,
+            'height': frame.height,
+            'timestamp': frame.timestamp,
+            'frame_index': frame.frameIndex,
+            'frame_ptr': frame_ptr
+        }
+
+        return frame_info
+
+    def release_frame(self, frame_info):
+        """释放帧资源"""
+        if frame_info and 'frame_ptr' in frame_info:
+            self.lib.oniFrameRelease(frame_info['frame_ptr'])
+
+    def stop_stream(self, stream_handle=None):
+        """停止流"""
+        if stream_handle is None:
+            stream_handle = self.depth_stream_handle
+
+        if self.lib and stream_handle:
+            self.lib.oniStreamStop(stream_handle)
+            print("✅ 流已停止")
+
+    def destroy_stream(self, stream_handle=None):
+        """销毁流"""
+        if stream_handle is None:
+            stream_handle = self.depth_stream_handle
+
+        if self.lib and stream_handle:
+            self.lib.oniStreamDestroy(stream_handle)
+            if stream_handle == self.depth_stream_handle:
+                self.depth_stream_handle = None
+            elif stream_handle == self.color_stream_handle:
+                self.color_stream_handle = None
+            print("✅ 流已销毁")
+
+    def close_device(self):
+        """关闭设备"""
+        if self.lib and self.device_handle:
+            self.lib.oniDeviceClose(self.device_handle)
+            self.device_handle = None
+            print("✅ 设备已关闭")
+
+    def shutdown(self):
+        """关闭OpenNI"""
+        if self.lib:
+            self.lib.oniShutdown()
+            print("✅ OpenNI已关闭")
+
+    def cleanup(self):
+        """完整清理所有资源"""
+        print("\n执行OpenNI资源清理...")
+
+        # 停止并销毁深度流
+        if self.depth_stream_handle:
+            self.stop_stream(self.depth_stream_handle)
+            self.destroy_stream(self.depth_stream_handle)
+
+        # 停止并销毁彩色流
+        if self.color_stream_handle:
+            self.stop_stream(self.color_stream_handle)
+            self.destroy_stream(self.color_stream_handle)
+
+        # 关闭设备
+        self.close_device()
+
+        # 关闭OpenNI
+        self.shutdown()
+
+        print("✅ 所有OpenNI资源已清理")
+
+
+# ============================================================
+# 彩色3D重建器 (使用FixedOpenNICAPI)
+# ============================================================
 
 class Color3DReconstructor:
-    """彩色3D重建器 - 专注于彩色模型导出"""
+    """彩色3D重建器 - 基于OpenNI C API的修复版本"""
 
     def __init__(self, driver_path=""):
         self.driver_path = driver_path
 
-        if not OPENNI2_AVAILABLE:
-            print("❌ OpenNI2不可用，无法使用相机功能")
-            return
-
-        # 相机相关资源
-        self.device = None
-        self.depth_stream = None
+        # 使用修复后的OpenNI C API
+        self.openni = FixedOpenNICAPI(driver_path)
         self.camera_initialized = False
         self.frame_counter = 0
 
@@ -98,47 +490,43 @@ class Color3DReconstructor:
         self.iteration = 0
         self.mesh_count = 0
 
-        print("🎨 彩色3D重建器初始化完成")
+        print("🎨 彩色3D重建器初始化完成 (使用OpenNI C API)")
         print("   专为彩色模型导出优化")
 
     def setup_camera(self):
-        """设置相机"""
-        if not OPENNI2_AVAILABLE:
-            return False
-
+        """设置相机 - 使用OpenNI C API"""
         print("=" * 50)
-        print("设置相机")
+        print("设置相机 (使用OpenNI C API)")
         print("=" * 50)
 
         try:
-            # 清理之前的资源
-            if self.depth_stream:
-                try:
-                    self.depth_stream.stop()
-                except:
-                    pass
+            # 1. 初始化OpenNI
+            if not self.openni.initialize():
+                print("❌ OpenNI初始化失败")
+                return False
 
-            if self.device:
-                try:
-                    self.device.close()
-                except:
-                    pass
+            # 2. 获取设备列表
+            self.openni.get_device_list()
 
-            # 初始化OpenNI2
-            if self.driver_path and os.path.exists(self.driver_path):
-                openni2.initialize(self.driver_path)
-            else:
-                openni2.initialize()
+            # 3. 打开设备 (使用第一个设备)
+            if not self.openni.open_device(device_index=0):
+                print("❌ 打开设备失败")
+                return False
 
-            # 打开设备
-            self.device = openni2.Device.open_any()
+            # 4. 创建深度流
+            if not self.openni.create_stream(self.openni.ONI_SENSOR_DEPTH):
+                print("❌ 创建深度流失败")
+                self.openni.cleanup()
+                return False
 
-            # 只启动深度流
-            self.depth_stream = self.device.create_depth_stream()
-            self.depth_stream.start()
-            print("✅ 深度流已启动")
+            # 5. 启动深度流
+            if not self.openni.start_stream():
+                print("❌ 启动深度流失败")
+                self.openni.destroy_stream()
+                self.openni.close_device()
+                return False
 
-            # 设置RGB摄像头
+            # 6. 设置RGB摄像头 (保持不变)
             print("设置RGB摄像头...")
             self.cv_camera = cv2.VideoCapture(self.params['camera_index'])
 
@@ -170,86 +558,70 @@ class Color3DReconstructor:
 
         except Exception as e:
             print(f"❌ 相机设置失败: {e}")
+            traceback.print_exc()
             return False
 
     def cleanup(self):
         """清理资源"""
+        print("\n清理所有资源...")
         try:
+            # 清理OpenNI资源
+            if hasattr(self, 'openni') and self.openni:
+                self.openni.cleanup()
+
+            # 清理OpenCV摄像头
             if self.cv_camera:
                 self.cv_camera.release()
+                print("✅ OpenCV摄像头已释放")
 
-            if self.depth_stream:
-                try:
-                    self.depth_stream.stop()
-                except:
-                    pass
+            # 清理Open3D资源
+            self.tsdf_volume = None
 
-            if self.device:
-                try:
-                    self.device.close()
-                except:
-                    pass
+            # 强制垃圾回收
+            gc.collect()
 
             self.camera_initialized = False
+            print("✅ 所有资源已清理")
 
         except Exception as e:
             print(f"⚠️ 清理资源时出错: {e}")
 
-    def init_tsdf(self):
-        """初始化TSDF体积"""
-        print("初始化TSDF体积...")
-
-        try:
-            # 使用支持颜色的TSDF
-            self.tsdf_volume = o3d.pipelines.integration.ScalableTSDFVolume(
-                voxel_length=self.params['tsdf_voxel_length'],
-                sdf_trunc=self.params['tsdf_sdf_trunc'],
-                color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8
-            )
-
-            print(f"✅ TSDF体积初始化完成")
-            print(f"   体素大小: {self.params['tsdf_voxel_length']}米")
-            return True
-
-        except Exception as e:
-            print(f"❌ TSDF初始化失败: {e}")
-            return False
-
     def capture_frames(self):
-        """采集深度和颜色帧 - 修复版本"""
-        depth_frame = None
+        """采集深度和颜色帧 - 使用OpenNI C API"""
         try:
-            # 采集深度
-            depth_frame = self.depth_stream.read_frame()
+            # 采集深度帧
+            frame_info = self.openni.read_depth_frame(timeout=1000)
+            if not frame_info:
+                print("⚠️  深度帧读取失败")
+                return None, None
 
-            # !!! 关键修复：立即复制数据，然后解除帧引用 !!!
-            depth_data = depth_frame.get_buffer_as_uint16()
-            # 使用copy()确保数据独立于原始缓冲区
-            depth = np.frombuffer(depth_data, dtype=np.uint16).copy().reshape(480, 640)
-            depth = depth.astype(np.float32) * self.params['depth_scale']
+            # 深度数据单位转换: mm -> m
+            depth_mm = frame_info['data'].astype(np.float32)
+            depth = depth_mm * 0.001  # 转换为米
 
-            # !!! 立即解除对原始帧的引用，帮助垃圾回收 !!!
-            del depth_data
-            # 注意：OpenNI2的frame对象没有显式release()方法
-            # 但减少引用计数可以帮助底层释放
+            # ⭐ 关键：必须释放帧资源！
+            self.openni.release_frame(frame_info)
 
-            # 采集颜色...
+            # 采集颜色帧
             color = None
             if self.cv_camera_initialized:
                 ret, frame = self.cv_camera.read()
                 if ret and frame is not None:
-                    color = frame.copy()  # 也使用copy()
+                    # 调整大小以匹配深度
+                    if frame.shape[:2] != (480, 640):
+                        frame = cv2.resize(frame, (640, 480))
+                    color = frame.copy()
+
+                    # 颜色增强
+                    if self.params['color_enhance']:
+                        color = self.enhance_color(color)
 
             self.frame_counter += 1
             return depth, color
 
         except Exception as e:
             print(f"❌ 帧采集失败: {e}")
-            # 确保在异常情况下也尝试清理
             return None, None
-        finally:
-            # 虽然没有显式release，但确保变量作用域结束
-            depth_frame = None
 
     def enhance_color(self, image):
         """增强颜色"""
@@ -289,14 +661,35 @@ class Color3DReconstructor:
 
         return depth_processed
 
+    def init_tsdf(self):
+        """初始化TSDF体积"""
+        print("初始化TSDF体积...")
+
+        try:
+            # 使用支持颜色的TSDF
+            self.tsdf_volume = o3d.pipelines.integration.ScalableTSDFVolume(
+                voxel_length=self.params['tsdf_voxel_length'],
+                sdf_trunc=self.params['tsdf_sdf_trunc'],
+                color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8
+            )
+
+            print(f"✅ TSDF体积初始化完成")
+            print(f"   体素大小: {self.params['tsdf_voxel_length']}米")
+            return True
+
+        except Exception as e:
+            print(f"❌ TSDF初始化失败: {e}")
+            return False
+
     def fuse_frame(self, depth, color):
         """融合一帧"""
         if depth is None:
             return False
 
         try:
-            # 创建深度图像
-            depth_image = o3d.geometry.Image((depth * 1000).astype(np.uint16))
+            # 创建深度图像 (单位: mm)
+            depth_mm = (depth * 1000).astype(np.uint16)
+            depth_image = o3d.geometry.Image(depth_mm)
 
             # 创建颜色图像
             if color is not None:
@@ -505,7 +898,7 @@ class Color3DReconstructor:
     def run_color_reconstruction(self):
         """运行彩色重建"""
         print("=" * 70)
-        print("奥比中光Astra相机 - 彩色3D重建")
+        print("奥比中光Astra相机 - 彩色3D重建 (OpenNI C API版本)")
         print("专门导出带颜色的3D模型")
         print("=" * 70)
 
@@ -520,11 +913,6 @@ class Color3DReconstructor:
         config_file = os.path.join(self.output_dir, "config.json")
         with open(config_file, 'w', encoding='utf-8') as f:
             json.dump(self.params, f, indent=2, ensure_ascii=False)
-
-        # 检查OpenNI2
-        if not OPENNI2_AVAILABLE:
-            print("❌ OpenNI2不可用")
-            return False
 
         # 设置相机
         if not self.setup_camera():
@@ -573,7 +961,7 @@ class Color3DReconstructor:
                     print("✅ 帧融合成功")
 
                     # 保存中间结果
-                    if self.params['save_intermediate']:
+                    if self.params['save_intermediate'] and (i % 2 == 0 or i == self.params['max_iterations'] - 1):
                         mesh = self.extract_color_mesh()
                         if mesh is not None:
                             print(f"💾 保存中间模型 ({len(mesh.vertices)}顶点)...")
@@ -581,7 +969,8 @@ class Color3DReconstructor:
                             del mesh
 
                     # 保存图像
-                    self.save_frame_images(self.iteration, depth, color_raw)
+                    if self.params['save_every_frame']:
+                        self.save_frame_images(self.iteration, depth, color_raw)
 
                     # 进度显示
                     elapsed = time.time() - start_time
@@ -746,10 +1135,12 @@ class Color3DReconstructor:
         except Exception as e:
             print(f"⚠️ 生成报告失败: {e}")
 
+
 def main():
     """主函数"""
     print("=" * 70)
     print("奥比中光Astra相机彩色3D重建系统")
+    print("基于OpenNI C API修复版本 - 解决0xC0000374堆损坏问题")
     print("专门导出带颜色的3D模型 - PLY/OBJ/STL格式")
     print("=" * 70)
 
@@ -805,9 +1196,15 @@ def main():
     print("1. PLY格式在MeshLab中打开可查看颜色")
     print("2. 确保重建对象光照充足")
     print("3. 相机与对象距离建议0.3-2米")
+    print("4. 此版本使用OpenNI C API，已解决堆损坏问题")
     print("=" * 70)
 
     input("\n按Enter键退出...")
 
+
 if __name__ == "__main__":
+    # 设置环境变量
+    os.environ['PATH'] = r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs\OpenNI2\Drivers" + ';' + \
+                         os.environ['PATH']
+
     main()
