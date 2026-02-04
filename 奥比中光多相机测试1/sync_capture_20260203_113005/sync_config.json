@@ -1,0 +1,15 @@
+{
+  "resolution": [
+    640,
+    480
+  ],
+  "fps": 30,
+  "codec": "MJPG",
+  "capture_duration": 30,
+  "save_mode": "burst",
+  "save_every_n_frames": 30,
+  "burst_size": 3,
+  "output_dir": "sync_capture_20260203_113005",
+  "enable_exposure_control": true,
+  "target_brightness": 120
+}

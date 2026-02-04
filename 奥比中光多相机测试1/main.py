@@ -23,8 +23,8 @@ class HighFPSMultiCameraSystem:
 
         # 基于高带宽测试的优化配置
         self.config = {
-            'resolution': (640, 480),   # 使用640x480，平衡质量和速度
-            'fps': 30,                   # 目标帧率
+            'resolution': (320, 240),   # 使用640x480，平衡质量和速度
+            'fps': 60,                   # 目标帧率
             'codec': 'MJPG',            # MJPG压缩
             'capture_duration': 30,     # 采集时长
             'save_mode': 'burst',       # 突发保存模式
@@ -71,6 +71,7 @@ class HighFPSMultiCameraSystem:
             cap.set(cv2.CAP_PROP_FPS, self.config['fps'])
 
             # 4. 曝光控制（如果启用）
+            '''
             if self.config['enable_exposure_control']:
                 # 尝试设置自动曝光
                 try:
@@ -79,7 +80,7 @@ class HighFPSMultiCameraSystem:
                     cap.set(cv2.CAP_PROP_EXPOSURE, -6)      # 负值=自动，正值=手动值
                 except:
                     print(f"  ⚠️ 相机 #{index} 曝光控制不支持")
-
+            '''
             # 5. 其他优化设置
             try:
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区大小，降低延迟
