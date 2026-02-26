@@ -1,0 +1,57 @@
+三相机联动重建系统 - STL模型生成报告
+============================================================
+
+重建时间: 2026-02-06 12:35:35
+输出目录: C:\Users\Bobby2003\Desktop\end\Graduation-Project\奥比中光多相机测试7\tri_camera_stl_20260206_123502
+
+STL生成配置:
+  格式: STL (Binary: True)
+  缩放因子: 1000.0
+  Poisson重建深度: 9
+  填充孔洞: True
+  确保流形: True
+
+数据采集统计:
+  LEFT: 15 帧深度数据
+  CENTER: 15 帧深度数据
+  RIGHT: 15 帧深度数据
+
+点云统计:
+  融合点云点数: 91981
+
+STL模型信息:
+  网格顶点数: 50863
+  网格面片数: 99970
+  模型尺寸: 2078.533 x 1241.385 x 936.871 米
+
+生成的文件:
+  stl_models/reconstructed_model.stl     - 主STL模型文件
+  stl_models/reconstructed_model.ply     - PLY备份文件
+  stl_visualizations/                   - STL模型可视化截图
+  pointclouds/                          - 单个相机点云
+  fused_results/                        - 融合点云
+  captured_images/                      - 采集的原始图像
+
+STL使用说明:
+1. STL文件是标准的3D打印格式，可用于:
+   - 3D打印 (FDM/SLA)
+   - CNC加工
+   - 3D建模软件导入
+2. 推荐的软件:
+   - Ultimaker Cura (3D打印切片)
+   - PrusaSlicer (3D打印切片)
+   - MeshLab (查看和修复)
+   - Blender (编辑)
+3. 如果STL有问题，可尝试:
+   - 使用MeshLab修复
+   - 使用在线STL修复工具
+   - 尝试生成的PLY文件
+
+问题诊断:
+
+改进建议:
+1. 确保重建对象在所有相机视野内
+2. 保持相机稳定，避免震动
+3. 使用适当的照明条件
+4. 对于复杂对象，增加采集帧数
+5. 调整深度范围参数以获得更好结果

@@ -1,0 +1,46 @@
+============================================================
+奥比中光Astra相机 - 彩色3D重建报告
+============================================================
+
+重建时间: 2026-02-11 23:45:06
+处理帧数: 10
+输出模型: 7个
+输出目录: color_3d_reconstruction_20260211_234444
+
+重建参数:
+  depth_scale: 0.001
+  depth_clip_min: 0.6
+  depth_clip_max: 8.0
+  tsdf_voxel_length: 0.008
+  tsdf_sdf_trunc: 0.04
+  max_iterations: 10
+  frame_interval: 0.5
+  camera_index: 0
+  camera_width: 640
+  camera_height: 480
+  camera_fps: 15
+  color_enhance: True
+  color_contrast: 1.2
+  color_brightness: 10
+  mesh_simplify: True
+  target_vertices: 20000
+  smooth_mesh: True
+  smooth_iterations: 1
+  export_ply: True
+  export_obj: True
+  export_stl: True
+  export_glb: False
+  save_every_frame: True
+  save_intermediate: True
+
+导出格式:
+  PLY格式: ✓ (推荐，带颜色)
+  OBJ格式: ✓ (带顶点颜色)
+  STL格式: ✓ (仅几何)
+  GLB格式: ✗ (带颜色和纹理)
+
+📋 使用说明:
+1. PLY文件: 在MeshLab、Blender、3D Viewer中打开查看颜色
+2. OBJ文件: 在支持顶点颜色的软件中查看颜色
+3. STL文件: 仅包含几何，适用于3D打印
+4. 所有文件保存在 'final_models' 文件夹中

@@ -1,0 +1,21 @@
+{
+  "calibration_frames": 5,
+  "min_matches": 20,
+  "capture_frames": 20,
+  "capture_interval": 0.5,
+  "depth_min": 0.3,
+  "depth_max": 3.0,
+  "voxel_size": 0.005,
+  "remove_outliers": true,
+  "registration_method": "feature_based",
+  "icp_threshold": 0.02,
+  "fusion_method": "voxel_average",
+  "save_calibration_images": true,
+  "save_pointclouds": true,
+  "save_mesh": true,
+  "export_formats": [
+    "ply",
+    "stl",
+    "obj"
+  ]
+}

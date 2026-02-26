@@ -1,0 +1,26 @@
+{
+  "capture_count": 30,
+  "capture_interval": 0.3,
+  "depth_scale": 0.001,
+  "depth_clip_min": 0.3,
+  "depth_clip_max": 4.0,
+  "voxel_size": 0.005,
+  "remove_outlier": true,
+  "outlier_neighbors": 20,
+  "outlier_std_ratio": 2.0,
+  "fuse_pointclouds": true,
+  "use_overlap_removal": true,
+  "overlap_threshold": 0.005,
+  "create_mesh": true,
+  "poisson_depth": 9,
+  "mesh_simplify": true,
+  "target_faces": 50000,
+  "export_formats": [
+    "ply",
+    "stl",
+    "obj"
+  ],
+  "save_calibration": true,
+  "save_match_images": true,
+  "save_preview_images": true
+}
