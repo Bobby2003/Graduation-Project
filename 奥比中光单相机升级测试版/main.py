@@ -55,7 +55,7 @@ class Depth3DVisualizer:
 
                 # --- 核心逻辑：深度转 3D ---
                 # 过滤无效像素 (0) 和 离太远的背景 (3000+)
-                mask = (depth_raw > 100) & (depth_raw < 8000)
+                mask = (depth_raw > 100) & (depth_raw < 3000)
                 z = depth_raw[mask].astype(np.float32)
 
                 # 单位转换：将毫米(mm)转换为米(m)
