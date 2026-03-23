@@ -1,0 +1,24 @@
+# ─── 核心数据过滤 ───
+# 过滤掉保存点云的文件夹（只保留文件夹结构，不保留文件）
+xmjx modeling/pointcloud/*.ply
+xmjx modeling/model/*.obj
+
+# ─── Python 相关 ───
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+
+# ─── IDE & 编辑器 ───
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── 操作系统 ───
+.DS_Store
+Thumbs.db

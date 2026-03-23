@@ -837,7 +837,7 @@ def main():
 
 if __name__ == "__main__":
     # 设置环境变量
-    default_sdk_path = r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs"
+    default_sdk_path = r"H:\School assessment\Design\奥比中光Win64-Release\sdk\libs"
     if os.path.exists(default_sdk_path):
         drivers_dir = os.path.join(default_sdk_path, "OpenNI2", "Drivers")
         if os.path.exists(drivers_dir):
