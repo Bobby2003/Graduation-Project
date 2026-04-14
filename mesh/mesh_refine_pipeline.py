@@ -1,22 +1,21 @@
-import os, json, argparse
-from collections import defaultdict, deque
-from multiprocessing import get_context, cpu_count
+import os
+import json
+import time
+import argparse
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 
 import numpy as np
 import trimesh
 
 try:
     import scipy.sparse as sp
+    from scipy.sparse.csgraph import connected_components as sp_connected_components
     SCIPY_AVAILABLE = True
 except Exception:
     sp = None
+    sp_connected_components = None
     SCIPY_AVAILABLE = False
-
-_WORKER_STATE = {}
-
-def _init_refine_worker(state):
-    global _WORKER_STATE
-    _WORKER_STATE = state
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
@@ -31,17 +30,20 @@ def parse_vec3(s):
 
 def robust_sigma(x):
     x = np.asarray(x, dtype=np.float64)
-    if len(x) == 0:
+    if x.size == 0:
         return 0.0
     med = np.median(x)
     mad = np.median(np.abs(x - med)) + 1e-12
     return float(1.4826 * mad)
 
-def mesh_report(mesh):
-    try:
-        comps = len(list(mesh.split(only_watertight=False)))
-    except Exception:
-        comps = None
+def mesh_report(mesh, include_components=False):
+    comps = None
+    if include_components:
+        try:
+            comps = len(list(mesh.split(only_watertight=False)))
+        except Exception:
+            comps = None
+
     return {
         "vertices": int(len(mesh.vertices)),
         "faces": int(len(mesh.faces)),
@@ -52,35 +54,44 @@ def mesh_report(mesh):
     }
 
 def load_mesh(path):
-    obj = trimesh.load(path, force="mesh")
+    obj = trimesh.load(path, force="mesh", process=False, maintain_order=True)
+
     if isinstance(obj, trimesh.Scene):
         meshes = [g for g in obj.geometry.values() if isinstance(g, trimesh.Trimesh)]
         if not meshes:
             raise ValueError("Scene 中没有可用网格")
         obj = trimesh.util.concatenate(meshes)
+
     if not isinstance(obj, trimesh.Trimesh) or len(obj.vertices) == 0 or len(obj.faces) == 0:
         raise ValueError("无效或空网格")
+
     return obj
 
-def clean_mesh(mesh):
+def clean_mesh(mesh, final=False):
     mesh = mesh.copy()
-    for fn in ["remove_duplicate_faces", "remove_degenerate_faces", "remove_unreferenced_vertices", "remove_infinite_values"]:
+
+    for fn in [
+        "remove_duplicate_faces",
+        "remove_degenerate_faces",
+        "remove_unreferenced_vertices",
+        "remove_infinite_values",
+    ]:
         try:
             getattr(mesh, fn)()
         except Exception:
             pass
+
     try:
         mesh.merge_vertices()
     except Exception:
         pass
-    try:
-        mesh.process(validate=True)
-    except Exception:
-        pass
-    try:
-        trimesh.repair.fix_normals(mesh)
-    except Exception:
-        pass
+
+    if final:
+        try:
+            trimesh.repair.fix_normals(mesh)
+        except Exception:
+            pass
+
     return mesh
 
 def split_components(mesh):
@@ -89,78 +100,14 @@ def split_components(mesh):
     except TypeError:
         return list(mesh.split())
 
-def filter_components(mesh, min_faces=80, min_area=0.0015, min_extent=0.04, keep_top_k=20):
-    comps = split_components(mesh)
-    if not comps:
-        return mesh
-    stats = []
-    for i, c in enumerate(comps):
-        ext = c.bounding_box.extents if len(c.vertices) else np.zeros(3)
-        stats.append((i, len(c.faces), float(c.area), float(np.max(ext))))
-    keep = {i for i, f, a, e in stats if f >= min_faces and a >= min_area and e >= min_extent}
-    for i, *_ in sorted(stats, key=lambda x: x[1], reverse=True)[:keep_top_k]:
-        keep.add(i)
-    kept = [comps[i] for i in sorted(keep)] or [max(comps, key=lambda x: len(x.faces))]
-    out = trimesh.util.concatenate(kept)
-    try:
-        out.remove_unreferenced_vertices()
-    except Exception:
-        pass
-    return out
-
-def make_cache(mesh):
-    return {
-        "vertices": np.asarray(mesh.vertices, dtype=np.float64),
-        "faces": np.asarray(mesh.faces, dtype=np.int32),
-        "face_normals": np.asarray(mesh.face_normals, dtype=np.float64),
-        "tri_centers": np.asarray(mesh.triangles_center, dtype=np.float64),
-        "face_areas": np.asarray(mesh.area_faces, dtype=np.float64),
-        "bbox_diag": float(np.linalg.norm(mesh.bounding_box.extents)) + 1e-12,
-    }
-
 def abs_normal_dot(normals, normal):
     return np.clip(np.abs(np.asarray(normals, dtype=np.float64) @ np.asarray(normal, dtype=np.float64)), 0.0, 1.0)
 
-def face_graph(mesh):
-    g = defaultdict(list)
-    adj = mesh.face_adjacency
-    if adj is not None:
-        for a, b in adj:
-            a, b = int(a), int(b)
-            g[a].append(b)
-            g[b].append(a)
-    return g
-
-def vertex_graph(mesh):
-    vg = [set() for _ in range(len(mesh.vertices))]
-    for a, b, c in np.asarray(mesh.faces):
-        a, b, c = int(a), int(b), int(c)
-        vg[a].update((b, c))
-        vg[b].update((a, c))
-        vg[c].update((a, b))
-    return [np.fromiter(sorted(x), dtype=np.int32) if x else np.empty(0, dtype=np.int32) for x in vg]
-
-def connected_groups(ids, graph):
-    ids = set(ids.tolist() if isinstance(ids, np.ndarray) else ids)
-    vis, groups = set(), []
-    for s in ids:
-        if s in vis:
-            continue
-        q = deque([s])
-        vis.add(s)
-        group = [s]
-        while q:
-            u = q.popleft()
-            for v in graph.get(u, []):
-                if v in ids and v not in vis:
-                    vis.add(v)
-                    q.append(v)
-                    group.append(v)
-        groups.append(np.array(group, dtype=np.int32))
-    return groups
-
 def weighted_pca(points, weights=None):
     p = np.asarray(points, dtype=np.float64)
+    if len(p) == 0:
+        return np.zeros(3), np.array([0.0, 0.0, 1.0]), np.zeros(3)
+
     w = np.ones(len(p), dtype=np.float64) if weights is None else np.asarray(weights, dtype=np.float64)
     sw = np.sum(w) + 1e-12
     c = np.sum(p * w[:, None], axis=0) / sw
@@ -168,12 +115,18 @@ def weighted_pca(points, weights=None):
     cov = (x.T @ x) / sw
     vals, vecs = np.linalg.eigh(cov)
     n = vecs[:, 0]
-    return c, n / (np.linalg.norm(n) + 1e-12), vals
+    n = n / (np.linalg.norm(n) + 1e-12)
+    return c, n, vals
 
-def robust_plane(points, weights=None, iters=8, huber_k=1.5):
+def robust_plane(points, weights=None, iters=6, huber_k=1.5):
     p = np.asarray(points, dtype=np.float64)
+    if len(p) == 0:
+        return np.zeros(3), np.array([0.0, 0.0, 1.0], dtype=np.float64)
+
     w = np.ones(len(p), dtype=np.float64) if weights is None else np.asarray(weights, dtype=np.float64).copy()
-    c, n = p.mean(axis=0), np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    c = p.mean(axis=0)
+    n = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+
     for _ in range(iters):
         c, n, _ = weighted_pca(p, w)
         d = np.dot(p - c, n)
@@ -182,15 +135,192 @@ def robust_plane(points, weights=None, iters=8, huber_k=1.5):
         w = np.where(r <= 1.0, w, w / (r + 1e-12))
     return c, n
 
+def dist_cfg(plane_dist, bbox_diag, near_ratio=0.25, far_ratio=0.50):
+    r = plane_dist / (bbox_diag + 1e-12)
+    if r <= near_ratio:
+        return dict(stage="near", snap=1.00, inlier=0.85, outlier=1.00, shrink=0.70, smooth=1.20, noise=1.00, detect_dist=1.00, detect_ang=1.00)
+    if r <= far_ratio:
+        return dict(stage="mid", snap=1.10, inlier=1.05, outlier=1.45, shrink=0.42, smooth=1.80, noise=1.35, detect_dist=1.20, detect_ang=1.12)
+    return dict(stage="far", snap=1.22, inlier=1.35, outlier=2.40, shrink=0.12, smooth=2.80, noise=2.10, detect_dist=1.65, detect_ang=1.35)
+
+def make_sparse_graph_from_pairs(num_nodes, pairs):
+    if not SCIPY_AVAILABLE:
+        return None
+    if pairs is None or len(pairs) == 0:
+        return sp.csr_matrix((num_nodes, num_nodes), dtype=np.uint8)
+
+    pairs = np.asarray(pairs, dtype=np.int32)
+    rows = np.concatenate([pairs[:, 0], pairs[:, 1]])
+    cols = np.concatenate([pairs[:, 1], pairs[:, 0]])
+    data = np.ones(len(rows), dtype=np.uint8)
+    g = sp.csr_matrix((data, (rows, cols)), shape=(num_nodes, num_nodes), dtype=np.uint8)
+    g.sum_duplicates()
+    g.data[:] = 1
+    return g
+
+def build_vertex_adjacency_sparse(num_vertices, faces):
+    if not SCIPY_AVAILABLE:
+        return None
+
+    f = np.asarray(faces, dtype=np.int32)
+    rows = np.concatenate([f[:, 0], f[:, 1], f[:, 1], f[:, 2], f[:, 2], f[:, 0]])
+    cols = np.concatenate([f[:, 1], f[:, 0], f[:, 2], f[:, 1], f[:, 0], f[:, 2]])
+    data = np.ones(len(rows), dtype=np.uint8)
+    g = sp.csr_matrix((data, (rows, cols)), shape=(num_vertices, num_vertices), dtype=np.uint8)
+    g.sum_duplicates()
+    g.data[:] = 1
+    return g
+
+def boundary_vertices(mesh):
+    try:
+        e = np.sort(mesh.edges_sorted, axis=1)
+        ue, cnt = np.unique(e, axis=0, return_counts=True)
+        return ue[cnt == 1].reshape(-1)
+    except Exception:
+        return np.empty(0, dtype=np.int32)
+
+def connected_face_labels(mesh):
+    n_faces = len(mesh.faces)
+    if n_faces == 0:
+        return np.empty(0, dtype=np.int32), 0
+
+    if not SCIPY_AVAILABLE:
+        comps = split_components(mesh)
+        labels = np.empty(n_faces, dtype=np.int32)
+        offset = 0
+        for i, c in enumerate(comps):
+            n = len(c.faces)
+            labels[offset:offset + n] = i
+            offset += n
+        return labels, len(comps)
+
+    face_adj = np.asarray(mesh.face_adjacency, dtype=np.int32)
+    if face_adj.size == 0:
+        labels = np.arange(n_faces, dtype=np.int32)
+        return labels, n_faces
+
+    rows = np.concatenate([face_adj[:, 0], face_adj[:, 1]])
+    cols = np.concatenate([face_adj[:, 1], face_adj[:, 0]])
+    data = np.ones(len(rows), dtype=np.uint8)
+    graph = sp.csr_matrix((data, (rows, cols)), shape=(n_faces, n_faces), dtype=np.uint8)
+    n_comp, labels = sp_connected_components(graph, directed=False, return_labels=True)
+    return labels.astype(np.int32), int(n_comp)
+
+def submesh_from_face_mask(mesh, face_mask):
+    face_mask = np.asarray(face_mask, dtype=bool)
+    faces_old = np.asarray(mesh.faces, dtype=np.int32)
+    verts_old = np.asarray(mesh.vertices, dtype=np.float64)
+
+    faces_kept = faces_old[face_mask]
+    if len(faces_kept) == 0:
+        return mesh.copy()
+
+    used_vids = np.unique(faces_kept.reshape(-1))
+    new_index = np.full(len(verts_old), -1, dtype=np.int32)
+    new_index[used_vids] = np.arange(len(used_vids), dtype=np.int32)
+
+    verts_new = verts_old[used_vids]
+    faces_new = new_index[faces_kept]
+
+    out = trimesh.Trimesh(vertices=verts_new, faces=faces_new, process=False)
+    try:
+        out.remove_unreferenced_vertices()
+    except Exception:
+        pass
+    return out
+
+def filter_components_fast(mesh, min_faces=80, min_area=0.0015, min_extent=0.04, keep_top_k=20):
+    labels, n_comp = connected_face_labels(mesh)
+    if n_comp <= 1:
+        return mesh
+
+    faces = np.asarray(mesh.faces, dtype=np.int32)
+    verts = np.asarray(mesh.vertices, dtype=np.float64)
+    area_faces = np.asarray(mesh.area_faces, dtype=np.float64)
+
+    face_counts = np.bincount(labels, minlength=n_comp)
+    area_sums = np.bincount(labels, weights=area_faces, minlength=n_comp)
+    max_extents = np.zeros(n_comp, dtype=np.float64)
+
+    for cid in range(n_comp):
+        idx = np.where(labels == cid)[0]
+        if len(idx) == 0:
+            continue
+        vids = np.unique(faces[idx].reshape(-1))
+        pts = verts[vids]
+        ext = pts.max(axis=0) - pts.min(axis=0)
+        max_extents[cid] = float(np.max(ext))
+
+    keep = set(np.where(
+        (face_counts >= min_faces) &
+        (area_sums >= min_area) &
+        (max_extents >= min_extent)
+    )[0].tolist())
+
+    top_ids = np.argsort(-face_counts)[:keep_top_k]
+    keep.update(top_ids.tolist())
+
+    if not keep:
+        keep = {int(np.argmax(face_counts))}
+
+    face_mask = np.isin(labels, list(keep))
+    return submesh_from_face_mask(mesh, face_mask)
+
+def make_cache(mesh):
+    V = np.asarray(mesh.vertices, dtype=np.float64)
+    F = np.asarray(mesh.faces, dtype=np.int32)
+    FN = np.asarray(mesh.face_normals, dtype=np.float64)
+    TC = np.asarray(mesh.triangles_center, dtype=np.float64)
+    FA = np.asarray(mesh.area_faces, dtype=np.float64)
+    bbox_diag = float(np.linalg.norm(mesh.bounding_box.extents)) + 1e-12
+
+    face_adj_pairs = np.asarray(mesh.face_adjacency, dtype=np.int32) if mesh.face_adjacency is not None else np.empty((0, 2), dtype=np.int32)
+    face_adj_csr = make_sparse_graph_from_pairs(len(F), face_adj_pairs) if SCIPY_AVAILABLE else None
+    vert_adj_csr = build_vertex_adjacency_sparse(len(V), F) if SCIPY_AVAILABLE else None
+
+    is_boundary = np.zeros(len(V), dtype=bool)
+    b = boundary_vertices(mesh)
+    if len(b):
+        is_boundary[b] = True
+
+    return {
+        "vertices": V,
+        "faces": F,
+        "face_normals": FN,
+        "tri_centers": TC,
+        "face_areas": FA,
+        "bbox_diag": bbox_diag,
+        "face_adj_pairs": face_adj_pairs,
+        "face_adj_csr": face_adj_csr,
+        "vert_adj_csr": vert_adj_csr,
+        "is_boundary": is_boundary,
+    }
+
+def connected_groups_sparse(ids, csr_graph):
+    ids = np.asarray(ids, dtype=np.int32)
+    if len(ids) == 0:
+        return []
+    if len(ids) == 1:
+        return [ids]
+
+    if SCIPY_AVAILABLE and csr_graph is not None:
+        sub = csr_graph[ids][:, ids]
+        n_comp, labels = sp_connected_components(sub, directed=False, return_labels=True)
+        return [ids[labels == i] for i in range(n_comp)]
+
+    return [ids]
+
 def fit_plane_faces(face_ids, cache):
     face_ids = np.asarray(face_ids, dtype=np.int32)
     centers = cache["tri_centers"][face_ids]
     areas = cache["face_areas"][face_ids]
     normals = cache["face_normals"][face_ids]
+
     c, n = robust_plane(centers, areas)
     dist = np.dot(centers - c, n)
     _, _, vals = weighted_pca(centers, areas)
     dots = abs_normal_dot(normals, n)
+
     return {
         "face_ids": face_ids,
         "centroid": c,
@@ -201,140 +331,166 @@ def fit_plane_faces(face_ids, cache):
         "mean_normal_angle": float(np.degrees(np.mean(np.arccos(np.clip(dots, 0.0, 1.0))))) if len(dots) else 0.0,
     }
 
-def dist_cfg(plane_dist, bbox_diag, near_ratio=0.25, far_ratio=0.50):
-    r = plane_dist / (bbox_diag + 1e-12)
-    if r <= near_ratio:
-        return dict(stage="near", snap=1.00, inlier=0.85, outlier=1.00, shrink=0.70, smooth=1.20, noise=1.00, detect_dist=1.00, detect_ang=1.00)
-    if r <= far_ratio:
-        return dict(stage="mid", snap=1.10, inlier=1.05, outlier=1.45, shrink=0.42, smooth=1.80, noise=1.35, detect_dist=1.20, detect_ang=1.12)
-    return dict(stage="far", snap=1.22, inlier=1.35, outlier=2.40, shrink=0.12, smooth=2.80, noise=2.10, detect_dist=1.65, detect_ang=1.35)
+def initial_patch_labels(cache, angle_thr=22.0):
+    num_faces = len(cache["faces"])
+    face_adj_pairs = cache["face_adj_pairs"]
 
-def initial_patches(cache, adjacency, angle_thr=22.0):
+    if num_faces == 0:
+        return np.empty(0, dtype=np.int32), 0
+
+    if not SCIPY_AVAILABLE or face_adj_pairs is None or len(face_adj_pairs) == 0:
+        labels = np.arange(num_faces, dtype=np.int32)
+        return labels, num_faces
+
     fn = cache["face_normals"]
     cos_thr = np.cos(np.radians(angle_thr))
-    vis = np.zeros(len(fn), dtype=bool)
-    patches = []
-    for seed in range(len(fn)):
-        if vis[seed]:
-            continue
-        vis[seed] = True
-        q = deque([seed])
-        group = [seed]
-        while q:
-            u = q.popleft()
-            nu = fn[u]
-            for v in adjacency.get(u, []):
-                if not vis[v] and abs(np.dot(nu, fn[v])) >= cos_thr:
-                    vis[v] = True
-                    q.append(v)
-                    group.append(v)
-        patches.append(np.array(group, dtype=np.int32))
-    return patches
 
-def split_planes(face_ids, adjacency, cfg, cache, depth=0):
+    dots = np.abs(np.sum(fn[face_adj_pairs[:, 0]] * fn[face_adj_pairs[:, 1]], axis=1))
+    sel = face_adj_pairs[dots >= cos_thr]
+
+    if len(sel) == 0:
+        labels = np.arange(num_faces, dtype=np.int32)
+        return labels, num_faces
+
+    rows = np.concatenate([sel[:, 0], sel[:, 1]])
+    cols = np.concatenate([sel[:, 1], sel[:, 0]])
+    data = np.ones(len(rows), dtype=np.uint8)
+    g = sp.csr_matrix((data, (rows, cols)), shape=(num_faces, num_faces), dtype=np.uint8)
+
+    n_comp, labels = sp_connected_components(g, directed=False, return_labels=True)
+    return labels.astype(np.int32), int(n_comp)
+
+def split_planes(face_ids, cache, cfg, depth=0):
     face_ids = np.asarray(face_ids, dtype=np.int32)
     if len(face_ids) < cfg["min_plane_faces"]:
         return []
+
     plane = fit_plane_faces(face_ids, cache)
     centers = cache["tri_centers"][face_ids]
     normals = cache["face_normals"][face_ids]
+
     d = np.dot(centers - plane["centroid"], plane["normal"])
 
     dc = dict(stage="none", detect_dist=1.0, detect_ang=1.0)
     if cfg["sensor_origin"] is not None and cfg["use_distance_strategy"]:
-        dc = dist_cfg(np.linalg.norm(plane["centroid"] - cfg["sensor_origin"]), cache["bbox_diag"], cfg["near_ratio"], cfg["far_ratio"])
+        dc = dist_cfg(
+            np.linalg.norm(plane["centroid"] - cfg["sensor_origin"]),
+            cache["bbox_diag"],
+            cfg["near_ratio"],
+            cfg["far_ratio"],
+        )
 
-    dist_thr = max(cfg["base_face_plane_dist"] * dc["detect_dist"], cfg["sigma_dist_mult"] * plane["sigma"] * dc["detect_dist"])
+    dist_thr = max(
+        cfg["base_face_plane_dist"] * dc["detect_dist"],
+        cfg["sigma_dist_mult"] * plane["sigma"] * dc["detect_dist"],
+    )
     cos_thr = np.cos(np.radians(cfg["plane_normal_angle_deg"] * dc["detect_ang"]))
     dots = abs_normal_dot(normals, plane["normal"])
     inlier_mask = (np.abs(d) <= dist_thr) & (dots >= cos_thr)
 
-    inlier, outlier, res = face_ids[inlier_mask], face_ids[~inlier_mask], []
+    inlier = face_ids[inlier_mask]
+    outlier = face_ids[~inlier_mask]
+    res = []
+
     if len(inlier) >= cfg["min_plane_faces"]:
-        for g in connected_groups(inlier, adjacency):
-            if len(g) < cfg["min_plane_faces"] or float(np.sum(cache["face_areas"][g])) < cfg["min_plane_area"]:
+        for g in connected_groups_sparse(inlier, cache["face_adj_csr"]):
+            if len(g) < cfg["min_plane_faces"]:
+                continue
+            if float(np.sum(cache["face_areas"][g])) < cfg["min_plane_area"]:
                 continue
             p = fit_plane_faces(g, cache)
             if p["area"] >= cfg["min_plane_area"]:
                 res.append(p)
 
     if depth < cfg["max_split_depth"] and len(outlier) >= cfg["min_plane_faces"]:
-        for g in connected_groups(outlier, adjacency):
-            if len(g) < cfg["min_plane_faces"] or float(np.sum(cache["face_areas"][g])) < cfg["min_plane_area"]:
+        for g in connected_groups_sparse(outlier, cache["face_adj_csr"]):
+            if len(g) < cfg["min_plane_faces"]:
                 continue
-            res.extend(split_planes(g, adjacency, cfg, cache, depth + 1))
+            if float(np.sum(cache["face_areas"][g])) < cfg["min_plane_area"]:
+                continue
+            res.extend(split_planes(g, cache, cfg, depth + 1))
+
     return res
 
 def dedup_planes(planes, overlap=0.85):
     kept = []
+    kept_ids = []
+
     for p in sorted(planes, key=lambda x: (len(x["face_ids"]), x["area"]), reverse=True):
-        ps, ok = set(p["face_ids"].tolist()), True
-        for k in kept:
-            ks = set(k["face_ids"].tolist())
-            if len(ps & ks) / max(1, min(len(ps), len(ks))) >= overlap:
+        ids = np.sort(np.asarray(p["face_ids"], dtype=np.int32))
+        ok = True
+        for k_ids in kept_ids:
+            inter = np.intersect1d(ids, k_ids, assume_unique=False).size
+            denom = max(1, min(len(ids), len(k_ids)))
+            if inter / denom >= overlap:
                 ok = False
                 break
         if ok:
             kept.append(p)
+            kept_ids.append(ids)
     return kept
 
 def detect_planes(mesh, cfg, verbose=False):
     if verbose:
         print("[3/7] 多平面识别...")
-    cache, adj, planes = make_cache(mesh), face_graph(mesh), []
-    patches = initial_patches(cache, adj, cfg["patch_normal_angle_deg"])
-    for patch in patches:
-        if len(patch) >= cfg["min_patch_faces"] and float(np.sum(cache["face_areas"][patch])) >= cfg["min_plane_area"]:
-            planes.extend(split_planes(patch, adj, cfg, cache, 0))
+
+    cache = make_cache(mesh)
+    planes = []
+
+    patch_labels, patch_count = initial_patch_labels(cache, cfg["patch_normal_angle_deg"])
+    face_counts = np.bincount(patch_labels, minlength=patch_count)
+    area_sums = np.bincount(patch_labels, weights=cache["face_areas"], minlength=patch_count)
+
+    valid_patch_ids = np.where(
+        (face_counts >= cfg["min_patch_faces"]) &
+        (area_sums >= cfg["min_plane_area"])
+    )[0]
+
+    for pid in valid_patch_ids:
+        patch = np.where(patch_labels == pid)[0].astype(np.int32)
+        planes.extend(split_planes(patch, cache, cfg, 0))
+
     planes = dedup_planes(planes)
+
     if verbose:
-        print(f"  初始 patch 数: {len(patches)}")
+        print(f"  初始 patch 数: {patch_count}")
+        print(f"  有效 patch 数: {len(valid_patch_ids)}")
         print(f"  识别平面数: {len(planes)}")
-    return planes
 
-def boundary_vertices(mesh):
-    try:
-        e = np.sort(mesh.edges_sorted, axis=1)
-        ue, cnt = np.unique(e, axis=0, return_counts=True)
-        return ue[cnt == 1].reshape(-1)
-    except Exception:
-        return np.empty(0, dtype=np.int32)
+    return planes, cache
 
-def expand_ring(ids, vg, rings=1):
-    cur = set(ids.tolist() if isinstance(ids, np.ndarray) else ids)
+def expand_ring_sparse(ids, vert_adj_csr, rings=1):
+    ids = np.asarray(ids, dtype=np.int32)
+    if len(ids) == 0 or rings <= 0 or vert_adj_csr is None or not SCIPY_AVAILABLE:
+        return np.unique(ids)
+
+    mask = np.zeros(vert_adj_csr.shape[0], dtype=bool)
+    mask[ids] = True
+    cur = mask.copy()
+
     for _ in range(rings):
-        nxt = set(cur)
-        for u in cur:
-            nxt.update(vg[u].tolist())
-        cur = nxt
-    return np.array(sorted(cur), dtype=np.int32)
+        nb = vert_adj_csr @ cur.astype(np.uint8)
+        cur = cur | (nb > 0)
 
-def build_local_sparse_graph(vids, vg):
-    if not SCIPY_AVAILABLE or len(vids) == 0:
-        return None
-    pos = {int(v): i for i, v in enumerate(vids)}
-    rows, cols = [], []
-    for i, gv in enumerate(vids):
-        for nb in vg[gv]:
-            j = pos.get(int(nb))
-            if j is not None:
-                rows.append(i)
-                cols.append(j)
-    if not rows:
-        return None
-    return sp.csr_matrix((np.ones(len(rows)), (rows, cols)), shape=(len(vids), len(vids)), dtype=np.float64)
+    return np.where(cur)[0].astype(np.int32)
 
-def smooth_values_python(vids, vg, vals, valid, iters=8, self_w=0.25):
-    pos = {int(v): i for i, v in enumerate(vids)}
-    neigh = [[pos[int(n)] for n in vg[v] if int(n) in pos] for v in vids]
-    x, nb_w = vals.copy(), 1.0 - self_w
+def smooth_values_python(vals, valid, local_adj_csr, iters=8, self_w=0.25):
+    x = vals.copy()
+    nb_w = 1.0 - self_w
+
+    indptr = local_adj_csr.indptr
+    indices = local_adj_csr.indices
+    valid_idx = np.where(valid)[0]
+
     for _ in range(iters):
         y = x.copy()
-        for i, ns in enumerate(neigh):
-            if not valid[i] or not ns:
+        for i in valid_idx:
+            s, e = indptr[i], indptr[i + 1]
+            ns = indices[s:e]
+            if len(ns) == 0:
                 continue
-            vv = [x[j] for j in ns if valid[j]]
-            if vv:
+            vv = x[ns][valid[ns]]
+            if vv.size:
                 y[i] = self_w * x[i] + nb_w * float(np.mean(vv))
         x = y
     return x
@@ -342,15 +498,20 @@ def smooth_values_python(vids, vg, vals, valid, iters=8, self_w=0.25):
 def smooth_values_sparse(vals, valid, A, iters=8, self_w=0.25):
     if A is None or A.nnz == 0:
         return vals.astype(np.float64, copy=True)
+
     x = vals.astype(np.float64, copy=True)
     v = valid.astype(np.float64)
     nb_w = 1.0 - self_w
+
     denom = A @ v
     active = (v > 0.5) & (denom > 0)
+
     for _ in range(iters):
         avg = np.zeros_like(x)
-        avg[active] = (A @ x)[active] / denom[active]
+        Ax = A @ x
+        avg[active] = Ax[active] / denom[active]
         x[active] = self_w * x[active] + nb_w * avg[active]
+
     return x
 
 def adaptive_smooth_iters(base_iters, sigma_v, eff_noise, dist_boost, stage_smooth_mul, pass_smooth_mul):
@@ -361,26 +522,40 @@ def adaptive_smooth_iters(base_iters, sigma_v, eff_noise, dist_boost, stage_smoo
         return max(5, min(24, n))
     return max(6, min(40, n))
 
-def _refine_plane_worker(task):
-    S = _WORKER_STATE
-    i, p, cfg, pass_mul, only_stage = task["plane_idx"], task["plane"], task["cfg"], task["pass_mul"], task["only_stage"]
-    V, F, VG, is_boundary, bbox_diag = S["V"], S["F"], S["VG"], S["is_boundary"], S["bbox_diag"]
+def refine_one_plane(task):
+    i = task["plane_idx"]
+    p = task["plane"]
+    cfg = task["cfg"]
+    pass_mul = task["pass_mul"]
+    only_stage = task["only_stage"]
+    state = task["state"]
+
+    V = state["V"]
+    F = state["F"]
+    vert_adj_csr = state["vert_adj_csr"]
+    is_boundary = state["is_boundary"]
+    bbox_diag = state["bbox_diag"]
 
     face_ids = p["face_ids"]
     base_vids = np.unique(F[face_ids].reshape(-1))
 
-    dc, plane_dist, dist_boost = dict(stage="none", snap=1, inlier=1, outlier=1, shrink=1, smooth=1, noise=1), None, 0.0
+    dc = dict(stage="none", snap=1, inlier=1, outlier=1, shrink=1, smooth=1, noise=1)
+    plane_dist = None
+    dist_boost = 0.0
+
     if cfg["sensor_origin"] is not None:
         plane_dist = float(np.linalg.norm(p["centroid"] - cfg["sensor_origin"]))
         dist_boost = cfg["distance_gain"] * (plane_dist / bbox_diag)
         if cfg["use_distance_strategy"]:
             dc = dist_cfg(plane_dist, bbox_diag, cfg["near_ratio"], cfg["far_ratio"])
+
     if only_stage is not None and dc["stage"] != only_stage:
         return None
 
-    vids = expand_ring(base_vids, VG, cfg["expand_rings"] + int(pass_mul.get("expand_rings_add", 0)))
+    vids = expand_ring_sparse(base_vids, vert_adj_csr, cfg["expand_rings"] + int(pass_mul.get("expand_rings_add", 0)))
     pts = V[vids]
-    c, n = robust_plane(pts, None, 10, 1.4)
+
+    c, n = robust_plane(pts, None, 6, 1.4)
     sd = np.dot(pts - c, n)
     sigma_v = robust_sigma(sd)
 
@@ -388,17 +563,41 @@ def _refine_plane_worker(task):
     noise_boost = min(1.8, cfg["noise_adapt_gain"] * pass_mul.get("noise", 1.0) * noise_ratio)
     eff_noise = noise_boost * dc["noise"]
 
-    smooth_iters = adaptive_smooth_iters(cfg["base_normal_smooth_iterations"], sigma_v, eff_noise, dist_boost, dc["smooth"], pass_mul.get("smooth", 1.0))
-    residual_shrink = cfg["base_residual_shrink"] * pass_mul.get("shrink", 1.0) / (1.0 + 0.8 * eff_noise + 0.3 * dist_boost) * dc["shrink"]
+    smooth_iters = adaptive_smooth_iters(
+        cfg["base_normal_smooth_iterations"],
+        sigma_v,
+        eff_noise,
+        dist_boost,
+        dc["smooth"],
+        pass_mul.get("smooth", 1.0),
+    )
+
+    residual_shrink = (
+        cfg["base_residual_shrink"]
+        * pass_mul.get("shrink", 1.0)
+        / (1.0 + 0.8 * eff_noise + 0.3 * dist_boost)
+        * dc["shrink"]
+    )
     residual_shrink = max(0.001, min(0.08, residual_shrink))
+
     inlier_thr = max(cfg["vertex_inlier_dist"] * dc["inlier"], 2.0 * sigma_v)
     outlier_thr = max(cfg["vertex_outlier_dist"] * pass_mul.get("outlier", 1.0) * dc["outlier"], 3.5 * sigma_v)
     snap_strength = cfg["base_snap_strength"] * pass_mul.get("snap", 1.0) * dc["snap"]
 
     valid = np.abs(sd) <= outlier_thr
     vals = np.where(valid, sd, 0.0)
-    A = build_local_sparse_graph(vids, VG)
-    sm = smooth_values_sparse(vals, valid, A, smooth_iters, 0.25) if SCIPY_AVAILABLE else smooth_values_python(vids, VG, vals, valid, smooth_iters, 0.25)
+
+    A_local = None
+    if SCIPY_AVAILABLE and vert_adj_csr is not None and len(vids) > 0:
+        A_local = vert_adj_csr[vids][:, vids]
+
+    if SCIPY_AVAILABLE and A_local is not None:
+        sm = smooth_values_sparse(vals, valid, A_local, smooth_iters, 0.25)
+    else:
+        if A_local is None:
+            sm = vals.copy()
+        else:
+            sm = smooth_values_python(vals, valid, A_local, smooth_iters, 0.25)
 
     moved_vids = vids[valid]
     if len(moved_vids) == 0:
@@ -407,68 +606,82 @@ def _refine_plane_worker(task):
             "acc": np.empty((0, 3), dtype=np.float64),
             "w": np.empty(0, dtype=np.float64),
             "report": {
-                "plane_id": int(i), "stage": dc["stage"], "plane_dist_sensor": plane_dist,
-                "faces": int(len(face_ids)), "vertex_sigma": float(sigma_v), "inlier_thr": float(inlier_thr),
-                "outlier_thr": float(outlier_thr), "smooth_iters": int(smooth_iters), "residual_shrink": float(residual_shrink)
+                "plane_id": int(i),
+                "stage": dc["stage"],
+                "plane_dist_sensor": plane_dist,
+                "faces": int(len(face_ids)),
+                "vertex_sigma": float(sigma_v),
+                "inlier_thr": float(inlier_thr),
+                "outlier_thr": float(outlier_thr),
+                "smooth_iters": int(smooth_iters),
+                "residual_shrink": float(residual_shrink),
             }
         }
 
-    d, ds = vals[valid], sm[valid]
+    d = vals[valid]
+    ds = sm[valid]
     bmul = np.where(is_boundary[moved_vids], cfg["boundary_scale"], 1.0)
+
     target = V[moved_vids].copy()
     inlier = np.abs(d) <= inlier_thr
     target[inlier] -= d[inlier, None] * n
     target[~inlier] -= (d[~inlier] - residual_shrink * ds[~inlier])[:, None] * n
-    w = np.where(inlier, snap_strength, min(1.0, 0.72 + 0.30 * eff_noise + 0.22 * dist_boost)) * bmul
+
+    non_inlier_weight = min(1.0, 0.72 + 0.30 * eff_noise + 0.22 * dist_boost)
+    w = np.where(inlier, snap_strength, non_inlier_weight) * bmul
 
     return {
         "vids": moved_vids.astype(np.int32),
         "acc": w[:, None] * target,
         "w": w,
         "report": {
-            "plane_id": int(i), "stage": dc["stage"], "plane_dist_sensor": plane_dist,
-            "faces": int(len(face_ids)), "vertex_sigma": float(sigma_v), "inlier_thr": float(inlier_thr),
-            "outlier_thr": float(outlier_thr), "smooth_iters": int(smooth_iters), "residual_shrink": float(residual_shrink)
+            "plane_id": int(i),
+            "stage": dc["stage"],
+            "plane_dist_sensor": plane_dist,
+            "faces": int(len(face_ids)),
+            "vertex_sigma": float(sigma_v),
+            "inlier_thr": float(inlier_thr),
+            "outlier_thr": float(outlier_thr),
+            "smooth_iters": int(smooth_iters),
+            "residual_shrink": float(residual_shrink),
         }
     }
 
-def refine_planes_parallel(mesh, planes, cfg, only_stage=None, pass_mul=None, verbose=False, tag="[4/7]", num_workers=1):
+def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pass_mul=None, verbose=False, tag="[4/7]", num_workers=1):
     if not planes:
         return mesh.copy(), []
-    pass_mul = pass_mul or {}
 
+    pass_mul = pass_mul or {}
     mesh2 = mesh.copy()
-    V = np.asarray(mesh.vertices, dtype=np.float64)
-    F = np.asarray(mesh.faces, dtype=np.int32)
-    VG = vertex_graph(mesh)
-    is_boundary = np.zeros(len(V), dtype=bool)
-    if cfg["boundary_protect"]:
-        b = boundary_vertices(mesh2)
-        if len(b):
-            is_boundary[b] = True
 
     state = {
-        "V": V,
-        "F": F,
-        "VG": VG,
-        "is_boundary": is_boundary,
-        "bbox_diag": float(np.linalg.norm(mesh2.bounding_box.extents)) + 1e-12,
+        "V": np.asarray(mesh.vertices, dtype=np.float64),
+        "F": np.asarray(mesh.faces, dtype=np.int32),
+        "vert_adj_csr": shared_cache["vert_adj_csr"],
+        "is_boundary": shared_cache["is_boundary"] if cfg["boundary_protect"] else np.zeros(len(mesh.vertices), dtype=bool),
+        "bbox_diag": shared_cache["bbox_diag"],
     }
-    tasks = [{"plane_idx": i, "plane": p, "cfg": cfg, "pass_mul": pass_mul, "only_stage": only_stage} for i, p in enumerate(planes)]
+
+    tasks = [{
+        "plane_idx": i,
+        "plane": p,
+        "cfg": cfg,
+        "pass_mul": pass_mul,
+        "only_stage": only_stage,
+        "state": state,
+    } for i, p in enumerate(planes)]
 
     if verbose:
-        mode = "parallel" if num_workers and num_workers > 1 else "single"
-        backend = "scipy.sparse" if SCIPY_AVAILABLE else "python"
-        print(f"{tag} 平面精修... mode={mode}, workers={num_workers}, smooth_backend={backend}")
+        backend = "scipy.sparse" if SCIPY_AVAILABLE else "fallback"
+        print(f"{tag} 平面精修... mode=thread, workers={num_workers}, smooth_backend={backend}")
 
     if num_workers is None or num_workers <= 1:
-        _init_refine_worker(state)
-        results = [_refine_plane_worker(t) for t in tasks]
+        results = [refine_one_plane(t) for t in tasks]
     else:
-        ctx = get_context("spawn")
-        with ctx.Pool(processes=num_workers, initializer=_init_refine_worker, initargs=(state,)) as pool:
-            results = pool.map(_refine_plane_worker, tasks)
+        with ThreadPoolExecutor(max_workers=num_workers) as ex:
+            results = list(ex.map(refine_one_plane, tasks))
 
+    V = state["V"]
     acc = np.zeros_like(V, dtype=np.float64)
     wsum = np.zeros((len(V), 1), dtype=np.float64)
     reports = []
@@ -480,6 +693,7 @@ def refine_planes_parallel(mesh, planes, cfg, only_stage=None, pass_mul=None, ve
             acc[r["vids"]] += r["acc"]
             wsum[r["vids"], 0] += r["w"]
         reports.append(r["report"])
+
         if verbose:
             rr = r["report"]
             print(f"  plane={rr['plane_id']:03d} stage={rr['stage']:<4} faces={rr['faces']:5d} sigma={rr['vertex_sigma']:.6f} out={rr['outlier_thr']:.5f} shrink={rr['residual_shrink']:.5f} smooth={rr['smooth_iters']}")
@@ -493,20 +707,30 @@ def refine_planes_parallel(mesh, planes, cfg, only_stage=None, pass_mul=None, ve
         trimesh.repair.fix_normals(out)
     except Exception:
         pass
+
     return out, sorted(reports, key=lambda x: x["plane_id"])
 
 def select_far_second_pass_planes(planes, reports, min_faces=60, min_sigma=0.003):
-    ids = [int(r["plane_id"]) for r in reports if r.get("stage") == "far" and r.get("faces", 0) >= min_faces and r.get("vertex_sigma", 0.0) >= min_sigma]
+    ids = [
+        int(r["plane_id"])
+        for r in reports
+        if r.get("stage") == "far"
+        and r.get("faces", 0) >= min_faces
+        and r.get("vertex_sigma", 0.0) >= min_sigma
+    ]
     return [planes[i] for i in ids]
 
 def global_smooth(mesh, iters=1, method="taubin"):
     if iters <= 0:
         return mesh.copy()
+
     import open3d as o3d
+
     m = o3d.geometry.TriangleMesh()
     m.vertices = o3d.utility.Vector3dVector(np.asarray(mesh.vertices))
     m.triangles = o3d.utility.Vector3iVector(np.asarray(mesh.faces))
     m.compute_vertex_normals()
+
     if method == "taubin":
         m = m.filter_smooth_taubin(number_of_iterations=int(iters))
     elif method == "laplacian":
@@ -515,6 +739,7 @@ def global_smooth(mesh, iters=1, method="taubin"):
         m = m.filter_smooth_simple(number_of_iterations=int(iters))
     else:
         raise ValueError("不支持的平滑方法")
+
     out = trimesh.Trimesh(vertices=np.asarray(m.vertices), faces=np.asarray(m.triangles), process=False)
     try:
         trimesh.repair.fix_normals(out)
@@ -523,18 +748,22 @@ def global_smooth(mesh, iters=1, method="taubin"):
     return out
 
 def remove_small_clusters(mesh, min_faces=40):
-    comps = split_components(mesh)
-    kept = [c for c in comps if len(c.faces) >= min_faces] or comps
-    out = trimesh.util.concatenate(kept)
-    try:
-        out.remove_unreferenced_vertices()
-    except Exception:
-        pass
-    return out
+    labels, n_comp = connected_face_labels(mesh)
+    if n_comp <= 1:
+        return mesh
 
-def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input_path, num_workers):
+    face_counts = np.bincount(labels, minlength=n_comp)
+    keep_ids = np.where(face_counts >= min_faces)[0]
+    if len(keep_ids) == 0:
+        keep_ids = np.array([int(np.argmax(face_counts))], dtype=np.int32)
+
+    face_mask = np.isin(labels, keep_ids)
+    return submesh_from_face_mask(mesh, face_mask)
+
+def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input_path, num_workers, timings):
     ensure_dir(out_dir)
     base = os.path.splitext(os.path.basename(input_path))[0]
+
     obj_path = os.path.join(out_dir, f"{base}_refined.obj")
     ply_path = os.path.join(out_dir, f"{base}_refined.ply")
     planes_path = os.path.join(out_dir, f"{base}_planes.json")
@@ -570,11 +799,14 @@ def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input
             "after": after,
             "scipy_sparse_enabled": SCIPY_AVAILABLE,
             "num_workers": int(num_workers),
+            "timings_sec": timings,
         }, f, indent=2, ensure_ascii=False)
 
     return obj_path, ply_path, planes_path, report_path
 
 def process_mesh(args):
+    total_t0 = time.perf_counter()
+
     sensor_origin = parse_vec3(args.sensor_origin)
     num_workers = args.num_workers if args.num_workers and args.num_workers > 0 else max(1, cpu_count() - 1)
 
@@ -592,6 +824,7 @@ def process_mesh(args):
         "near_ratio": args.near_ratio,
         "far_ratio": args.far_ratio,
     }
+
     refine_cfg = {
         "vertex_inlier_dist": args.vertex_inlier_dist,
         "vertex_outlier_dist": args.vertex_outlier_dist,
@@ -609,33 +842,80 @@ def process_mesh(args):
         "far_ratio": args.far_ratio,
     }
 
+    timings = {}
+
     if args.verbose:
         print("========== PIPELINE START ==========")
         print(f"scipy sparse available: {SCIPY_AVAILABLE}")
         print(f"num_workers: {num_workers}")
+        print("[0/7] 读取网格...")
 
+    t0 = time.perf_counter()
     mesh0 = load_mesh(args.input)
-    before = mesh_report(mesh0)
+    timings["load_mesh"] = round(time.perf_counter() - t0, 4)
+
+    before = mesh_report(mesh0, include_components=False)
 
     if args.verbose:
+        print(f"  load_mesh: {timings['load_mesh']:.3f}s")
         print("[1/7] 基础清理...")
-    mesh = clean_mesh(mesh0)
+
+    t0 = time.perf_counter()
+    mesh = clean_mesh(mesh0, final=False)
+    timings["clean_mesh_1"] = round(time.perf_counter() - t0, 4)
 
     if args.verbose:
+        print(f"  clean_mesh_1: {timings['clean_mesh_1']:.3f}s")
         print("[2/7] 连通分量过滤...")
-    mesh = filter_components(mesh, args.min_component_faces, args.min_component_area, args.min_component_max_extent, args.keep_top_k_faces)
 
-    planes = detect_planes(mesh, detect_cfg, args.verbose)
+    t0 = time.perf_counter()
+    mesh = filter_components_fast(
+        mesh,
+        args.min_component_faces,
+        args.min_component_area,
+        args.min_component_max_extent,
+        args.keep_top_k_faces
+    )
+    timings["filter_components"] = round(time.perf_counter() - t0, 4)
 
-    mesh, reports1 = refine_planes_parallel(mesh, planes, refine_cfg, None, None, args.verbose, "[4/7]", num_workers)
+    if args.verbose:
+        print(f"  filter_components: {timings['filter_components']:.3f}s")
+
+    t0 = time.perf_counter()
+    planes, shared_cache = detect_planes(mesh, detect_cfg, args.verbose)
+    timings["detect_planes"] = round(time.perf_counter() - t0, 4)
+
+    if args.verbose:
+        print(f"  detect_planes: {timings['detect_planes']:.3f}s")
+
+    t0 = time.perf_counter()
+    mesh, reports1 = refine_planes_parallel(
+        mesh,
+        planes,
+        refine_cfg,
+        shared_cache=shared_cache,
+        only_stage=None,
+        pass_mul=None,
+        verbose=args.verbose,
+        tag="[4/7]",
+        num_workers=num_workers
+    )
+    timings["refine_pass_1"] = round(time.perf_counter() - t0, 4)
 
     reports2 = []
+    timings["refine_pass_2_far"] = 0.0
     if args.enable_far_second_pass:
         if args.verbose:
             print("[4.5/7] far second pass 选择平面...")
-        selected = select_far_second_pass_planes(planes, reports1, args.far_second_pass_min_faces, args.far_second_pass_min_sigma)
+        selected = select_far_second_pass_planes(
+            planes,
+            reports1,
+            args.far_second_pass_min_faces,
+            args.far_second_pass_min_sigma
+        )
         if args.verbose:
             print(f"  选中 far 平面数: {len(selected)}")
+
         if selected:
             pass_mul = {
                 "outlier": args.far_second_pass_outlier_mul,
@@ -645,33 +925,68 @@ def process_mesh(args):
                 "noise": args.far_second_pass_noise_mul,
                 "expand_rings_add": args.far_second_pass_expand_rings,
             }
-            mesh, reports2 = refine_planes_parallel(mesh, selected, refine_cfg, None, pass_mul, args.verbose, "[4.5/7]", num_workers)
+
+            t0 = time.perf_counter()
+            mesh, reports2 = refine_planes_parallel(
+                mesh,
+                selected,
+                refine_cfg,
+                shared_cache=shared_cache,
+                only_stage=None,
+                pass_mul=pass_mul,
+                verbose=args.verbose,
+                tag="[4.5/7]",
+                num_workers=num_workers
+            )
+            timings["refine_pass_2_far"] = round(time.perf_counter() - t0, 4)
 
     if args.global_smooth_iter > 0:
         if args.verbose:
             print("[5/7] 全局平滑...")
+        t0 = time.perf_counter()
         mesh = global_smooth(mesh, args.global_smooth_iter, args.global_smooth_method)
+        timings["global_smooth"] = round(time.perf_counter() - t0, 4)
+    else:
+        timings["global_smooth"] = 0.0
 
     if args.verbose:
         print("[6/7] 二次碎片清理...")
+    t0 = time.perf_counter()
     mesh = remove_small_clusters(mesh, args.second_pass_min_faces)
+    timings["remove_small_clusters"] = round(time.perf_counter() - t0, 4)
 
     if args.verbose:
         print("[7/7] 最终清理...")
-    mesh = clean_mesh(mesh)
+    t0 = time.perf_counter()
+    mesh = clean_mesh(mesh, final=True)
+    timings["clean_mesh_final"] = round(time.perf_counter() - t0, 4)
 
-    after = mesh_report(mesh)
-    obj_path, ply_path, planes_path, report_path = save_outputs(mesh, planes, reports1, reports2, before, after, args.output_dir, args.input, num_workers)
+    t0 = time.perf_counter()
+    after = mesh_report(mesh, include_components=True)
+    timings["final_report"] = round(time.perf_counter() - t0, 4)
+
+    t0 = time.perf_counter()
+    obj_path, ply_path, planes_path, report_path = save_outputs(
+        mesh, planes, reports1, reports2, before, after,
+        args.output_dir, args.input, num_workers, timings
+    )
+    timings["save_outputs"] = round(time.perf_counter() - t0, 4)
+
+    timings["total"] = round(time.perf_counter() - total_t0, 4)
 
     print("\n========== PIPELINE DONE ==========")
     print(f"Output OBJ:     {obj_path}")
     print(f"Output PLY:     {ply_path}")
     print(f"Planes JSON:    {planes_path}")
     print(f"Quality Report: {report_path}")
+    print("Timings (sec):")
+    for k, v in timings.items():
+        print(f"  {k}: {v:.3f}")
     print("===================================")
 
 def build_parser():
-    p = argparse.ArgumentParser(description="Mesh refine pipeline (CPU-only, simplified, no wall-corner)")
+    p = argparse.ArgumentParser(description="Mesh refine pipeline (optimized CPU version, faster front-half)")
+
     p.add_argument("--input", required=True)
     p.add_argument("--output_dir", required=True)
 
@@ -719,8 +1034,9 @@ def build_parser():
     p.add_argument("--global_smooth_method", choices=["taubin", "laplacian", "simple"], default="taubin")
     p.add_argument("--second_pass_min_faces", type=int, default=40)
 
-    p.add_argument("--num_workers", type=int, default=0, help="<=0 自动使用 cpu_count()-1；1 表示单进程")
+    p.add_argument("--num_workers", type=int, default=0, help="<=0 自动使用 cpu_count()-1；建议 6~12")
     p.add_argument("--verbose", action="store_true")
+
     return p
 
 def main():

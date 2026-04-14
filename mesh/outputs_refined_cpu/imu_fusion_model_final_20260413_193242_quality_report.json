@@ -21,11 +21,11 @@
     "components": 28,
     "watertight": false,
     "bbox_extent": [
-      2.6701332614344517,
+      2.670829693908312,
       3.340124471225068,
       2.4936924919797274
     ],
-    "surface_area": 17.596323023258538
+    "surface_area": 17.62679535782037
   },
   "scipy_sparse_enabled": true,
   "num_workers": 8

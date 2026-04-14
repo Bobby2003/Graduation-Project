@@ -1,0 +1,44 @@
+{
+  "input": ".\\input\\imu_fusion_model_final_20260413_193242.obj",
+  "output_obj": ".\\outputs_refined_fast\\imu_fusion_model_final_20260413_193242_refined.obj",
+  "output_ply": ".\\outputs_refined_fast\\imu_fusion_model_final_20260413_193242_refined.ply",
+  "planes_json": ".\\outputs_refined_fast\\imu_fusion_model_final_20260413_193242_planes.json",
+  "before": {
+    "vertices": 268407,
+    "faces": 519243,
+    "components": null,
+    "watertight": false,
+    "bbox_extent": [
+      2.66295,
+      3.34,
+      2.51153
+    ],
+    "surface_area": 17.713730319594134
+  },
+  "after": {
+    "vertices": 262141,
+    "faces": 511588,
+    "components": 220,
+    "watertight": false,
+    "bbox_extent": [
+      2.6709218176402603,
+      3.339902332760751,
+      2.4943048052029564
+    ],
+    "surface_area": 17.946511554667318
+  },
+  "scipy_sparse_enabled": true,
+  "num_workers": 8,
+  "timings_sec": {
+    "load_mesh": 6.1407,
+    "clean_mesh_1": 0.4382,
+    "filter_components": 0.8009,
+    "detect_planes": 7.7509,
+    "refine_pass_1": 2.0198,
+    "refine_pass_2_far": 0.0,
+    "global_smooth": 0.0,
+    "remove_small_clusters": 0.3905,
+    "clean_mesh_final": 0.6902,
+    "final_report": 1.7129
+  }
+}
