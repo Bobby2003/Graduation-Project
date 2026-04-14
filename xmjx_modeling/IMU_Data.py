@@ -54,10 +54,6 @@ def parse_yahboom_imu():
                             
                             print(f"\r[欧拉角] Roll: {roll_deg:7.2f}° | Pitch: {pitch_deg:7.2f}° | Yaw: {yaw_deg:7.2f}°", end="")
                             
-                    # （可选补充）根据表格：功能字 0x16 表示四元数返回
-                    # 如果后续发现欧拉角有万向锁问题，就改读 0x16 帧
-                    # elif func_code == 0x16:
-                    #     pass 
 
     except serial.SerialException as e:
         print(f"\n 串口错误: {e}")

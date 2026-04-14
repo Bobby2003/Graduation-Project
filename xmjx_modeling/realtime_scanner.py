@@ -123,14 +123,14 @@ class DepthScanner:
     GF_RADIUS = 4
     GF_EPS    = 50.0
 
-    EMA_ALPHA = 0.5
+    EMA_ALPHA = 1.0
 
     def __init__(self):
         self.sdk = OrbbecCameraSDK(get_default_sdk_path())
 
         self.width, self.height = 640, 480
-        self.fx, self.fy = 500.0, 500.0
-        self.cx, self.cy = 320.0, 240.0
+        self.fx, self.fy = 525.0, 525.0
+        self.cx, self.cy = 319.5, 239.5
 
         xx = np.arange(self.width)
         yy = np.arange(self.height)
@@ -248,10 +248,6 @@ class DepthScanner:
     
 
     def get_rgb_and_depth(self):
-        """
-        专为 TSDF 和 SLAM 准备的内容提取器。
-        返回对齐的 2D 彩色图网格和深度图网格。
-        """
         res = self.sdk.capture_depth_frame()
         if res is None:
             return None
