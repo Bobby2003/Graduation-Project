@@ -1,0 +1,73 @@
+{
+  "input": ".\\input\\sensor_fusion_model.obj",
+  "output_obj": ".\\outputs_distance_strategy\\sensor_fusion_model_refined.obj",
+  "output_ply": ".\\outputs_distance_strategy\\sensor_fusion_model_refined.ply",
+  "planes_json": ".\\outputs_distance_strategy\\sensor_fusion_model_planes.json",
+  "parameters": {
+    "min_component_faces": 80,
+    "min_component_area": 0.0015,
+    "min_component_max_extent": 0.04,
+    "keep_top_k_faces": 20,
+    "patch_normal_angle_deg": 22.0,
+    "min_patch_faces": 25,
+    "min_plane_faces": 40,
+    "min_plane_area": 0.0008,
+    "base_face_plane_dist": 0.012,
+    "plane_normal_angle_deg": 16.0,
+    "sigma_dist_mult": 3.2,
+    "max_split_depth": 6,
+    "vertex_inlier_dist": 0.008,
+    "vertex_outlier_dist": 0.055,
+    "base_snap_strength": 1.0,
+    "base_residual_shrink": 0.01,
+    "base_normal_smooth_iterations": 16,
+    "noise_adapt_gain": 1.2,
+    "boundary_protect": true,
+    "boundary_scale": 0.1,
+    "expand_rings": 1,
+    "sensor_origin": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distance_gain": 0.25,
+    "use_distance_strategy": true,
+    "near_ratio": 0.35,
+    "far_ratio": 0.65,
+    "global_smooth_iter": 1,
+    "global_smooth_method": "taubin",
+    "second_pass_min_faces": 40
+  },
+  "before": {
+    "vertices": 150898,
+    "faces": 286048,
+    "watertight": false,
+    "euler_number": 110,
+    "components": 227,
+    "surface_area": 2.5877199594295117,
+    "volume": null,
+    "bbox_extent": [
+      1.675,
+      1.6949999999999998,
+      1.2261199999999999
+    ],
+    "boundary_edges": 15528,
+    "roughness_proxy_mean_dihedral": 0.12728099921841865
+  },
+  "after": {
+    "vertices": 149180,
+    "faces": 284556,
+    "watertight": false,
+    "euler_number": -35,
+    "components": 21,
+    "surface_area": 2.547560492762885,
+    "volume": null,
+    "bbox_extent": [
+      1.6762946620277428,
+      1.6868415384589366,
+      1.2277168570685877
+    ],
+    "boundary_edges": 13874,
+    "roughness_proxy_mean_dihedral": 0.0822922714732105
+  }
+}

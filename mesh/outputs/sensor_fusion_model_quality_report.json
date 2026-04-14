@@ -1,0 +1,42 @@
+{
+  "before": {
+    "vertices": 150898,
+    "faces": 286048,
+    "watertight": false,
+    "euler_number": 110,
+    "components": 227,
+    "surface_area": 2.5877199594295117,
+    "volume": null,
+    "bbox_extent": [
+      1.675,
+      1.6949999999999998,
+      1.2261199999999999
+    ],
+    "boundary_edges": 15528,
+    "roughness_proxy_mean_dihedral": 0.12728099921841865
+  },
+  "after": {
+    "vertices": 152643,
+    "faces": 305166,
+    "watertight": false,
+    "euler_number": -57,
+    "components": 1,
+    "surface_area": 3.027612120515723,
+    "volume": null,
+    "bbox_extent": [
+      0.6662221470007834,
+      1.5156558900261499,
+      1.1042218004009197
+    ],
+    "boundary_edges": 234,
+    "roughness_proxy_mean_dihedral": 0.12375652896180846
+  },
+  "delta": {
+    "vertices": 1745,
+    "faces": 19118,
+    "components": -226,
+    "surface_area": 0.43989216108621143,
+    "boundary_edges": -15294,
+    "roughness_proxy_mean_dihedral": -0.003524470256610193
+  }
+}

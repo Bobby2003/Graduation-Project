@@ -1,0 +1,32 @@
+{
+  "input": ".\\input\\sensor_fusion_model.obj",
+  "output_obj": ".\\outputs_refined\\sensor_fusion_model_refined.obj",
+  "output_ply": ".\\outputs_refined\\sensor_fusion_model_refined.ply",
+  "planes_json": ".\\outputs_refined\\sensor_fusion_model_planes.json",
+  "before": {
+    "vertices": 150898,
+    "faces": 286048,
+    "components": 227,
+    "watertight": false,
+    "bbox_extent": [
+      1.675,
+      1.6949999999999998,
+      1.2261199999999999
+    ],
+    "surface_area": 2.5877199594295117
+  },
+  "after": {
+    "vertices": 148315,
+    "faces": 279628,
+    "components": 27,
+    "watertight": false,
+    "bbox_extent": [
+      1.6762778992060032,
+      1.6871183723703702,
+      1.227774712040972
+    ],
+    "surface_area": 2.504893471938032
+  },
+  "scipy_sparse_enabled": true,
+  "num_workers": 8
+}
