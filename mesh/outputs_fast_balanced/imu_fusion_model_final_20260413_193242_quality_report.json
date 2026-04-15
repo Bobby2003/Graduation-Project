@@ -1,0 +1,68 @@
+{
+  "input": ".\\input\\imu_fusion_model_final_20260413_193242.obj",
+  "output_obj": ".\\outputs_fast_balanced\\imu_fusion_model_final_20260413_193242_refined.obj",
+  "output_ply": ".\\outputs_fast_balanced\\imu_fusion_model_final_20260413_193242_refined.ply",
+  "planes_json": ".\\outputs_fast_balanced\\imu_fusion_model_final_20260413_193242_planes.json",
+  "before": {
+    "vertices": 268407,
+    "faces": 519243,
+    "components": null,
+    "watertight": false,
+    "bbox_extent": [
+      2.66295,
+      3.34,
+      2.51153
+    ],
+    "surface_area": 17.713730319594134
+  },
+  "after": {
+    "vertices": 261567,
+    "faces": 520209,
+    "components": 28,
+    "watertight": false,
+    "bbox_extent": [
+      2.671200720049021,
+      3.34000602652059,
+      2.5042455475931527
+    ],
+    "surface_area": 19.448180503292836
+  },
+  "early_hole_fill": {
+    "enabled": true,
+    "trimesh_fill_applied": true,
+    "loop_fill": {
+      "candidate_loops": 260,
+      "accepted_loops": 251,
+      "filled_holes": 251,
+      "added_faces": 3349
+    },
+    "gap_stitch": {
+      "boundary_vertices": 11578,
+      "candidate_pairs": 11578,
+      "mutual_pairs": 3119,
+      "bridge_quads": 2609,
+      "added_faces": 5218
+    },
+    "chain_stitch": {
+      "chain_count": 669,
+      "candidate_pairs": 788,
+      "accepted_pairs": 91,
+      "added_faces": 2200
+    }
+  },
+  "scipy_sparse_enabled": true,
+  "num_workers": 8,
+  "timings_sec": {
+    "load_mesh": 4.9326,
+    "clean_mesh_1": 0.1135,
+    "early_hole_fill": 30.2956,
+    "filter_components": 0.7058,
+    "detect_planes": 6.9556,
+    "refine_pass_1": 1.7725,
+    "refine_pass_2_far": 0.0,
+    "global_smooth": 0.0,
+    "remove_floating_noise": 0.4816,
+    "clean_mesh_final": 0.0537,
+    "final_report": 1.2008
+  }
+}

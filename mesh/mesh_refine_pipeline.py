@@ -419,6 +419,19 @@ def build_boundary_data(mesh):
 
     return boundary, adj, edge_set
 
+def build_boundary_cache(mesh):
+    boundary, adj, edge_set = build_boundary_data(mesh)
+    if len(boundary) == 0:
+        boundary_vs = np.empty(0, dtype=np.int32)
+    else:
+        boundary_vs = np.array(sorted(set(boundary.reshape(-1).tolist())), dtype=np.int32)
+    return {
+        "boundary": boundary,
+        "adj": adj,
+        "edge_set": edge_set,
+        "boundary_vs": boundary_vs,
+    }
+
 def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000):
     boundary, adj, _ = build_boundary_data(mesh)
     if len(boundary) == 0:
@@ -588,9 +601,6 @@ def chain_plane_residual(points):
     return float(np.max(d)), n, c
 
 def orient_chain_pair_for_min_gap(A_ids, B_ids, V):
-    """
-    尝试四种方向组合，选端点对总距离最小的排列
-    """
     cands = [
         (A_ids, B_ids),
         (A_ids[::-1], B_ids),
@@ -613,6 +623,115 @@ def orient_chain_pair_for_min_gap(A_ids, B_ids, V):
 
     return best
 
+def is_polygon_convex_2d(poly, eps=1e-12):
+    poly = np.asarray(poly, dtype=np.float64)
+    n = len(poly)
+    if n < 4:
+        return True
+
+    sign = 0
+    for i in range(n):
+        a = poly[i]
+        b = poly[(i + 1) % n]
+        c = poly[(i + 2) % n]
+        cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])
+        if abs(cross) <= eps:
+            continue
+        cur = 1 if cross > 0 else -1
+        if sign == 0:
+            sign = cur
+        elif sign != cur:
+            return False
+    return True
+
+def fan_triangulation_2d(poly):
+    poly = np.asarray(poly, dtype=np.float64)
+    n = len(poly)
+    if n < 3:
+        return []
+    ccw = polygon_area_2d(poly) > 0
+    tris = []
+    for i in range(1, n - 1):
+        if ccw:
+            tris.append((0, i, i + 1))
+        else:
+            tris.append((0, i + 1, i))
+    return tris
+
+def endpoint_candidate_map_for_chains(chains, V, radius, max_neighbors_per_chain=64):
+    n = len(chains)
+    candidate_map = [set() for _ in range(n)]
+
+    if n < 2:
+        return candidate_map
+
+    valid_chain_ids = [i for i, ch in enumerate(chains) if len(ch) >= 2]
+    if len(valid_chain_ids) < 2:
+        return candidate_map
+
+    if not SCIPY_AVAILABLE or cKDTree is None:
+        for ii in range(len(valid_chain_ids)):
+            i = valid_chain_ids[ii]
+            ai0 = V[int(chains[i][0])]
+            ai1 = V[int(chains[i][-1])]
+            for jj in range(ii + 1, len(valid_chain_ids)):
+                j = valid_chain_ids[jj]
+                bj0 = V[int(chains[j][0])]
+                bj1 = V[int(chains[j][-1])]
+                d = min(
+                    np.linalg.norm(ai0 - bj0),
+                    np.linalg.norm(ai0 - bj1),
+                    np.linalg.norm(ai1 - bj0),
+                    np.linalg.norm(ai1 - bj1),
+                )
+                if d <= radius:
+                    candidate_map[i].add(j)
+                    candidate_map[j].add(i)
+        return candidate_map
+
+    endpoint_pts = []
+    endpoint_owner = []
+    for i in valid_chain_ids:
+        ch = chains[i]
+        endpoint_pts.append(V[int(ch[0])])
+        endpoint_owner.append(i)
+        endpoint_pts.append(V[int(ch[-1])])
+        endpoint_owner.append(i)
+
+    endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
+    tree = cKDTree(endpoint_pts)
+    neighs = tree.query_ball_point(endpoint_pts, r=radius)
+
+    for ep_idx, js in enumerate(neighs):
+        i = endpoint_owner[ep_idx]
+        for j_ep in js:
+            j = endpoint_owner[j_ep]
+            if j == i:
+                continue
+            candidate_map[i].add(j)
+
+    for i in valid_chain_ids:
+        if len(candidate_map[i]) <= max_neighbors_per_chain:
+            continue
+
+        ai0 = V[int(chains[i][0])]
+        ai1 = V[int(chains[i][-1])]
+        ranked = []
+        for j in candidate_map[i]:
+            bj0 = V[int(chains[j][0])]
+            bj1 = V[int(chains[j][-1])]
+            d = min(
+                np.linalg.norm(ai0 - bj0),
+                np.linalg.norm(ai0 - bj1),
+                np.linalg.norm(ai1 - bj0),
+                np.linalg.norm(ai1 - bj1),
+            )
+            ranked.append((d, j))
+        ranked.sort(key=lambda x: x[0])
+        candidate_map[i] = set(j for _, j in ranked[:max_neighbors_per_chain])
+
+    return candidate_map
+
 def fill_small_holes_from_loops(
     mesh,
     max_hole_edges=160,
@@ -620,6 +739,7 @@ def fill_small_holes_from_loops(
     max_hole_area=1.2,
     max_plane_residual=0.10,
     max_candidate_loops=8000,
+    boundary_cache=None,
 ):
     stats = {
         "candidate_loops": 0,
@@ -627,6 +747,9 @@ def fill_small_holes_from_loops(
         "filled_holes": 0,
         "added_faces": 0,
     }
+
+    if boundary_cache is None:
+        boundary_cache = build_boundary_cache(mesh)
 
     loops = extract_boundary_loops_ordered(
         mesh,
@@ -662,7 +785,11 @@ def fill_small_holes_from_loops(
         if area <= 1e-12 or area > max_hole_area:
             continue
 
-        tris_local = ear_clip_triangulation_2d(poly2d)
+        if is_polygon_convex_2d(poly2d):
+            tris_local = fan_triangulation_2d(poly2d)
+        else:
+            tris_local = ear_clip_triangulation_2d(poly2d)
+
         if len(tris_local) == 0:
             continue
 
@@ -682,7 +809,7 @@ def fill_small_holes_from_loops(
 
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
     out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-    out = clean_mesh_light(out, fix_normals=True)
+    out = clean_mesh_light(out, fix_normals=False)
     stats["added_faces"] = int(len(new_faces))
     return out, stats
 
@@ -701,10 +828,6 @@ def triangle_area_3d(a, b, c):
     return 0.5 * np.linalg.norm(np.cross(b - a, c - a))
 
 def zipper_triangulate_between_chains(A_ids, B_ids, V, min_triangle_area=1e-8):
-    """
-    在两条链之间生成三角带
-    A_ids, B_ids 已经是方向对齐后的顺序链
-    """
     A_ids = np.asarray(A_ids, dtype=np.int32)
     B_ids = np.asarray(B_ids, dtype=np.int32)
 
@@ -759,13 +882,8 @@ def stitch_boundary_gaps(
     normal_dot_min=0.55,
     max_bridge_pairs=6000,
     min_triangle_area=1e-8,
+    boundary_cache=None,
 ):
-    """
-    沿着“隔空但彼此很近”的边界顶点/边界边进行桥接。
-    目标：
-    - 不是闭合洞的地方，也尝试补一层“桥”
-    - 更接近你说的：边界顶点周边如果有其他隔空顶点，就连成面
-    """
     stats = {
         "boundary_vertices": 0,
         "candidate_pairs": 0,
@@ -774,11 +892,17 @@ def stitch_boundary_gaps(
         "added_faces": 0,
     }
 
-    boundary, adj, edge_set = build_boundary_data(mesh)
+    if boundary_cache is None:
+        boundary_cache = build_boundary_cache(mesh)
+
+    boundary = boundary_cache["boundary"]
+    adj = boundary_cache["adj"]
+    edge_set = boundary_cache["edge_set"]
+    boundary_vs = boundary_cache["boundary_vs"]
+
     if len(boundary) == 0:
         return mesh.copy(), stats
 
-    boundary_vs = np.array(sorted(list(set(boundary.reshape(-1).tolist()))), dtype=np.int32)
     stats["boundary_vertices"] = int(len(boundary_vs))
     if len(boundary_vs) < 4:
         return mesh.copy(), stats
@@ -797,8 +921,6 @@ def stitch_boundary_gaps(
             neighs.append(np.where(d <= max_bridge_dist)[0].tolist())
 
     best_match = {}
-    best_dist = {}
-
     for i_local, js in enumerate(neighs):
         vi = int(boundary_vs[i_local])
         pi = V[vi]
@@ -815,7 +937,6 @@ def stitch_boundary_gaps(
                 continue
             if edge_exists(edge_set, vi, vj):
                 continue
-
             if len(set(adj.get(vi, [])) & set(adj.get(vj, []))) > 0:
                 continue
 
@@ -835,7 +956,6 @@ def stitch_boundary_gaps(
 
         if best_j is not None:
             best_match[vi] = best_j
-            best_dist[vi] = best_d
 
     stats["candidate_pairs"] = int(len(best_match))
     if not best_match:
@@ -914,7 +1034,7 @@ def stitch_boundary_gaps(
     F = np.asarray(mesh.faces, dtype=np.int32)
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
     out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-    out = clean_mesh_light(out, fix_normals=True)
+    out = clean_mesh_light(out, fix_normals=False)
 
     stats["added_faces"] = int(len(new_faces))
     return out, stats
@@ -929,6 +1049,8 @@ def stitch_open_boundary_chains(
     max_chain_pairs=256,
     min_chain_vertices=6,
     min_triangle_area=1e-8,
+    max_chain_neighbor_candidates=64,
+    boundary_cache=None,
 ):
     stats = {
         "chain_count": 0,
@@ -948,22 +1070,47 @@ def stitch_open_boundary_chains(
     except Exception:
         VN = np.zeros((len(V), 3), dtype=np.float64)
 
+    chain_infos = []
+    for ch in chains:
+        if len(ch) < min_chain_vertices:
+            chain_infos.append(None)
+            continue
+        pts = V[ch]
+        clen = chain_length(pts)
+        if clen <= 1e-8:
+            chain_infos.append(None)
+            continue
+        chain_infos.append({
+            "ids": np.asarray(ch, dtype=np.int32),
+            "pts": pts,
+            "len": clen,
+        })
+
+    candidate_map = endpoint_candidate_map_for_chains(
+        chains,
+        V,
+        radius=max_chain_endpoint_dist,
+        max_neighbors_per_chain=max_chain_neighbor_candidates,
+    )
+
     candidates = []
 
     for i in range(len(chains)):
-        A = chains[i]
-        if len(A) < min_chain_vertices:
+        infoA = chain_infos[i]
+        if infoA is None:
             continue
 
-        ptsA = V[A]
-        lenA = chain_length(ptsA)
-        if lenA <= 1e-8:
-            continue
+        js = sorted(j for j in candidate_map[i] if j > i)
+        if not js and (not SCIPY_AVAILABLE or cKDTree is None):
+            js = list(range(i + 1, len(chains)))
 
-        for j in range(i + 1, len(chains)):
-            B = chains[j]
-            if len(B) < min_chain_vertices:
+        for j in js:
+            infoB = chain_infos[j]
+            if infoB is None:
                 continue
+
+            A = infoA["ids"]
+            B = infoB["ids"]
 
             A2, B2 = orient_chain_pair_for_min_gap(A, B, V)
             ptsA2 = V[A2]
@@ -976,12 +1123,16 @@ def stitch_open_boundary_chains(
             if ep_dist > max_chain_endpoint_dist:
                 continue
 
-            lenB = chain_length(ptsB2)
+            lenA = infoA["len"]
+            lenB = infoB["len"]
             ratio = max(lenA, lenB) / (min(lenA, lenB) + 1e-12)
             if ratio > 4.0:
                 continue
 
             sample_n = min(len(A2), len(B2), 24)
+            if sample_n < 2:
+                continue
+
             idxA = np.linspace(0, len(A2) - 1, sample_n).astype(np.int32)
             idxB = np.linspace(0, len(B2) - 1, sample_n).astype(np.int32)
             avg_gap = float(np.mean(np.linalg.norm(V[A2[idxA]] - V[B2[idxB]], axis=1)))
@@ -1046,7 +1197,7 @@ def stitch_open_boundary_chains(
     F = np.asarray(mesh.faces, dtype=np.int32)
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
     out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-    out = clean_mesh_light(out, fix_normals=True)
+    out = clean_mesh_light(out, fix_normals=False)
 
     stats["added_faces"] = int(len(new_faces))
     return out, stats
@@ -1071,6 +1222,7 @@ def run_early_hole_repair(
     chain_tangent_dot_min=0.15,
     chain_normal_dot_min=0.20,
     max_chain_pairs=256,
+    max_chain_neighbor_candidates=64,
     verbose=False,
 ):
     stats = {
@@ -1094,6 +1246,7 @@ def run_early_hole_repair(
         except Exception:
             pass
 
+    boundary_cache = build_boundary_cache(out)
     out, loop_stats = fill_small_holes_from_loops(
         out,
         max_hole_edges=max_hole_edges,
@@ -1101,15 +1254,18 @@ def run_early_hole_repair(
         max_hole_area=max_hole_area,
         max_plane_residual=max_hole_plane_residual,
         max_candidate_loops=max_hole_candidate_loops,
+        boundary_cache=boundary_cache,
     )
     stats["loop_fill"] = loop_stats
 
     if enable_gap_stitch:
+        boundary_cache = build_boundary_cache(out)
         out, gap_stats = stitch_boundary_gaps(
             out,
             max_bridge_dist=max_bridge_dist,
             normal_dot_min=bridge_normal_dot_min,
             max_bridge_pairs=max_bridge_pairs,
+            boundary_cache=boundary_cache,
         )
     else:
         gap_stats = {
@@ -1122,6 +1278,7 @@ def run_early_hole_repair(
     stats["gap_stitch"] = gap_stats
 
     if enable_chain_stitch:
+        boundary_cache = build_boundary_cache(out)
         out, chain_stats = stitch_open_boundary_chains(
             out,
             max_chain_endpoint_dist=max_chain_endpoint_dist,
@@ -1131,6 +1288,8 @@ def run_early_hole_repair(
             normal_dot_min=chain_normal_dot_min,
             max_chain_pairs=max_chain_pairs,
             min_chain_vertices=6,
+            max_chain_neighbor_candidates=max_chain_neighbor_candidates,
+            boundary_cache=boundary_cache,
         )
     else:
         chain_stats = {
@@ -1140,6 +1299,8 @@ def run_early_hole_repair(
             "added_faces": 0,
         }
     stats["chain_stitch"] = chain_stats
+
+    out = clean_mesh_light(out, fix_normals=False)
 
     if verbose:
         total_added = (
@@ -1599,11 +1760,6 @@ def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pas
     V2[moved] = acc[moved] / wsum[moved]
 
     out = trimesh.Trimesh(vertices=V2, faces=mesh2.faces.copy(), process=False)
-    try:
-        trimesh.repair.fix_normals(out)
-    except Exception:
-        pass
-
     return out, sorted(reports, key=lambda x: x["plane_id"])
 
 def select_far_second_pass_planes(planes, reports, min_faces=60, min_sigma=0.003):
@@ -1780,6 +1936,7 @@ def process_mesh(args):
         chain_tangent_dot_min=args.chain_tangent_dot_min,
         chain_normal_dot_min=args.chain_normal_dot_min,
         max_chain_pairs=args.max_chain_pairs,
+        max_chain_neighbor_candidates=args.max_chain_neighbor_candidates,
         verbose=args.verbose
     )
     timings["early_hole_fill"] = round(time.perf_counter() - t0, 4)
@@ -1871,7 +2028,7 @@ def process_mesh(args):
     if args.verbose:
         print("[8/8] 最终轻量清理...")
     t0 = time.perf_counter()
-    mesh = clean_mesh_light(mesh, fix_normals=True)
+    mesh = clean_mesh_light(mesh, fix_normals=not args.skip_final_fix_normals)
     timings["clean_mesh_final"] = round(time.perf_counter() - t0, 4)
 
     t0 = time.perf_counter()
@@ -1900,7 +2057,7 @@ def process_mesh(args):
 # CLI
 # =============================
 def build_parser():
-    p = argparse.ArgumentParser(description="Mesh refine pipeline (early hole fill + boundary gap stitching)")
+    p = argparse.ArgumentParser(description="Mesh refine pipeline (optimized fast version)")
 
     p.add_argument("--input", required=True)
     p.add_argument("--output_dir", required=True)
@@ -1922,7 +2079,7 @@ def build_parser():
     # point gap stitch
     p.add_argument("--disable_gap_stitch", action="store_true")
     p.add_argument("--max_bridge_dist", type=float, default=0.30, help="边界顶点最大桥接距离")
-    p.add_argument("--bridge_normal_dot_min", type=float, default=0.15, help="边界顶点法向相容阈值，越低越激进")
+    p.add_argument("--bridge_normal_dot_min", type=float, default=0.15, help="边界顶点法向相容阈值")
     p.add_argument("--max_bridge_pairs", type=int, default=20000)
 
     # chain stitch
@@ -1933,6 +2090,7 @@ def build_parser():
     p.add_argument("--chain_tangent_dot_min", type=float, default=0.15)
     p.add_argument("--chain_normal_dot_min", type=float, default=0.20)
     p.add_argument("--max_chain_pairs", type=int, default=256)
+    p.add_argument("--max_chain_neighbor_candidates", type=int, default=64)
 
     # plane detection
     p.add_argument("--patch_normal_angle_deg", type=float, default=24.0)
@@ -1981,6 +2139,7 @@ def build_parser():
     p.add_argument("--noise_min_extent", type=float, default=0.018)
     p.add_argument("--noise_keep_top_k", type=int, default=10)
 
+    p.add_argument("--skip_final_fix_normals", action="store_true")
     p.add_argument("--num_workers", type=int, default=0)
     p.add_argument("--verbose", action="store_true")
     return p
