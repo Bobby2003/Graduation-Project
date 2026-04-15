@@ -11,19 +11,20 @@ import trimesh
 try:
     import scipy.sparse as sp
     from scipy.sparse.csgraph import connected_components as sp_connected_components
-    from scipy.spatial import cKDTree
+
     SCIPY_AVAILABLE = True
 except Exception:
     sp = None
     sp_connected_components = None
-    cKDTree = None
     SCIPY_AVAILABLE = False
+
 
 # =============================
 # Basic
 # =============================
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
+
 
 def parse_vec3(s):
     if not s:
@@ -33,6 +34,7 @@ def parse_vec3(s):
         raise ValueError("sensor_origin 应为 x,y,z")
     return np.array(vals, dtype=np.float64)
 
+
 def robust_sigma(x):
     x = np.asarray(x, dtype=np.float64)
     if x.size == 0:
@@ -40,6 +42,7 @@ def robust_sigma(x):
     med = np.median(x)
     mad = np.median(np.abs(x - med)) + 1e-12
     return float(1.4826 * mad)
+
 
 def mesh_report(mesh, include_components=False):
     comps = None
@@ -58,6 +61,7 @@ def mesh_report(mesh, include_components=False):
         "surface_area": float(mesh.area) if len(mesh.faces) else 0.0,
     }
 
+
 def load_mesh(path):
     obj = trimesh.load(path, force="mesh", process=False, maintain_order=True)
 
@@ -71,6 +75,7 @@ def load_mesh(path):
         raise ValueError("无效或空网格")
 
     return obj
+
 
 def clean_mesh_light(mesh, fix_normals=False):
     mesh = mesh.copy()
@@ -94,12 +99,35 @@ def clean_mesh_light(mesh, fix_normals=False):
 
     return mesh
 
+
+def clean_mesh_heavy(mesh, fix_normals=True):
+    mesh = clean_mesh_light(mesh, fix_normals=False)
+    try:
+        mesh.merge_vertices()
+    except Exception:
+        pass
+    if fix_normals:
+        try:
+            trimesh.repair.fix_normals(mesh)
+        except Exception:
+            pass
+    return mesh
+
+
+def split_components(mesh):
+    try:
+        return list(mesh.split(only_watertight=False))
+    except TypeError:
+        return list(mesh.split())
+
+
 def abs_normal_dot(normals, normal):
     return np.clip(
         np.abs(np.asarray(normals, dtype=np.float64) @ np.asarray(normal, dtype=np.float64)),
         0.0,
         1.0,
     )
+
 
 # =============================
 # PCA / Plane
@@ -119,6 +147,7 @@ def weighted_pca(points, weights=None):
     n = n / (np.linalg.norm(n) + 1e-12)
     return c, n, vals
 
+
 def robust_plane(points, weights=None, iters=6, huber_k=1.5):
     p = np.asarray(points, dtype=np.float64)
     if len(p) == 0:
@@ -136,13 +165,18 @@ def robust_plane(points, weights=None, iters=6, huber_k=1.5):
         w = np.where(r <= 1.0, w, w / (r + 1e-12))
     return c, n
 
+
 def dist_cfg(plane_dist, bbox_diag, near_ratio=0.25, far_ratio=0.50):
     r = plane_dist / (bbox_diag + 1e-12)
     if r <= near_ratio:
-        return dict(stage="near", snap=1.00, inlier=0.85, outlier=1.00, shrink=0.70, smooth=1.20, noise=1.00, detect_dist=1.00, detect_ang=1.00)
+        return dict(stage="near", snap=1.00, inlier=0.85, outlier=1.00, shrink=0.70, smooth=1.20, noise=1.00,
+                    detect_dist=1.00, detect_ang=1.00)
     if r <= far_ratio:
-        return dict(stage="mid", snap=1.10, inlier=1.05, outlier=1.45, shrink=0.42, smooth=1.80, noise=1.35, detect_dist=1.20, detect_ang=1.12)
-    return dict(stage="far", snap=1.22, inlier=1.35, outlier=2.40, shrink=0.12, smooth=2.80, noise=2.10, detect_dist=1.65, detect_ang=1.35)
+        return dict(stage="mid", snap=1.10, inlier=1.05, outlier=1.45, shrink=0.42, smooth=1.80, noise=1.35,
+                    detect_dist=1.20, detect_ang=1.12)
+    return dict(stage="far", snap=1.22, inlier=1.35, outlier=2.40, shrink=0.12, smooth=2.80, noise=2.10,
+                detect_dist=1.65, detect_ang=1.35)
+
 
 # =============================
 # Sparse graph
@@ -162,6 +196,7 @@ def make_sparse_graph_from_pairs(num_nodes, pairs):
     g.data[:] = 1
     return g
 
+
 def build_vertex_adjacency_sparse(num_vertices, faces):
     if not SCIPY_AVAILABLE:
         return None
@@ -175,6 +210,7 @@ def build_vertex_adjacency_sparse(num_vertices, faces):
     g.data[:] = 1
     return g
 
+
 def boundary_vertices(mesh):
     try:
         e = np.sort(mesh.edges_sorted, axis=1)
@@ -182,6 +218,7 @@ def boundary_vertices(mesh):
         return ue[cnt == 1].reshape(-1)
     except Exception:
         return np.empty(0, dtype=np.int32)
+
 
 # =============================
 # Fast components / noise removal
@@ -192,7 +229,7 @@ def connected_face_labels(mesh):
         return np.empty(0, dtype=np.int32), 0
 
     if not SCIPY_AVAILABLE:
-        comps = list(mesh.split(only_watertight=False))
+        comps = split_components(mesh)
         labels = np.empty(n_faces, dtype=np.int32)
         offset = 0
         for i, c in enumerate(comps):
@@ -212,6 +249,7 @@ def connected_face_labels(mesh):
     graph = sp.csr_matrix((data, (rows, cols)), shape=(n_faces, n_faces), dtype=np.uint8)
     n_comp, labels = sp_connected_components(graph, directed=False, return_labels=True)
     return labels.astype(np.int32), int(n_comp)
+
 
 def submesh_from_face_mask(mesh, face_mask):
     face_mask = np.asarray(face_mask, dtype=bool)
@@ -235,6 +273,7 @@ def submesh_from_face_mask(mesh, face_mask):
     except Exception:
         pass
     return out
+
 
 def component_stats(mesh):
     labels, n_comp = connected_face_labels(mesh)
@@ -260,6 +299,7 @@ def component_stats(mesh):
 
     return labels, n_comp, face_counts, area_sums, max_extents
 
+
 def filter_components_fast(mesh, min_faces=80, min_area=0.0015, min_extent=0.04, keep_top_k=20):
     labels, n_comp, face_counts, area_sums, max_extents = component_stats(mesh)
     if n_comp <= 1:
@@ -279,6 +319,7 @@ def filter_components_fast(mesh, min_faces=80, min_area=0.0015, min_extent=0.04,
 
     face_mask = np.isin(labels, list(keep))
     return submesh_from_face_mask(mesh, face_mask)
+
 
 def remove_floating_noise_fast(mesh, min_faces=20, min_area=0.0005, min_extent=0.02, keep_top_k=8):
     labels, n_comp, face_counts, area_sums, max_extents = component_stats(mesh)
@@ -300,102 +341,10 @@ def remove_floating_noise_fast(mesh, min_faces=20, min_area=0.0005, min_extent=0
     face_mask = np.isin(labels, list(keep))
     return submesh_from_face_mask(mesh, face_mask)
 
+
 # =============================
-# Hole filling and gap stitching
+# Advanced Hole Filling (Dynamic Programming Triangulation)
 # =============================
-def plane_basis_from_normal(normal):
-    n = np.asarray(normal, dtype=np.float64)
-    n = n / (np.linalg.norm(n) + 1e-12)
-
-    if abs(n[2]) < 0.9:
-        a = np.array([0.0, 0.0, 1.0], dtype=np.float64)
-    else:
-        a = np.array([1.0, 0.0, 0.0], dtype=np.float64)
-
-    u = np.cross(n, a)
-    u = u / (np.linalg.norm(u) + 1e-12)
-    v = np.cross(n, u)
-    v = v / (np.linalg.norm(v) + 1e-12)
-    return u, v
-
-def polygon_area_2d(poly):
-    x = poly[:, 0]
-    y = poly[:, 1]
-    return 0.5 * np.sum(x * np.roll(y, -1) - y * np.roll(x, -1))
-
-def point_in_triangle_2d(p, a, b, c, eps=1e-12):
-    v0 = c - a
-    v1 = b - a
-    v2 = p - a
-    den = v0[0] * v1[1] - v1[0] * v0[1]
-    if abs(den) < eps:
-        return False
-    u = (v2[0] * v1[1] - v1[0] * v2[1]) / den
-    v = (v0[0] * v2[1] - v2[0] * v0[1]) / den
-    return (u >= -eps) and (v >= -eps) and (u + v <= 1.0 + eps)
-
-def is_convex_corner(a, b, c, ccw=True, eps=1e-12):
-    cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-    return cross > eps if ccw else cross < -eps
-
-def ear_clip_triangulation_2d(poly):
-    poly = np.asarray(poly, dtype=np.float64)
-    n = len(poly)
-    if n < 3:
-        return []
-    if n == 3:
-        return [(0, 1, 2)]
-
-    area = polygon_area_2d(poly)
-    if abs(area) < 1e-12:
-        return []
-
-    ccw = area > 0
-    idx = list(range(n))
-    tris = []
-    guard = 0
-    max_guard = n * n
-
-    while len(idx) > 3 and guard < max_guard:
-        ear_found = False
-        m = len(idx)
-
-        for i in range(m):
-            i_prev = idx[(i - 1) % m]
-            i_curr = idx[i]
-            i_next = idx[(i + 1) % m]
-
-            a = poly[i_prev]
-            b = poly[i_curr]
-            c = poly[i_next]
-
-            if not is_convex_corner(a, b, c, ccw=ccw):
-                continue
-
-            has_inside = False
-            for j in idx:
-                if j in (i_prev, i_curr, i_next):
-                    continue
-                if point_in_triangle_2d(poly[j], a, b, c):
-                    has_inside = True
-                    break
-            if has_inside:
-                continue
-
-            tris.append((i_prev, i_curr, i_next))
-            del idx[i]
-            ear_found = True
-            break
-
-        if not ear_found:
-            return []
-
-        guard += 1
-
-    if len(idx) == 3:
-        tris.append((idx[0], idx[1], idx[2]))
-
-    return tris
 
 def get_boundary_edges(mesh):
     try:
@@ -405,680 +354,198 @@ def get_boundary_edges(mesh):
     except Exception:
         return np.empty((0, 2), dtype=np.int32)
 
-def build_boundary_data(mesh):
-    boundary = get_boundary_edges(mesh)
-    adj = {}
-    edge_set = set()
 
-    for a, b in boundary:
-        a = int(a)
-        b = int(b)
+def extract_small_boundary_loops(mesh, max_hole_edges=60, max_loops=800):
+    boundary = get_boundary_edges(mesh)
+    if len(boundary) == 0: return []
+
+    flat_b = boundary.flatten()
+    if len(flat_b) == 0: return []
+    max_vid = flat_b.max()
+    deg = np.bincount(flat_b, minlength=max_vid + 1)
+
+    mask = (deg[boundary[:, 0]] == 2) & (deg[boundary[:, 1]] == 2)
+    valid_edges = boundary[mask]
+    if len(valid_edges) == 0: return []
+
+    if SCIPY_AVAILABLE:
+        rows, cols = valid_edges[:, 0], valid_edges[:, 1]
+        data = np.ones(len(rows), dtype=np.uint8)
+        n_v = max_vid + 1
+        g = sp.csr_matrix((data, (rows, cols)), shape=(n_v, n_v))
+        g = g + g.T
+        n_comp, labels = sp_connected_components(g, directed=False)
+
+        comp_sizes = np.bincount(labels)
+        valid_comps = np.where((comp_sizes >= 3) & (comp_sizes <= max_hole_edges))[0]
+
+        loops = []
+        adj_dict = {}
+        for r, c in zip(rows, cols):
+            adj_dict.setdefault(r, []).append(c)
+            adj_dict.setdefault(c, []).append(r)
+
+        for comp in valid_comps:
+            nodes = np.where(labels == comp)[0]
+            if len(nodes) == 0: continue
+
+            start = nodes[0]
+            ns_start = adj_dict.get(start, [])
+            if len(ns_start) != 2:
+                continue
+
+            loop = [start]
+            prev, cur = start, ns_start[0]
+
+            ok = True
+            while cur != start and len(loop) <= max_hole_edges:
+                loop.append(cur)
+                ns = adj_dict.get(cur, [])
+                if len(ns) != 2:
+                    ok = False
+                    break
+                nxt = ns[0] if ns[1] == prev else ns[1]
+                prev, cur = cur, nxt
+
+            if ok and cur == start:
+                loops.append(np.array(loop, dtype=np.int32))
+                if len(loops) >= max_loops: break
+        return loops
+
+    # 无 Scipy 时修复后的纯 Python 回退逻辑
+    adj = {}
+    for a, b in valid_edges:
         adj.setdefault(a, []).append(b)
         adj.setdefault(b, []).append(a)
-        edge_set.add((a, b) if a < b else (b, a))
-
-    return boundary, adj, edge_set
-
-def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000):
-    boundary, adj, _ = build_boundary_data(mesh)
-    if len(boundary) == 0:
-        return []
-
-    valid_vertices = {v for v, ns in adj.items() if len(ns) == 2}
-    if not valid_vertices:
-        return []
-
-    valid_edges = set()
-    for a, b in boundary:
-        a = int(a)
-        b = int(b)
-        if a in valid_vertices and b in valid_vertices:
-            valid_edges.add((a, b) if a < b else (b, a))
-
-    def edge_key(a, b):
-        return (a, b) if a < b else (b, a)
 
     visited = set()
     loops = []
 
-    for a, b in list(valid_edges):
-        if (a, b) in visited:
-            continue
+    def ek(a, b):
+        return (a, b) if a < b else (b, a)
 
-        start = a
-        prev = a
-        cur = b
+    for start in list(adj.keys()):
+        if len(adj[start]) != 2: continue
+        nxt = adj[start][0]
+        if ek(start, nxt) in visited: continue
+
         loop = [start]
-        visited.add((a, b))
-
+        prev, cur = start, nxt
         ok = True
-        while True:
+
+        while cur != start:
             loop.append(cur)
-            if len(loop) > max_loop_edges:
+            if len(loop) > max_hole_edges:
                 ok = False
                 break
-
+            visited.add(ek(prev, cur))
             ns = adj.get(cur, [])
             if len(ns) != 2:
                 ok = False
                 break
-
             nxt = ns[0] if ns[1] == prev else ns[1]
-
-            if nxt == start:
-                break
-
-            ek = edge_key(cur, nxt)
-            if ek in visited:
-                ok = False
-                break
-
-            visited.add(ek)
             prev, cur = cur, nxt
 
-        if ok and 3 <= len(loop) <= max_loop_edges:
+        if ok and 3 <= len(loop) <= max_hole_edges:
+            visited.add(ek(prev, cur))
             loops.append(np.array(loop, dtype=np.int32))
-            if len(loops) >= max_loops:
-                break
+            if len(loops) >= max_loops: break
+    return loops
 
-    uniq = []
-    seen = set()
-    for loop in loops:
-        key = min(tuple(loop.tolist()), tuple(loop[::-1].tolist()))
-        if key not in seen:
-            seen.add(key)
-            uniq.append(loop)
 
-    return uniq
+def newell_normal(pts):
+    """使用 Newell 方法计算 3D 多边形的鲁棒法线"""
+    n = np.zeros(3)
+    for i in range(len(pts)):
+        v1 = pts[i]
+        v2 = pts[(i + 1) % len(pts)]
+        n[0] += (v1[1] - v2[1]) * (v1[2] + v2[2])
+        n[1] += (v1[2] - v2[2]) * (v1[0] + v2[0])
+        n[2] += (v1[0] - v2[0]) * (v1[1] + v2[1])
+    norm = np.linalg.norm(n)
+    return n / norm if norm > 1e-12 else np.array([0.0, 0.0, 1.0])
 
-def extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000):
-    boundary, adj, _ = build_boundary_data(mesh)
-    if len(boundary) == 0:
-        return []
 
-    endpoints = [v for v, ns in adj.items() if len(ns) == 1]
-    if not endpoints:
-        return []
-
-    def edge_key(a, b):
-        return (a, b) if a < b else (b, a)
-
-    visited = set()
-    chains = []
-
-    for start in endpoints:
-        ns = adj.get(start, [])
-        if len(ns) != 1:
-            continue
-
-        nxt = ns[0]
-        if edge_key(start, nxt) in visited:
-            continue
-
-        chain = [start]
-        prev = start
-        cur = nxt
-        visited.add(edge_key(start, nxt))
-
-        while True:
-            chain.append(cur)
-            if len(chain) > max_chain_edges:
-                break
-
-            ns_cur = adj.get(cur, [])
-            if len(ns_cur) == 1:
-                break
-            if len(ns_cur) != 2:
-                break
-
-            nxt2 = ns_cur[0] if ns_cur[1] == prev else ns_cur[1]
-            ek = edge_key(cur, nxt2)
-            if ek in visited:
-                break
-
-            visited.add(ek)
-            prev, cur = cur, nxt2
-
-        if len(chain) >= 2:
-            chains.append(np.array(chain, dtype=np.int32))
-            if len(chains) >= max_chains:
-                break
-
-    uniq = []
-    seen = set()
-    for ch in chains:
-        key = min(tuple(ch.tolist()), tuple(ch[::-1].tolist()))
-        if key not in seen:
-            seen.add(key)
-            uniq.append(ch)
-
-    return uniq
-
-def chain_length(points):
-    if len(points) < 2:
-        return 0.0
-    return float(np.sum(np.linalg.norm(points[1:] - points[:-1], axis=1)))
-
-def endpoint_tangent(points, at_start=True):
-    pts = np.asarray(points, dtype=np.float64)
-    if len(pts) < 2:
-        return np.array([1.0, 0.0, 0.0], dtype=np.float64)
-    if at_start:
-        t = pts[1] - pts[0]
-    else:
-        t = pts[-1] - pts[-2]
-    n = np.linalg.norm(t) + 1e-12
-    return t / n
-
-def mean_vertex_normal(vn, ids):
-    ids = np.asarray(ids, dtype=np.int32)
-    if len(ids) == 0:
-        return np.array([0.0, 0.0, 1.0], dtype=np.float64)
-    x = np.mean(vn[ids], axis=0)
-    n = np.linalg.norm(x) + 1e-12
-    return x / n
-
-def chain_plane_residual(points):
-    pts = np.asarray(points, dtype=np.float64)
-    if len(pts) < 3:
-        c = pts.mean(axis=0) if len(pts) > 0 else np.zeros(3, dtype=np.float64)
-        return 0.0, np.array([0.0, 0.0, 1.0], dtype=np.float64), c
-    c, n, _ = weighted_pca(pts)
-    d = np.abs(np.dot(pts - c, n))
-    return float(np.max(d)), n, c
-
-def orient_chain_pair_for_min_gap(A_ids, B_ids, V):
+def triangulate_polygon_3d_dp(loop_pts):
     """
-    尝试四种方向组合，选端点对总距离最小的排列
+    使用动态规划进行最小权重三角化 (Minimum Weight Triangulation)
+    适用于非平面、凹多边形的优质孔洞填充，不会像质心法那样产生尖刺。
     """
-    cands = [
-        (A_ids, B_ids),
-        (A_ids[::-1], B_ids),
-        (A_ids, B_ids[::-1]),
-        (A_ids[::-1], B_ids[::-1]),
-    ]
+    n = len(loop_pts)
+    if n < 3:
+        return []
+    if n == 3:
+        return [[0, 1, 2]]
 
-    best = None
-    best_score = None
+    # 估算孔洞的整体法线
+    poly_normal = newell_normal(loop_pts)
 
-    for a_ids, b_ids in cands:
-        a0 = V[int(a_ids[0])]
-        a1 = V[int(a_ids[-1])]
-        b0 = V[int(b_ids[0])]
-        b1 = V[int(b_ids[-1])]
-        score = np.linalg.norm(a0 - b0) + np.linalg.norm(a1 - b1)
-        if best_score is None or score < best_score:
-            best_score = score
-            best = (np.asarray(a_ids, dtype=np.int32), np.asarray(b_ids, dtype=np.int32))
+    # DP table 和 选择记录
+    dp = np.full((n, n), np.inf)
+    choice = np.zeros((n, n), dtype=int)
 
-    return best
+    # 边界条件：相邻顶点的代价为0
+    for i in range(n - 1):
+        dp[i, i + 1] = 0.0
 
-def fill_small_holes_from_loops(
-    mesh,
-    max_hole_edges=160,
-    max_hole_diameter=1.5,
-    max_hole_area=1.2,
-    max_plane_residual=0.10,
-    max_candidate_loops=8000,
-):
-    stats = {
-        "candidate_loops": 0,
-        "accepted_loops": 0,
-        "filled_holes": 0,
-        "added_faces": 0,
-    }
+    def tri_weight(p1, p2, p3):
+        cross = np.cross(p2 - p1, p3 - p1)
+        area = 0.5 * np.linalg.norm(cross)
+        if area < 1e-8:
+            return 1e6  # 惩罚退化三角形
 
-    loops = extract_boundary_loops_ordered(
+        tri_norm = cross / (np.linalg.norm(cross) + 1e-12)
+        dot_val = np.dot(tri_norm, poly_normal)
+
+        # 严重惩罚法线翻转（自交/内扣）的三角形
+        penalty = 1.0
+        if dot_val < 0.2:
+            penalty = 10.0 + (1.0 - dot_val) * 20.0
+
+        return area * penalty
+
+    # DP 填表
+    for length in range(2, n):
+        for i in range(n - length):
+            j = i + length
+            for k in range(i + 1, j):
+                weight = tri_weight(loop_pts[i], loop_pts[k], loop_pts[j])
+                cost = dp[i, k] + dp[k, j] + weight
+                if cost < dp[i, j]:
+                    dp[i, j] = cost
+                    choice[i, j] = k
+
+    # 回溯构建面
+    faces = []
+
+    def build_faces(i, j):
+        if j - i < 2: return
+        k = choice[i, j]
+        faces.append([i, k, j])
+        build_faces(i, k)
+        build_faces(k, j)
+
+    build_faces(0, n - 1)
+    return faces
+
+
+def fill_small_holes_early(
         mesh,
-        max_loop_edges=max_hole_edges,
-        max_loops=max_candidate_loops
-    )
-    stats["candidate_loops"] = int(len(loops))
-    if len(loops) == 0:
-        return mesh.copy(), stats
-
-    V = np.asarray(mesh.vertices, dtype=np.float64)
-    F = np.asarray(mesh.faces, dtype=np.int32)
-    new_faces = []
-
-    for loop in loops:
-        pts = V[loop]
-        if len(pts) < 3:
-            continue
-
-        bb = pts.max(axis=0) - pts.min(axis=0)
-        diam = float(np.linalg.norm(bb))
-        if diam > max_hole_diameter:
-            continue
-
-        c, n, _ = weighted_pca(pts)
-        residual = np.abs(np.dot(pts - c, n))
-        if residual.max() > max_plane_residual:
-            continue
-
-        u, v = plane_basis_from_normal(n)
-        poly2d = np.column_stack(((pts - c) @ u, (pts - c) @ v))
-        area = abs(polygon_area_2d(poly2d))
-        if area <= 1e-12 or area > max_hole_area:
-            continue
-
-        tris_local = ear_clip_triangulation_2d(poly2d)
-        if len(tris_local) == 0:
-            continue
-
-        stats["accepted_loops"] += 1
-        stats["filled_holes"] += 1
-
-        for a, b, cidx in tris_local:
-            ia = int(loop[a])
-            ib = int(loop[b])
-            ic = int(loop[cidx])
-            if ia == ib or ib == ic or ia == ic:
-                continue
-            new_faces.append([ia, ib, ic])
-
-    if len(new_faces) == 0:
-        return mesh.copy(), stats
-
-    F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
-    out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-    out = clean_mesh_light(out, fix_normals=True)
-    stats["added_faces"] = int(len(new_faces))
-    return out, stats
-
-def estimate_vertex_normals_fast(mesh):
-    try:
-        return np.asarray(mesh.vertex_normals, dtype=np.float64)
-    except Exception:
-        v = np.zeros((len(mesh.vertices), 3), dtype=np.float64)
-        return v
-
-def edge_exists(edge_set, a, b):
-    k = (a, b) if a < b else (b, a)
-    return k in edge_set
-
-def triangle_area_3d(a, b, c):
-    return 0.5 * np.linalg.norm(np.cross(b - a, c - a))
-
-def zipper_triangulate_between_chains(A_ids, B_ids, V, min_triangle_area=1e-8):
-    """
-    在两条链之间生成三角带
-    A_ids, B_ids 已经是方向对齐后的顺序链
-    """
-    A_ids = np.asarray(A_ids, dtype=np.int32)
-    B_ids = np.asarray(B_ids, dtype=np.int32)
-
-    if len(A_ids) < 2 or len(B_ids) < 2:
-        return []
-
-    i = 0
-    j = 0
-    tris = []
-
-    while i < len(A_ids) - 1 or j < len(B_ids) - 1:
-        if i == len(A_ids) - 1:
-            a = int(A_ids[i])
-            b = int(B_ids[j])
-            c = int(B_ids[j + 1])
-            if len({a, b, c}) == 3 and triangle_area_3d(V[a], V[b], V[c]) > min_triangle_area:
-                tris.append([a, b, c])
-            j += 1
-            continue
-
-        if j == len(B_ids) - 1:
-            a = int(A_ids[i])
-            b = int(A_ids[i + 1])
-            c = int(B_ids[j])
-            if len({a, b, c}) == 3 and triangle_area_3d(V[a], V[b], V[c]) > min_triangle_area:
-                tris.append([a, b, c])
-            i += 1
-            continue
-
-        a0 = int(A_ids[i])
-        a1 = int(A_ids[i + 1])
-        b0 = int(B_ids[j])
-        b1 = int(B_ids[j + 1])
-
-        cost_a = np.linalg.norm(V[a1] - V[b0])
-        cost_b = np.linalg.norm(V[a0] - V[b1])
-
-        if cost_a <= cost_b:
-            if len({a0, a1, b0}) == 3 and triangle_area_3d(V[a0], V[a1], V[b0]) > min_triangle_area:
-                tris.append([a0, a1, b0])
-            i += 1
-        else:
-            if len({a0, b0, b1}) == 3 and triangle_area_3d(V[a0], V[b0], V[b1]) > min_triangle_area:
-                tris.append([a0, b0, b1])
-            j += 1
-
-    return tris
-
-def stitch_boundary_gaps(
-    mesh,
-    max_bridge_dist=0.12,
-    normal_dot_min=0.55,
-    max_bridge_pairs=6000,
-    min_triangle_area=1e-8,
-):
-    """
-    沿着“隔空但彼此很近”的边界顶点/边界边进行桥接。
-    目标：
-    - 不是闭合洞的地方，也尝试补一层“桥”
-    - 更接近你说的：边界顶点周边如果有其他隔空顶点，就连成面
-    """
-    stats = {
-        "boundary_vertices": 0,
-        "candidate_pairs": 0,
-        "mutual_pairs": 0,
-        "bridge_quads": 0,
-        "added_faces": 0,
-    }
-
-    boundary, adj, edge_set = build_boundary_data(mesh)
-    if len(boundary) == 0:
-        return mesh.copy(), stats
-
-    boundary_vs = np.array(sorted(list(set(boundary.reshape(-1).tolist()))), dtype=np.int32)
-    stats["boundary_vertices"] = int(len(boundary_vs))
-    if len(boundary_vs) < 4:
-        return mesh.copy(), stats
-
-    V = np.asarray(mesh.vertices, dtype=np.float64)
-    VN = estimate_vertex_normals_fast(mesh)
-
-    pts = V[boundary_vs]
-    if SCIPY_AVAILABLE and cKDTree is not None:
-        tree = cKDTree(pts)
-        neighs = tree.query_ball_point(pts, r=max_bridge_dist)
-    else:
-        neighs = []
-        for i in range(len(pts)):
-            d = np.linalg.norm(pts - pts[i], axis=1)
-            neighs.append(np.where(d <= max_bridge_dist)[0].tolist())
-
-    best_match = {}
-    best_dist = {}
-
-    for i_local, js in enumerate(neighs):
-        vi = int(boundary_vs[i_local])
-        pi = V[vi]
-        ni = VN[vi]
-        best_j = None
-        best_d = None
-
-        for j_local in js:
-            if j_local == i_local:
-                continue
-            vj = int(boundary_vs[j_local])
-
-            if vi == vj:
-                continue
-            if edge_exists(edge_set, vi, vj):
-                continue
-
-            if len(set(adj.get(vi, [])) & set(adj.get(vj, []))) > 0:
-                continue
-
-            pj = V[vj]
-            d = float(np.linalg.norm(pi - pj))
-            if d <= 1e-12 or d > max_bridge_dist:
-                continue
-
-            nj = VN[vj]
-            nd = float(abs(np.dot(ni, nj)))
-            if nd < normal_dot_min:
-                continue
-
-            if best_d is None or d < best_d:
-                best_d = d
-                best_j = vj
-
-        if best_j is not None:
-            best_match[vi] = best_j
-            best_dist[vi] = best_d
-
-    stats["candidate_pairs"] = int(len(best_match))
-    if not best_match:
-        return mesh.copy(), stats
-
-    mutual_pairs = []
-    seen = set()
-    for a, b in best_match.items():
-        if best_match.get(b, None) == a:
-            key = (a, b) if a < b else (b, a)
-            if key not in seen:
-                seen.add(key)
-                mutual_pairs.append(key)
-
-    stats["mutual_pairs"] = int(len(mutual_pairs))
-    if len(mutual_pairs) < 2:
-        return mesh.copy(), stats
-
-    partner = {}
-    for a, b in mutual_pairs[:max_bridge_pairs]:
-        partner[a] = b
-        partner[b] = a
-
-    new_faces = []
-    used_quads = set()
-
-    for a, b in boundary:
-        a = int(a)
-        b = int(b)
-
-        if a not in partner or b not in partner:
-            continue
-
-        pa = partner[a]
-        pb = partner[b]
-
-        if pa == pb or pa in (a, b) or pb in (a, b):
-            continue
-        if pa == b or pb == a:
-            continue
-
-        quad_key = tuple(sorted([a, b, pa, pb]))
-        if quad_key in used_quads:
-            continue
-
-        A = V[a]
-        B = V[b]
-        C = V[pb]
-        D = V[pa]
-
-        area1 = triangle_area_3d(A, B, C) + triangle_area_3d(A, C, D)
-        area2 = triangle_area_3d(A, B, D) + triangle_area_3d(B, C, D)
-
-        faces_candidate = None
-        if area1 >= area2:
-            if triangle_area_3d(A, B, C) > min_triangle_area and triangle_area_3d(A, C, D) > min_triangle_area:
-                faces_candidate = [[a, b, pb], [a, pb, pa]]
-        else:
-            if triangle_area_3d(A, B, pa) > min_triangle_area and triangle_area_3d(B, pb, pa) > min_triangle_area:
-                faces_candidate = [[a, b, pa], [b, pb, pa]]
-
-        if faces_candidate is None:
-            continue
-
-        for f in faces_candidate:
-            if len(set(f)) == 3:
-                new_faces.append(f)
-
-        used_quads.add(quad_key)
-
-    stats["bridge_quads"] = int(len(used_quads))
-
-    if len(new_faces) == 0:
-        return mesh.copy(), stats
-
-    F = np.asarray(mesh.faces, dtype=np.int32)
-    F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
-    out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-    out = clean_mesh_light(out, fix_normals=True)
-
-    stats["added_faces"] = int(len(new_faces))
-    return out, stats
-
-def stitch_open_boundary_chains(
-    mesh,
-    max_chain_endpoint_dist=0.55,
-    max_chain_avg_gap=0.40,
-    max_chain_plane_residual=0.12,
-    tangent_dot_min=0.15,
-    normal_dot_min=0.20,
-    max_chain_pairs=256,
-    min_chain_vertices=6,
-    min_triangle_area=1e-8,
-):
-    stats = {
-        "chain_count": 0,
-        "candidate_pairs": 0,
-        "accepted_pairs": 0,
-        "added_faces": 0,
-    }
-
-    chains = extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000)
-    stats["chain_count"] = int(len(chains))
-    if len(chains) < 2:
-        return mesh.copy(), stats
-
-    V = np.asarray(mesh.vertices, dtype=np.float64)
-    try:
-        VN = np.asarray(mesh.vertex_normals, dtype=np.float64)
-    except Exception:
-        VN = np.zeros((len(V), 3), dtype=np.float64)
-
-    candidates = []
-
-    for i in range(len(chains)):
-        A = chains[i]
-        if len(A) < min_chain_vertices:
-            continue
-
-        ptsA = V[A]
-        lenA = chain_length(ptsA)
-        if lenA <= 1e-8:
-            continue
-
-        for j in range(i + 1, len(chains)):
-            B = chains[j]
-            if len(B) < min_chain_vertices:
-                continue
-
-            A2, B2 = orient_chain_pair_for_min_gap(A, B, V)
-            ptsA2 = V[A2]
-            ptsB2 = V[B2]
-
-            ep_dist = max(
-                np.linalg.norm(ptsA2[0] - ptsB2[0]),
-                np.linalg.norm(ptsA2[-1] - ptsB2[-1]),
-            )
-            if ep_dist > max_chain_endpoint_dist:
-                continue
-
-            lenB = chain_length(ptsB2)
-            ratio = max(lenA, lenB) / (min(lenA, lenB) + 1e-12)
-            if ratio > 4.0:
-                continue
-
-            sample_n = min(len(A2), len(B2), 24)
-            idxA = np.linspace(0, len(A2) - 1, sample_n).astype(np.int32)
-            idxB = np.linspace(0, len(B2) - 1, sample_n).astype(np.int32)
-            avg_gap = float(np.mean(np.linalg.norm(V[A2[idxA]] - V[B2[idxB]], axis=1)))
-            if avg_gap > max_chain_avg_gap:
-                continue
-
-            ta0 = endpoint_tangent(ptsA2, at_start=True)
-            ta1 = endpoint_tangent(ptsA2, at_start=False)
-            tb0 = endpoint_tangent(ptsB2, at_start=True)
-            tb1 = endpoint_tangent(ptsB2, at_start=False)
-            tscore = 0.5 * (abs(np.dot(ta0, tb0)) + abs(np.dot(ta1, tb1)))
-            if tscore < tangent_dot_min:
-                continue
-
-            na = mean_vertex_normal(VN, A2)
-            nb = mean_vertex_normal(VN, B2)
-            nd = abs(float(np.dot(na, nb)))
-            if nd < normal_dot_min:
-                continue
-
-            ptsAB = np.vstack([ptsA2, ptsB2])
-            resid, _, _ = chain_plane_residual(ptsAB)
-            if resid > max_chain_plane_residual:
-                continue
-
-            score = ep_dist + 0.6 * avg_gap - 0.15 * tscore - 0.10 * nd
-            candidates.append((score, A2, B2))
-
-    stats["candidate_pairs"] = int(len(candidates))
-    if len(candidates) == 0:
-        return mesh.copy(), stats
-
-    candidates.sort(key=lambda x: x[0])
-
-    used_vertices = set()
-    new_faces = []
-    accepted = 0
-
-    for _, A2, B2 in candidates:
-        setA = set(A2.tolist())
-        setB = set(B2.tolist())
-
-        if len(setA & used_vertices) > 0 or len(setB & used_vertices) > 0:
-            continue
-
-        tris = zipper_triangulate_between_chains(A2, B2, V, min_triangle_area=min_triangle_area)
-        if len(tris) == 0:
-            continue
-
-        new_faces.extend(tris)
-        used_vertices.update(setA)
-        used_vertices.update(setB)
-        accepted += 1
-
-        if accepted >= max_chain_pairs:
-            break
-
-    stats["accepted_pairs"] = int(accepted)
-    if len(new_faces) == 0:
-        return mesh.copy(), stats
-
-    F = np.asarray(mesh.faces, dtype=np.int32)
-    F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
-    out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-    out = clean_mesh_light(out, fix_normals=True)
-
-    stats["added_faces"] = int(len(new_faces))
-    return out, stats
-
-def run_early_hole_repair(
-    mesh,
-    enable=True,
-    try_trimesh_fill=True,
-    max_hole_edges=160,
-    max_hole_diameter=1.5,
-    max_hole_area=1.2,
-    max_hole_plane_residual=0.10,
-    max_hole_candidate_loops=8000,
-    enable_gap_stitch=True,
-    max_bridge_dist=0.30,
-    bridge_normal_dot_min=0.15,
-    max_bridge_pairs=20000,
-    enable_chain_stitch=True,
-    max_chain_endpoint_dist=0.55,
-    max_chain_avg_gap=0.40,
-    max_chain_plane_residual=0.12,
-    chain_tangent_dot_min=0.15,
-    chain_normal_dot_min=0.20,
-    max_chain_pairs=256,
-    verbose=False,
+        enable=True,
+        max_hole_edges=60,
+        max_hole_diameter=0.40,
+        max_hole_area=0.05,
+        max_plane_residual=0.05,
+        max_candidate_loops=1500,
+        try_trimesh_fill=True,
+        verbose=False,
 ):
     stats = {
         "enabled": bool(enable),
         "trimesh_fill_applied": False,
-        "loop_fill": {},
-        "gap_stitch": {},
-        "chain_stitch": {},
+        "candidate_loops": 0,
+        "filled_holes": 0,
+        "added_faces": 0,
     }
 
     if not enable:
@@ -1094,68 +561,78 @@ def run_early_hole_repair(
         except Exception:
             pass
 
-    out, loop_stats = fill_small_holes_from_loops(
-        out,
-        max_hole_edges=max_hole_edges,
-        max_hole_diameter=max_hole_diameter,
-        max_hole_area=max_hole_area,
-        max_plane_residual=max_hole_plane_residual,
-        max_candidate_loops=max_hole_candidate_loops,
-    )
-    stats["loop_fill"] = loop_stats
+    # 迭代修补，因为补上一个洞可能会产生/闭合新的洞轮廓
+    filled_total = 0
+    added_faces_total = 0
 
-    if enable_gap_stitch:
-        out, gap_stats = stitch_boundary_gaps(
+    for iteration in range(2):
+        loops = extract_small_boundary_loops(
             out,
-            max_bridge_dist=max_bridge_dist,
-            normal_dot_min=bridge_normal_dot_min,
-            max_bridge_pairs=max_bridge_pairs,
+            max_hole_edges=max_hole_edges,
+            max_loops=max_candidate_loops
         )
-    else:
-        gap_stats = {
-            "boundary_vertices": 0,
-            "candidate_pairs": 0,
-            "mutual_pairs": 0,
-            "bridge_quads": 0,
-            "added_faces": 0,
-        }
-    stats["gap_stitch"] = gap_stats
+        if iteration == 0:
+            stats["candidate_loops"] = int(len(loops))
 
-    if enable_chain_stitch:
-        out, chain_stats = stitch_open_boundary_chains(
-            out,
-            max_chain_endpoint_dist=max_chain_endpoint_dist,
-            max_chain_avg_gap=max_chain_avg_gap,
-            max_chain_plane_residual=max_chain_plane_residual,
-            tangent_dot_min=chain_tangent_dot_min,
-            normal_dot_min=chain_normal_dot_min,
-            max_chain_pairs=max_chain_pairs,
-            min_chain_vertices=6,
-        )
-    else:
-        chain_stats = {
-            "chain_count": 0,
-            "candidate_pairs": 0,
-            "accepted_pairs": 0,
-            "added_faces": 0,
-        }
-    stats["chain_stitch"] = chain_stats
+        if len(loops) == 0:
+            break
+
+        V = np.asarray(out.vertices, dtype=np.float64)
+        F = list(out.faces)
+
+        filled_this_round = 0
+
+        for loop in loops:
+            pts = V[loop]
+            if len(pts) < 3:
+                continue
+
+            bb = pts.max(axis=0) - pts.min(axis=0)
+            diam = float(np.linalg.norm(bb))
+            if diam > max_hole_diameter:
+                continue
+
+            # 使用 PCA 检查粗略的平整度，放宽限制允许一定的曲面
+            c, n, _ = weighted_pca(pts)
+            residual = np.abs(np.dot(pts - c, n))
+            if residual.max() > max_plane_residual:
+                continue
+
+            # DP 最小权重三角化，直接利用已有顶点，避免产生中心突刺
+            local_faces = triangulate_polygon_3d_dp(pts)
+            if not local_faces:
+                continue
+
+            # 将局部索引映射回全局顶点索引
+            mapped_faces = []
+            for face in local_faces:
+                mapped_faces.append([loop[face[0]], loop[face[1]], loop[face[2]]])
+
+            F.extend(mapped_faces)
+            added_faces_total += len(mapped_faces)
+            filled_this_round += 1
+
+        filled_total += filled_this_round
+
+        if filled_this_round > 0:
+            out = trimesh.Trimesh(vertices=V, faces=F, process=False)
+            out = clean_mesh_light(out, fix_normals=True)
+        else:
+            break
+
+    stats["filled_holes"] = int(filled_total)
+    stats["added_faces"] = int(added_faces_total)
 
     if verbose:
-        total_added = (
-            loop_stats.get("added_faces", 0)
-            + gap_stats.get("added_faces", 0)
-            + chain_stats.get("added_faces", 0)
-        )
         print(
-            f"[2/8] 早期空洞修补... "
-            f"loop_filled={loop_stats.get('filled_holes', 0)} "
-            f"gap_quads={gap_stats.get('bridge_quads', 0)} "
-            f"chain_pairs={chain_stats.get('accepted_pairs', 0)} "
-            f"added_faces={total_added}"
+            f"[2/8] 空洞修补 (DP-Triangulation)... "
+            f"candidates={stats['candidate_loops']} "
+            f"filled={stats['filled_holes']} "
+            f"added_faces={stats['added_faces']}"
         )
 
     return out, stats
+
 
 # =============================
 # Cache
@@ -1168,7 +645,8 @@ def make_cache(mesh):
     FA = np.asarray(mesh.area_faces, dtype=np.float64)
     bbox_diag = float(np.linalg.norm(mesh.bounding_box.extents)) + 1e-12
 
-    face_adj_pairs = np.asarray(mesh.face_adjacency, dtype=np.int32) if mesh.face_adjacency is not None else np.empty((0, 2), dtype=np.int32)
+    face_adj_pairs = np.asarray(mesh.face_adjacency, dtype=np.int32) if mesh.face_adjacency is not None else np.empty(
+        (0, 2), dtype=np.int32)
     face_adj_csr = make_sparse_graph_from_pairs(len(F), face_adj_pairs) if SCIPY_AVAILABLE else None
     vert_adj_csr = build_vertex_adjacency_sparse(len(V), F) if SCIPY_AVAILABLE else None
 
@@ -1190,6 +668,7 @@ def make_cache(mesh):
         "is_boundary": is_boundary,
     }
 
+
 # =============================
 # Plane detection
 # =============================
@@ -1206,6 +685,7 @@ def connected_groups_sparse(ids, csr_graph):
         return [ids[labels == i] for i in range(n_comp)]
 
     return [ids]
+
 
 def fit_plane_faces(face_ids, cache):
     face_ids = np.asarray(face_ids, dtype=np.int32)
@@ -1227,6 +707,7 @@ def fit_plane_faces(face_ids, cache):
         "planarity_ratio": float(vals[0] / (np.sum(vals) + 1e-12)),
         "mean_normal_angle": float(np.degrees(np.mean(np.arccos(np.clip(dots, 0.0, 1.0))))) if len(dots) else 0.0,
     }
+
 
 def initial_patch_labels(cache, angle_thr=22.0):
     num_faces = len(cache["faces"])
@@ -1256,6 +737,7 @@ def initial_patch_labels(cache, angle_thr=22.0):
 
     n_comp, labels = sp_connected_components(g, directed=False, return_labels=True)
     return labels.astype(np.int32), int(n_comp)
+
 
 def split_planes(face_ids, cache, cfg, depth=0):
     face_ids = np.asarray(face_ids, dtype=np.int32)
@@ -1309,6 +791,7 @@ def split_planes(face_ids, cache, cfg, depth=0):
 
     return res
 
+
 def dedup_planes(planes, overlap=0.85):
     kept = []
     kept_ids = []
@@ -1326,6 +809,7 @@ def dedup_planes(planes, overlap=0.85):
             kept.append(p)
             kept_ids.append(ids)
     return kept
+
 
 def detect_planes(mesh, cfg, verbose=False):
     if verbose:
@@ -1356,6 +840,7 @@ def detect_planes(mesh, cfg, verbose=False):
 
     return planes, cache
 
+
 # =============================
 # Plane refinement
 # =============================
@@ -1373,6 +858,7 @@ def expand_ring_sparse(ids, vert_adj_csr, rings=1):
         cur = cur | (nb > 0)
 
     return np.where(cur)[0].astype(np.int32)
+
 
 def smooth_values_python(vals, valid, local_adj_csr, iters=8, self_w=0.25):
     x = vals.copy()
@@ -1395,6 +881,7 @@ def smooth_values_python(vals, valid, local_adj_csr, iters=8, self_w=0.25):
         x = y
     return x
 
+
 def smooth_values_sparse(vals, valid, A, iters=8, self_w=0.25):
     if A is None or A.nnz == 0:
         return vals.astype(np.float64, copy=True)
@@ -1414,6 +901,7 @@ def smooth_values_sparse(vals, valid, A, iters=8, self_w=0.25):
 
     return x
 
+
 def adaptive_smooth_iters(base_iters, sigma_v, eff_noise, dist_boost, stage_smooth_mul, pass_smooth_mul):
     n = int(round(base_iters * pass_smooth_mul * (1.0 + 0.35 * eff_noise + 0.20 * dist_boost) * stage_smooth_mul))
     if sigma_v < 0.0015:
@@ -1421,6 +909,7 @@ def adaptive_smooth_iters(base_iters, sigma_v, eff_noise, dist_boost, stage_smoo
     if sigma_v < 0.003:
         return max(5, min(24, n))
     return max(6, min(40, n))
+
 
 def refine_one_plane(task):
     i = task["plane_idx"]
@@ -1473,10 +962,10 @@ def refine_one_plane(task):
     )
 
     residual_shrink = (
-        cfg["base_residual_shrink"]
-        * pass_mul.get("shrink", 1.0)
-        / (1.0 + 0.8 * eff_noise + 0.3 * dist_boost)
-        * dc["shrink"]
+            cfg["base_residual_shrink"]
+            * pass_mul.get("shrink", 1.0)
+            / (1.0 + 0.8 * eff_noise + 0.3 * dist_boost)
+            * dc["shrink"]
     )
     residual_shrink = max(0.001, min(0.08, residual_shrink))
 
@@ -1547,7 +1036,9 @@ def refine_one_plane(task):
         }
     }
 
-def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pass_mul=None, verbose=False, tag="[5/8]", num_workers=1):
+
+def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pass_mul=None, verbose=False, tag="[5/8]",
+                           num_workers=1):
     if not planes:
         return mesh.copy(), []
 
@@ -1558,7 +1049,8 @@ def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pas
         "V": np.asarray(mesh.vertices, dtype=np.float64),
         "F": np.asarray(mesh.faces, dtype=np.int32),
         "vert_adj_csr": shared_cache["vert_adj_csr"],
-        "is_boundary": shared_cache["is_boundary"] if cfg["boundary_protect"] else np.zeros(len(mesh.vertices), dtype=bool),
+        "is_boundary": shared_cache["is_boundary"] if cfg["boundary_protect"] else np.zeros(len(mesh.vertices),
+                                                                                            dtype=bool),
         "bbox_diag": shared_cache["bbox_diag"],
     }
 
@@ -1594,6 +1086,11 @@ def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pas
             wsum[r["vids"], 0] += r["w"]
         reports.append(r["report"])
 
+        if verbose:
+            rr = r["report"]
+            print(
+                f"  plane={rr['plane_id']:03d} stage={rr['stage']:<4} faces={rr['faces']:5d} sigma={rr['vertex_sigma']:.6f} out={rr['outlier_thr']:.5f} shrink={rr['residual_shrink']:.5f} smooth={rr['smooth_iters']}")
+
     moved = wsum[:, 0] > 1e-12
     V2 = V.copy()
     V2[moved] = acc[moved] / wsum[moved]
@@ -1606,15 +1103,17 @@ def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pas
 
     return out, sorted(reports, key=lambda x: x["plane_id"])
 
+
 def select_far_second_pass_planes(planes, reports, min_faces=60, min_sigma=0.003):
     ids = [
         int(r["plane_id"])
         for r in reports
         if r.get("stage") == "far"
-        and r.get("faces", 0) >= min_faces
-        and r.get("vertex_sigma", 0.0) >= min_sigma
+           and r.get("faces", 0) >= min_faces
+           and r.get("vertex_sigma", 0.0) >= min_sigma
     ]
     return [planes[i] for i in ids]
+
 
 # =============================
 # Global smooth
@@ -1646,10 +1145,12 @@ def global_smooth(mesh, iters=1, method="taubin"):
         pass
     return out
 
+
 # =============================
 # Save
 # =============================
-def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input_path, num_workers, timings, hole_stats):
+def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input_path, num_workers, timings,
+                 hole_stats):
     ensure_dir(out_dir)
     base = os.path.splitext(os.path.basename(input_path))[0]
 
@@ -1693,6 +1194,7 @@ def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input
         }, f, indent=2, ensure_ascii=False)
 
     return obj_path, ply_path, planes_path, report_path
+
 
 # =============================
 # Pipeline
@@ -1750,41 +1252,30 @@ def process_mesh(args):
     before = mesh_report(mesh0, include_components=False)
 
     if args.verbose:
+        print(f"  load_mesh: {timings['load_mesh']:.3f}s")
         print("[1/8] 基础清理...")
 
     t0 = time.perf_counter()
     mesh = clean_mesh_light(mesh0, fix_normals=False)
     timings["clean_mesh_1"] = round(time.perf_counter() - t0, 4)
 
-    if args.verbose:
-        print("[2/8] 早期空洞修补 / 裂缝桥接...")
-
     t0 = time.perf_counter()
-    mesh, hole_stats = run_early_hole_repair(
+    mesh, hole_stats = fill_small_holes_early(
         mesh,
         enable=not args.disable_early_hole_fill,
-        try_trimesh_fill=not args.disable_trimesh_fill_holes,
         max_hole_edges=args.max_hole_edges,
         max_hole_diameter=args.max_hole_diameter,
         max_hole_area=args.max_hole_area,
-        max_hole_plane_residual=args.max_hole_plane_residual,
-        max_hole_candidate_loops=args.max_hole_candidate_loops,
-        enable_gap_stitch=not args.disable_gap_stitch,
-        max_bridge_dist=args.max_bridge_dist,
-        bridge_normal_dot_min=args.bridge_normal_dot_min,
-        max_bridge_pairs=args.max_bridge_pairs,
-        enable_chain_stitch=not args.disable_chain_stitch,
-        max_chain_endpoint_dist=args.max_chain_endpoint_dist,
-        max_chain_avg_gap=args.max_chain_avg_gap,
-        max_chain_plane_residual=args.max_chain_plane_residual,
-        chain_tangent_dot_min=args.chain_tangent_dot_min,
-        chain_normal_dot_min=args.chain_normal_dot_min,
-        max_chain_pairs=args.max_chain_pairs,
+        max_plane_residual=args.max_hole_plane_residual,
+        max_candidate_loops=args.max_hole_candidate_loops,
+        try_trimesh_fill=not args.disable_trimesh_fill_holes,
         verbose=args.verbose
     )
-    timings["early_hole_fill"] = round(time.perf_counter() - t0, 4)
+    timings["early_hole_fill"] = round(time.perf_counter() - t0, 4) - timings["clean_mesh_1"]
 
     if args.verbose:
+        print(f"  clean_mesh_1: {timings['clean_mesh_1']:.3f}s")
+        print(f"  early_hole_fill: {timings['early_hole_fill']:.3f}s")
         print("[3/8] 连通分量过滤...")
 
     t0 = time.perf_counter()
@@ -1797,9 +1288,15 @@ def process_mesh(args):
     )
     timings["filter_components"] = round(time.perf_counter() - t0, 4)
 
+    if args.verbose:
+        print(f"  filter_components: {timings['filter_components']:.3f}s")
+
     t0 = time.perf_counter()
     planes, shared_cache = detect_planes(mesh, detect_cfg, args.verbose)
     timings["detect_planes"] = round(time.perf_counter() - t0, 4)
+
+    if args.verbose:
+        print(f"  detect_planes: {timings['detect_planes']:.3f}s")
 
     t0 = time.perf_counter()
     mesh, reports1 = refine_planes_parallel(
@@ -1809,7 +1306,7 @@ def process_mesh(args):
         shared_cache=shared_cache,
         only_stage=None,
         pass_mul=None,
-        verbose=False,
+        verbose=args.verbose,
         tag="[5/8]",
         num_workers=num_workers
     )
@@ -1818,12 +1315,17 @@ def process_mesh(args):
     reports2 = []
     timings["refine_pass_2_far"] = 0.0
     if args.enable_far_second_pass:
+        if args.verbose:
+            print("[5.5/8] far second pass 选择平面...")
         selected = select_far_second_pass_planes(
             planes,
             reports1,
             args.far_second_pass_min_faces,
             args.far_second_pass_min_sigma
         )
+        if args.verbose:
+            print(f"  选中 far 平面数: {len(selected)}")
+
         if selected:
             pass_mul = {
                 "outlier": args.far_second_pass_outlier_mul,
@@ -1833,6 +1335,7 @@ def process_mesh(args):
                 "noise": args.far_second_pass_noise_mul,
                 "expand_rings_add": args.far_second_pass_expand_rings,
             }
+
             t0 = time.perf_counter()
             mesh, reports2 = refine_planes_parallel(
                 mesh,
@@ -1841,7 +1344,7 @@ def process_mesh(args):
                 shared_cache=shared_cache,
                 only_stage=None,
                 pass_mul=pass_mul,
-                verbose=False,
+                verbose=args.verbose,
                 tag="[5.5/8]",
                 num_workers=num_workers
             )
@@ -1884,6 +1387,7 @@ def process_mesh(args):
         args.output_dir, args.input, num_workers, timings, hole_stats
     )
     timings["save_outputs"] = round(time.perf_counter() - t0, 4)
+
     timings["total"] = round(time.perf_counter() - total_t0, 4)
 
     print("\n========== PIPELINE DONE ==========")
@@ -1896,43 +1400,30 @@ def process_mesh(args):
         print(f"  {k}: {v:.3f}")
     print("===================================")
 
+
 # =============================
 # CLI
 # =============================
 def build_parser():
-    p = argparse.ArgumentParser(description="Mesh refine pipeline (early hole fill + boundary gap stitching)")
+    p = argparse.ArgumentParser(description="Mesh refine pipeline (fast CPU version + DP hole filling)")
 
     p.add_argument("--input", required=True)
     p.add_argument("--output_dir", required=True)
 
+    # initial component filtering
     p.add_argument("--min_component_faces", type=int, default=80)
     p.add_argument("--min_component_area", type=float, default=0.0015)
     p.add_argument("--min_component_max_extent", type=float, default=0.04)
     p.add_argument("--keep_top_k_faces", type=int, default=20)
 
-    # early hole fill
+    # early hole fill - 显著放宽了限制
     p.add_argument("--disable_early_hole_fill", action="store_true")
     p.add_argument("--disable_trimesh_fill_holes", action="store_true")
-    p.add_argument("--max_hole_edges", type=int, default=160)
-    p.add_argument("--max_hole_diameter", type=float, default=1.5)
-    p.add_argument("--max_hole_area", type=float, default=1.2)
-    p.add_argument("--max_hole_plane_residual", type=float, default=0.10)
-    p.add_argument("--max_hole_candidate_loops", type=int, default=8000)
-
-    # point gap stitch
-    p.add_argument("--disable_gap_stitch", action="store_true")
-    p.add_argument("--max_bridge_dist", type=float, default=0.30, help="边界顶点最大桥接距离")
-    p.add_argument("--bridge_normal_dot_min", type=float, default=0.15, help="边界顶点法向相容阈值，越低越激进")
-    p.add_argument("--max_bridge_pairs", type=int, default=20000)
-
-    # chain stitch
-    p.add_argument("--disable_chain_stitch", action="store_true")
-    p.add_argument("--max_chain_endpoint_dist", type=float, default=0.55)
-    p.add_argument("--max_chain_avg_gap", type=float, default=0.40)
-    p.add_argument("--max_chain_plane_residual", type=float, default=0.12)
-    p.add_argument("--chain_tangent_dot_min", type=float, default=0.15)
-    p.add_argument("--chain_normal_dot_min", type=float, default=0.20)
-    p.add_argument("--max_chain_pairs", type=int, default=256)
+    p.add_argument("--max_hole_edges", type=int, default=60, help="大幅提升边数限制以处理真实扫描空洞")
+    p.add_argument("--max_hole_diameter", type=float, default=0.40, help="允许修补直径达40cm的洞")
+    p.add_argument("--max_hole_area", type=float, default=0.05)
+    p.add_argument("--max_hole_plane_residual", type=float, default=0.05, help="允许曲面、墙角上的孔洞")
+    p.add_argument("--max_hole_candidate_loops", type=int, default=1500)
 
     # plane detection
     p.add_argument("--patch_normal_angle_deg", type=float, default=24.0)
@@ -1973,20 +1464,25 @@ def build_parser():
     p.add_argument("--far_second_pass_min_sigma", type=float, default=0.003)
     p.add_argument("--far_second_pass_min_faces", type=int, default=60)
 
+    # smooth
     p.add_argument("--global_smooth_iter", type=int, default=0)
     p.add_argument("--global_smooth_method", choices=["taubin", "laplacian", "simple"], default="taubin")
 
+    # noise remove
     p.add_argument("--noise_min_faces", type=int, default=18)
     p.add_argument("--noise_min_area", type=float, default=0.00035)
     p.add_argument("--noise_min_extent", type=float, default=0.018)
     p.add_argument("--noise_keep_top_k", type=int, default=10)
 
-    p.add_argument("--num_workers", type=int, default=0)
+    p.add_argument("--num_workers", type=int, default=0, help="<=0 自动使用 cpu_count()-1；建议 6~12")
     p.add_argument("--verbose", action="store_true")
+
     return p
+
 
 def main():
     process_mesh(build_parser().parse_args())
+
 
 if __name__ == "__main__":
     main()
