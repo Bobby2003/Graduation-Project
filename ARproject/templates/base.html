@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AR 战境 - 全局网关{% endblock %}</title>
+
+    <!-- 1. 引入全局赛博朋克配色系统 (必须确保在 static/css/theme.css 位置) -->
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+
+    <!-- 预留给子页面的额外 CSS 样式块 -->
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        /* ==================== 导航栏专属样式 ==================== */
+        .ar-navbar {
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--neon-blue);
+            background: var(--panel-bg);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .ar-logo {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--neon-blue);
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+            text-decoration: none;
+        }
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid var(--neon-purple);
+            color: var(--neon-purple);
+            padding: 6px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .toggle-btn:hover {
+            box-shadow: 0 0 10px var(--neon-purple);
+            background: rgba(176, 38, 255, 0.1);
+        }
+        .nav-link {
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        .nav-link-term { color: var(--text-main); }
+        .nav-link-term:hover { color: var(--neon-blue); }
+        .nav-link-logout { color: var(--neon-red); }
+        .nav-link-logout:hover { text-shadow: 0 0 8px var(--neon-red); }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== 全局顶部导航栏 ==================== -->
+    <nav class="ar-navbar">
+        <a href="{% url 'home' %}" class="ar-logo">AR_REALM // 核心网关</a>
+
+        <div class="nav-controls">
+            <!-- 手势开关：点击触发 gesture.js 中的 toggle() -->
+            <button id="toggle-gesture-btn" class="toggle-btn">
+                👁️ 唤醒 AR 视野
+            </button>
+
+            {% if user.is_authenticated %}
+                <span style="color: var(--text-muted); font-size: 0.9rem; font-family: monospace;">
+                    USER: {{ user.username }}
+                </span>
+                <a href="{% url 'dashboard' %}" class="nav-link nav-link-term">[个人终端]</a>
+                <a href="{% url 'logout' %}" class="nav-link nav-link-logout">[断开神经]</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link nav-link-term">[系统登录]</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- ==================== 动态页面内容装载区 ==================== -->
+    <!-- 子页面的代码将被动态插入到这个位置 -->
+    <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- ==================== AR 视野浮窗 (默认隐藏) ==================== -->
+    <div id="ar-gesture-widget">
+        <!-- 注意：playsinline 属性是为了兼容移动端浏览器允许自动播放视频 -->
+        <div id="gesture-status-text" class="gesture-status">SYS_SHUTDOWN</div>
+    </div>
+
+    <!-- ==================== 2. 引入手势核心脚本 ==================== -->
+    <!-- (必须确保在 static/js/gesture.js 位置) -->
+    <script src="{% static 'js/gesture.js' %}"></script>
+
+    <!-- 全局手势事件监听测试器 -->
+    <script>
+        // 任何继承了 base.html 的页面，都能接收到手势事件
+        window.addEventListener('ar-gesture', (e) => {
+            const action = e.detail.action;
+            const message = e.detail.message;
+
+            console.log(`[全息广播] 捕获动作: ${action} | 详情: ${message}`);
+
+            // 示例：全局手势响应
+            // if (action === 'swipe-left') { console.log("执行全局向左翻页逻辑"); }
+        });
+    </script>
+
+    <!-- 预留给子页面的额外 JS 脚本块 -->
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>

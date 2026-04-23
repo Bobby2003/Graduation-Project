@@ -1,0 +1,161 @@
+/* ==============================================
+   AR REALM - scanner.css
+   目的: 定义现实扫描器的 HUD 界面、全息战利品及其动画
+   ============================================== */
+
+:root {
+    --neon-blue: #00f2ff;
+    --neon-purple: #bc00ff;
+    --neon-gold: #ffd700;
+    --panel-bg: rgba(5, 6, 8, 0.7);
+}
+
+/* 1. 扫描视野基础 */
+.scanner-viewport {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #000;
+    z-index: 10;
+}
+
+/* 真实视频流的基础调色：增加对比度，模拟夜视/增强现实感 */
+#scanner-stream {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(1.2) contrast(1.1) saturate(1.2);
+    /* 如果你想让摄像头看起来更像点云，可以尝试加一个微弱的网格滤镜 */
+}
+
+/* 2. AR 叠加层：扫描线与暗部渐变 */
+.ar-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            rgba(0, 242, 255, 0.03) 0px,
+            rgba(0, 242, 255, 0.03) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
+}
+
+/* 3. 动态扫描光波 */
+.ar-overlay::after {
+    content: '';
+    position: absolute;
+    top: -100%; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 242, 255, 0.1) 50%,
+        rgba(0, 242, 255, 0.2) 95%,
+        var(--neon-blue) 100%
+    );
+    animation: scanning-bar 4s linear infinite;
+    opacity: 0.3;
+}
+
+@keyframes scanning-bar {
+    0% { top: -100%; }
+    100% { top: 100%; }
+}
+
+/* 4. 诊断面板样式 */
+.link-diagnostics {
+    position: absolute;
+    top: 90px; right: 30px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    padding: 15px;
+    color: var(--neon-blue);
+    font-family: 'Syncopate', 'monospace';
+    width: 220px;
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+}
+
+.diag-val {
+    color: #fff;
+    text-shadow: 0 0 5px var(--neon-blue);
+}
+
+/* 5. 环境数据卡片 (左下角) */
+.env-data {
+    position: absolute;
+    bottom: 40px; left: 40px;
+}
+
+.data-card {
+    background: rgba(0, 0, 0, 0.5);
+    border-left: 4px solid var(--neon-blue);
+    padding: 15px;
+    font-family: 'Rajdhani', sans-serif;
+    color: #fff;
+    min-width: 200px;
+}
+
+/* 6. 全息战利品箱 (动态生成) */
+.hologram-chest {
+    position: absolute;
+    cursor: pointer;
+    pointer-events: auto; /* 必须开启，才能点击 */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: floating-chest 3s ease-in-out infinite;
+}
+
+.hologram-chest:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+@keyframes floating-chest {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-20px); }
+}
+
+/* 箱子打开时的爆炸效果 */
+.hologram-chest.opening {
+    animation: open-burst 0.8s forwards;
+}
+
+@keyframes open-burst {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.5); filter: brightness(3) blur(5px); }
+    100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+/* 7. 交互提示 */
+.interaction-hint {
+    position: absolute;
+    bottom: 120px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    padding: 5px 20px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px #000;
+}
+
+/* 8. 战利品获得时的通知 (全局) */
+.loot-notification {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--neon-gold);
+    color: var(--neon-gold);
+    padding: 40px;
+    text-align: center;
+    z-index: 9999;
+    animation: loot-enter 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes loot-enter {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; }
+}

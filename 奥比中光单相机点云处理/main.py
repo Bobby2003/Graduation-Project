@@ -158,7 +158,7 @@ class Depth3DScanner:
         return d_out
 
     # ── 可调参数 ──────────────────────────────
-    MIN_DEPTH    = 100    # mm  有效最近距离
+    MIN_DEPTH    = 0    # mm  有效最近距离
     MAX_DEPTH    = 3000   # mm  有效最远距离
     MAX_HOLE_PX  = 100    # px  超过此面积的空洞不填（保护边缘）
     GF_RADIUS    = 4      # 引导滤波半径（小 = 保细节）

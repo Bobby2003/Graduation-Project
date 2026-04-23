@@ -1,0 +1,228 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全服榜单 - AR REALM</title>
+    <!-- 引入科幻字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background: #050608;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: linear-gradient(0deg, #050608 0%, #0a111a 100%);
+            overflow-x: hidden;
+        }
+
+        /* 顶部导航控制条 */
+        .top-nav {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+            background: rgba(5, 6, 8, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .btn-return {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid #00f2ff;
+            color: #00f2ff;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        /* 支持 AR 悬停高亮 */
+        .btn-return:hover, .btn-return.ar-hover {
+            background: #00f2ff;
+            color: #000;
+            box-shadow: 0 0 15px #00f2ff;
+        }
+
+        .leaderboard-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .sys-title {
+            text-align: center;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 30px;
+            color: #fff;
+            letter-spacing: 5px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+
+        /* 榜单列表条目基础样式 */
+        .rank-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 12px;
+            border-left: 4px solid #333;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 支持 AR 点击/悬停查看详情 */
+        .rank-item:hover, .rank-item.ar-hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.02) translateX(10px);
+            border-left-color: #fff;
+            cursor: pointer;
+            box-shadow: -5px 0 15px rgba(255, 255, 255, 0.05);
+        }
+
+        .rank-num {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            color: #555;
+            width: 70px;
+        }
+
+        .rank-user {
+            flex: 1;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .rank-power {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 22px;
+            color: #00f2ff;
+            text-shadow: 0 0 10px rgba(0,242,255,0.5);
+        }
+
+        .power-label {
+            font-size: 10px;
+            color: #666;
+            margin-right: 10px;
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        /* ====== 前三名专属高亮特效 ====== */
+
+        /* TOP 1 - 赛博真金 */
+        .top-1 {
+            border-left-color: #ffd700;
+            background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(0,0,0,0) 100%);
+        }
+        .top-1 .rank-num { color: #ffd700; text-shadow: 0 0 15px #ffd700; }
+        .top-1 .rank-user { color: #ffd700; }
+
+        /* TOP 2 - 秘银白 */
+        .top-2 {
+            border-left-color: #e0e0e0;
+            background: linear-gradient(90deg, rgba(224,224,224,0.05) 0%, rgba(0,0,0,0) 100%);
+        }
+        .top-2 .rank-num { color: #e0e0e0; text-shadow: 0 0 10px rgba(224,224,224,0.5); }
+
+        /* TOP 3 - 黄铜澄 */
+        .top-3 {
+            border-left-color: #cd7f32;
+            background: linear-gradient(90deg, rgba(205,127,50,0.05) 0%, rgba(0,0,0,0) 100%);
+        }
+        .top-3 .rank-num { color: #cd7f32; text-shadow: 0 0 10px rgba(205,127,50,0.5); }
+
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="top-nav">
+        <!-- 退回主网关 (指向 home 或 dashboard 都可以) -->
+        <a href="{% url 'home' %}" class="btn-return">◄ MAIN_HUB</a>
+
+        <!-- AR 连接状态指示器 -->
+        <div id="gesture-status-text" style="color:#00f2ff; font-family:'Syncopate'; font-size:12px; letter-spacing: 2px;">
+            CONNECTING...
+        </div>
+    </div>
+
+    <!-- 榜单主体 -->
+    <div class="leaderboard-container">
+        <div class="sys-title">GLOBAL HALL OF FAME</div>
+
+        <!-- 未来这里可以使用 Django 模板引擎循环渲染真实的数据库数据 (如: {% for user in top_users %})
+             下面的排版是静态参考，可作为默认骨架 -->
+
+        <div class="rank-item top-1">
+            <div class="rank-num">01</div>
+            <div class="rank-user">NEO_AWAKENED</div>
+            <div style="display: flex; align-items: center;">
+                <span class="power-label">PWR</span>
+                <div class="rank-power">98,500</div>
+            </div>
+        </div>
+
+        <div class="rank-item top-2">
+            <div class="rank-num">02</div>
+            <div class="rank-user">CYBER_GHOST</div>
+            <div style="display: flex; align-items: center;">
+                <span class="power-label">PWR</span>
+                <div class="rank-power">84,200</div>
+            </div>
+        </div>
+
+        <div class="rank-item top-3">
+            <div class="rank-num">03</div>
+            <div class="rank-user">VOID_WALKER</div>
+            <div style="display: flex; align-items: center;">
+                <span class="power-label">PWR</span>
+                <div class="rank-power">81,050</div>
+            </div>
+        </div>
+
+        <div class="rank-item">
+            <div class="rank-num">04</div>
+            <div class="rank-user">{{ username|upper|default:"GUEST_994" }}</div>
+            <div style="display: flex; align-items: center;">
+                <span class="power-label">PWR</span>
+                <div class="rank-power">45,000</div>
+            </div>
+        </div>
+
+        <div class="rank-item">
+            <div class="rank-num">05</div>
+            <div class="rank-user">ROBOT_DOG</div>
+            <div style="display: flex; align-items: center;">
+                <span class="power-label">PWR</span>
+                <div class="rank-power">42,100</div>
+            </div>
+        </div>
+
+        <div class="rank-item">
+            <div class="rank-num">06</div>
+            <div class="rank-user">SYSTEM_ADMIN</div>
+            <div style="display: flex; align-items: center;">
+                <span class="power-label">PWR</span>
+                <div class="rank-power">39,800</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 绝对核心：统一引入 AR 手势引擎 -->
+    <script src="{% static 'js/gesture.js' %}"></script>
+</body>
+</html>

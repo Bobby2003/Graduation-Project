@@ -1,0 +1,130 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>系统接入 - AR REALM</title>
+    <!-- 引入科幻字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0; background: #050608; color: #fff;
+            font-family: 'Rajdhani', sans-serif; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background-image: radial-gradient(circle at center, #10141d 0%, #050608 100%);
+            overflow: hidden;
+        }
+
+        /* 统一的赛博朋克容器 */
+        .auth-box {
+            background: rgba(10, 15, 25, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            padding: 50px;
+            width: 380px;
+            text-align: center;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+            box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.05);
+            transition: 0.3s;
+        }
+
+        .auth-box:hover {
+            box-shadow: inset 0 0 50px rgba(0, 242, 255, 0.1);
+        }
+
+        .auth-box h2 {
+            color: #00f2ff;
+            font-family: 'Syncopate', sans-serif;
+            letter-spacing: 4px;
+            margin-bottom: 40px;
+            font-size: 24px;
+        }
+
+        .input-group { margin-bottom: 25px; text-align: left; }
+        .input-group label {
+            display: block; font-size: 12px;
+            color: rgba(0,242,255,0.7);
+            margin-bottom: 8px; font-family: 'Syncopate', sans-serif;
+            letter-spacing: 1px;
+        }
+        .input-group input {
+            width: 100%; padding: 15px;
+            background: rgba(0,242,255,0.02);
+            border: 1px solid rgba(0,242,255,0.2);
+            color: #fff; font-family: 'Rajdhani', sans-serif;
+            font-size: 16px; box-sizing: border-box; transition: 0.3s;
+        }
+        .input-group input:focus {
+            border-color: #00f2ff; outline: none;
+            background: rgba(0,242,255,0.08);
+            box-shadow: 0 0 15px rgba(0,242,255,0.2);
+        }
+
+        .btn-submit {
+            width: 100%; padding: 15px;
+            background: rgba(0, 242, 255, 0.05);
+            border: 2px solid #00f2ff;
+            color: #00f2ff; font-family: 'Syncopate', sans-serif;
+            font-weight: bold; font-size: 14px; letter-spacing: 2px;
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        /* 支持 AR 光标悬停 */
+        .btn-submit:hover, .btn-submit.ar-hover {
+            background: #00f2ff; color: #000;
+            box-shadow: 0 0 25px #00f2ff;
+        }
+
+        .auth-links { margin-top: 25px; font-size: 14px; }
+        .auth-links a { color: #666; text-decoration: none; transition: 0.3s; }
+
+        /* 支持 AR 点击/悬停 */
+        .auth-links a:hover, .auth-links a.ar-hover { color: #00f2ff; text-shadow: 0 0 8px #00f2ff;}
+
+        /* 系统底部返回按钮 */
+        .back-btn { margin-top: 20px; display: block; font-size: 12px; color: #444; text-decoration: none; transition: 0.3s;}
+        .back-btn:hover, .back-btn.ar-hover { color: #fff; }
+
+        #gesture-status-text {
+            position: fixed; top: 25px; right: 35px;
+            color: #00f2ff; font-family: 'Syncopate', sans-serif;
+            font-size: 12px; letter-spacing: 2px; z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- AR 状态指示器 -->
+    <div id="gesture-status-text">CONNECTING...</div>
+
+    <div class="auth-box">
+        <h2>LINK_LOGIN</h2>
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="input-group">
+                <label>UID / USERNAME</label>
+                <input type="text" name="username" required autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label>ENCRYPTION KEY</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-submit">接入战境 (IDENTIFY)</button>
+        </form>
+
+        <div class="auth-links">
+            <a href="{% url 'register' %}">无权访问？申请开发者密钥</a>
+        </div>
+        <a href="/" class="back-btn">◄ 返回主网关</a>
+
+        {% if messages %}
+            <div style="color: #ff3e3e; margin-top: 15px; font-size: 13px; font-weight: bold; background: rgba(255, 62, 62, 0.1); padding: 10px; border: 1px solid #ff3e3e;">
+                {% for msg in messages %}{{ msg }}{% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- 统一载入最新 AR 引擎 -->
+    <script src="{% static 'js/gesture.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+[
+  {
+    "algorithm": "Poisson_depth9",
+    "time_ms": 1652.8,
+    "vertices": 149899,
+    "triangles": 298869,
+    "file": "mesh_results\\20260423_191436\\Poisson_depth9.ply"
+  },
+  {
+    "algorithm": "Poisson_depth7_fast",
+    "time_ms": 318.5,
+    "vertices": 14587,
+    "triangles": 28922,
+    "file": "mesh_results\\20260423_191436\\Poisson_depth7_fast.ply"
+  },
+  {
+    "algorithm": "BallPivoting",
+    "time_ms": 1316.8,
+    "vertices": 141679,
+    "triangles": 275119,
+    "file": "mesh_results\\20260423_191436\\BallPivoting.ply"
+  },
+  {
+    "algorithm": "AlphaShape_0.03",
+    "time_ms": 3638.9,
+    "vertices": 119014,
+    "triangles": 289446,
+    "file": "mesh_results\\20260423_191436\\AlphaShape_0.03.ply"
+  },
+  {
+    "algorithm": "AlphaShape_0.01_fine",
+    "time_ms": 3239.2,
+    "vertices": 89254,
+    "triangles": 243190,
+    "file": "mesh_results\\20260423_191436\\AlphaShape_0.01_fine.ply"
+  },
+  {
+    "algorithm": "Delaunay2D",
+    "time_ms": 561.9,
+    "vertices": 141679,
+    "triangles": 283320,
+    "file": "mesh_results\\20260423_191436\\Delaunay2D.ply"
+  },
+  {
+    "algorithm": "ConvexHull",
+    "time_ms": 11.5,
+    "vertices": 169,
+    "triangles": 334,
+    "file": "mesh_results\\20260423_191436\\ConvexHull.ply"
+  },
+  {
+    "algorithm": "MarchingCubes_approx",
+    "time_ms": 276.2,
+    "vertices": 157728,
+    "triangles": 397908,
+    "file": "mesh_results\\20260423_191436\\MarchingCubes_approx.ply"
+  },
+  {
+    "algorithm": "ScreenedPoisson_pymeshlab",
+    "time_ms": 3855.5,
+    "vertices": 156114,
+    "triangles": 311941,
+    "file": "mesh_results\\20260423_191436\\ScreenedPoisson_pymeshlab.ply"
+  },
+  {
+    "algorithm": "GreedyProjection_pymeshlab",
+    "time_ms": 2957.7,
+    "vertices": 141679,
+    "triangles": 212621,
+    "file": "mesh_results\\20260423_191436\\GreedyProjection_pymeshlab.ply"
+  }
+]

@@ -117,3 +117,28 @@ footer em{color:var(--g);font-style:normal}
   .steps{gap:4px}
   .step:not(:last-child)::after{display:none}
 }
+/* AR 虚拟光标 */
+#ar-cursor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: rgba(201, 168, 76, 0.8);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    /* 极其重要：确保光标不会拦截点击事件，让下方的真实DOM元素能接收到点击 */
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px rgba(201, 168, 76, 0.8);
+    transition: width 0.1s, height 0.1s, background 0.1s; /* 点击时的动画过渡 */
+}
+
+/* 捏合(点击)时的动态效果 */
+#ar-cursor.clicking {
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    box-shadow: 0 0 20px #fff;
+}
