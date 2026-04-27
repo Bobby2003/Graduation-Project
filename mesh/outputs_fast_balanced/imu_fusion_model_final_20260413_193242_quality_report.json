@@ -53,16 +53,16 @@
   "scipy_sparse_enabled": true,
   "num_workers": 8,
   "timings_sec": {
-    "load_mesh": 4.9326,
-    "clean_mesh_1": 0.1135,
-    "early_hole_fill": 30.2956,
-    "filter_components": 0.7058,
-    "detect_planes": 6.9556,
-    "refine_pass_1": 1.7725,
+    "load_mesh": 7.4861,
+    "clean_mesh_1": 0.1851,
+    "early_hole_fill": 51.6145,
+    "filter_components": 0.6258,
+    "detect_planes": 5.6181,
+    "refine_pass_1": 1.2789,
     "refine_pass_2_far": 0.0,
     "global_smooth": 0.0,
-    "remove_floating_noise": 0.4816,
-    "clean_mesh_final": 0.0537,
-    "final_report": 1.2008
+    "remove_floating_noise": 0.382,
+    "clean_mesh_final": 0.0406,
+    "final_report": 1.032
   }
 }
