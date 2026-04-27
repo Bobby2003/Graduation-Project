@@ -469,8 +469,13 @@ def build_boundary_cache(mesh):
         "boundary_vs": boundary_vs,
     }
 
-def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000):
-    boundary, adj, _ = build_boundary_data(mesh)
+def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000, boundary_cache=None):
+    if boundary_cache is None:
+        boundary, adj, _ = build_boundary_data(mesh)
+    else:
+        boundary = boundary_cache["boundary"]
+        adj = boundary_cache["adj"]
+
     if len(boundary) == 0:
         return []
 
@@ -541,8 +546,13 @@ def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000):
 
     return uniq
 
-def extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000):
-    boundary, adj, _ = build_boundary_data(mesh)
+def extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000, boundary_cache=None):
+    if boundary_cache is None:
+        boundary, adj, _ = build_boundary_data(mesh)
+    else:
+        boundary = boundary_cache["boundary"]
+        adj = boundary_cache["adj"]
+
     if len(boundary) == 0:
         return []
 
@@ -694,8 +704,262 @@ def fan_triangulation_2d(poly):
         else:
             tris.append((0, i + 1, i))
     return tris
+def gpu_boundary_candidate_pairs(boundary_vs, V, VN, max_bridge_dist, normal_dot_min, block_size=1024):
+    if not CUPY_AVAILABLE:
+        return np.empty((0, 2), dtype=np.int32)
 
-def endpoint_candidate_map_for_chains(chains, V, radius, max_neighbors_per_chain=64):
+    ids = np.asarray(boundary_vs, dtype=np.int32)
+    if len(ids) < 2:
+        return np.empty((0, 2), dtype=np.int32)
+
+    pts = cp.asarray(V[ids], dtype=cp.float64)
+    nrm = cp.asarray(VN[ids], dtype=cp.float64)
+    r2 = float(max_bridge_dist * max_bridge_dist)
+
+    pairs_all = []
+
+    for i0 in range(0, len(ids), block_size):
+        i1 = min(i0 + block_size, len(ids))
+        A = pts[i0:i1]
+        AN = nrm[i0:i1]
+
+        d2 = cp.sum((A[:, None, :] - pts[None, :, :]) ** 2, axis=2)
+        nd = cp.abs(AN @ nrm.T)
+
+        mask = (d2 > 1e-24) & (d2 <= r2) & (nd >= normal_dot_min)
+
+        ii, jj = cp.where(mask)
+        if ii.size == 0:
+            continue
+
+        ii = cp.asnumpy(ii) + i0
+        jj = cp.asnumpy(jj)
+
+        pairs = np.column_stack([ids[ii], ids[jj]]).astype(np.int32)
+        pairs_all.append(pairs)
+
+    if not pairs_all:
+        return np.empty((0, 2), dtype=np.int32)
+
+    return np.vstack(pairs_all)
+
+def gpu_chain_endpoint_candidates(chains, V, radius, block_size=2048):
+    candidate_map = [set() for _ in range(len(chains))]
+    if not CUPY_AVAILABLE:
+        return candidate_map
+
+    valid_chain_ids = [i for i, ch in enumerate(chains) if len(ch) >= 2]
+    if len(valid_chain_ids) < 2:
+        return candidate_map
+
+    endpoint_pts = []
+    endpoint_owner = []
+
+    for i in valid_chain_ids:
+        ch = chains[i]
+        endpoint_pts.append(V[int(ch[0])])
+        endpoint_pts.append(V[int(ch[-1])])
+        endpoint_owner.append(i)
+        endpoint_owner.append(i)
+
+    endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
+    owner = np.asarray(endpoint_owner, dtype=np.int32)
+
+    P = cp.asarray(endpoint_pts, dtype=cp.float64)
+    r2 = float(radius * radius)
+
+    for i0 in range(0, len(endpoint_pts), block_size):
+        i1 = min(i0 + block_size, len(endpoint_pts))
+        A = P[i0:i1]
+
+        d2 = cp.sum((A[:, None, :] - P[None, :, :]) ** 2, axis=2)
+        mask = (d2 > 1e-24) & (d2 <= r2)
+
+        ii, jj = cp.where(mask)
+        if ii.size == 0:
+            continue
+
+        ii = cp.asnumpy(ii) + i0
+        jj = cp.asnumpy(jj)
+
+        for a_idx, b_idx in zip(ii, jj):
+            ca = int(owner[a_idx])
+            cb = int(owner[b_idx])
+            if ca != cb:
+                candidate_map[ca].add(cb)
+
+    return candidate_map
+
+def best_match_from_candidate_pairs(candidate_pairs, V, adj, edge_set, VN, normal_dot_min, max_bridge_dist):
+    if len(candidate_pairs) == 0:
+        return {}
+
+    V = np.asarray(V, dtype=np.float64)
+    VN = np.asarray(VN, dtype=np.float64)
+    pairs = np.asarray(candidate_pairs, dtype=np.int32)
+
+    gi = pairs[:, 0]
+    gj = pairs[:, 1]
+
+    Pi = V[gi]
+    Pj = V[gj]
+
+    d = np.linalg.norm(Pi - Pj, axis=1)
+    nd = np.abs(np.sum(VN[gi] * VN[gj], axis=1))
+
+    mask = (d > 1e-12) & (d <= float(max_bridge_dist)) & (nd >= float(normal_dot_min))
+    if not np.any(mask):
+        return {}
+
+    gi = gi[mask]
+    gj = gj[mask]
+    d = d[mask]
+
+    # 预构建 set，避免在内层重复构造
+    adj_set = {int(k): set(v) for k, v in adj.items()}
+
+    best_match = {}
+    best_dist = {}
+
+    def consider(a, b, dist_ab):
+        if a == b:
+            return
+        if edge_exists(edge_set, a, b):
+            return
+        if len(adj_set.get(a, set()) & adj_set.get(b, set())) > 0:
+            return
+
+        old = best_dist.get(a, None)
+        if old is None or dist_ab < old:
+            best_dist[a] = float(dist_ab)
+            best_match[a] = int(b)
+
+    for a, b, dist_ab in zip(gi, gj, d):
+        a = int(a)
+        b = int(b)
+        consider(a, b, dist_ab)
+
+    return best_match
+def knn_candidate_pairs_boundary(boundary_vs, V, k_neighbors=8, max_dist=np.inf):
+    ids = np.asarray(boundary_vs, dtype=np.int32)
+    if len(ids) < 2:
+        return np.empty((0, 2), dtype=np.int32)
+
+    pts = np.asarray(V[ids], dtype=np.float64)
+
+    if SCIPY_AVAILABLE and cKDTree is not None:
+        tree = cKDTree(pts)
+        k = min(int(k_neighbors) + 1, len(ids))
+        dists, idxs = tree.query(pts, k=k)
+
+        if k == 1:
+            return np.empty((0, 2), dtype=np.int32)
+
+        dists = np.atleast_2d(dists)
+        idxs = np.atleast_2d(idxs)
+
+        src = np.repeat(np.arange(len(ids), dtype=np.int32), k - 1)
+        dst = idxs[:, 1:].reshape(-1).astype(np.int32)
+        dd = dists[:, 1:].reshape(-1)
+
+        mask = np.isfinite(dd)
+        if np.isfinite(max_dist):
+            mask &= (dd <= float(max_dist))
+
+        if not np.any(mask):
+            return np.empty((0, 2), dtype=np.int32)
+
+        src = src[mask]
+        dst = dst[mask]
+
+        return np.column_stack([ids[src], ids[dst]]).astype(np.int32)
+
+    # fallback
+    pairs = []
+    for i in range(len(pts)):
+        d = np.linalg.norm(pts - pts[i], axis=1)
+        order = np.argsort(d)
+        used = 0
+        for j in order:
+            if j == i:
+                continue
+            if np.isfinite(max_dist) and d[j] > max_dist:
+                continue
+            pairs.append([ids[i], ids[j]])
+            used += 1
+            if used >= k_neighbors:
+                break
+
+    if not pairs:
+        return np.empty((0, 2), dtype=np.int32)
+
+    return np.asarray(pairs, dtype=np.int32)
+def knn_candidate_map_for_chains(chains, V, k_neighbors=8, max_dist=np.inf):
+    n = len(chains)
+    candidate_map = [set() for _ in range(n)]
+
+    valid_chain_ids = [i for i, ch in enumerate(chains) if len(ch) >= 2]
+    if len(valid_chain_ids) < 2:
+        return candidate_map
+
+    endpoint_pts = []
+    endpoint_owner = []
+
+    for i in valid_chain_ids:
+        ch = chains[i]
+        endpoint_pts.append(V[int(ch[0])])
+        endpoint_owner.append(i)
+        endpoint_pts.append(V[int(ch[-1])])
+        endpoint_owner.append(i)
+
+    endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
+    endpoint_owner = np.asarray(endpoint_owner, dtype=np.int32)
+
+    if SCIPY_AVAILABLE and cKDTree is not None:
+        tree = cKDTree(endpoint_pts)
+        k = min(int(k_neighbors) + 1, len(endpoint_pts))
+        dists, idxs = tree.query(endpoint_pts, k=k)
+
+        dists = np.atleast_2d(dists)
+        idxs = np.atleast_2d(idxs)
+
+        for ep_idx in range(len(endpoint_pts)):
+            src_chain = int(endpoint_owner[ep_idx])
+            for d, j_ep in zip(dists[ep_idx, 1:], idxs[ep_idx, 1:]):
+                if not np.isfinite(d):
+                    continue
+                if np.isfinite(max_dist) and d > max_dist:
+                    continue
+                dst_chain = int(endpoint_owner[j_ep])
+                if dst_chain != src_chain:
+                    candidate_map[src_chain].add(dst_chain)
+    else:
+        for ii in range(len(valid_chain_ids)):
+            i = valid_chain_ids[ii]
+            ai0 = V[int(chains[i][0])]
+            ai1 = V[int(chains[i][-1])]
+            ranked = []
+            for jj in range(len(valid_chain_ids)):
+                if ii == jj:
+                    continue
+                j = valid_chain_ids[jj]
+                bj0 = V[int(chains[j][0])]
+                bj1 = V[int(chains[j][-1])]
+                d = min(
+                    np.linalg.norm(ai0 - bj0),
+                    np.linalg.norm(ai0 - bj1),
+                    np.linalg.norm(ai1 - bj0),
+                    np.linalg.norm(ai1 - bj1),
+                )
+                if np.isfinite(max_dist) and d > max_dist:
+                    continue
+                ranked.append((d, j))
+            ranked.sort(key=lambda x: x[0])
+            for _, j in ranked[:k_neighbors]:
+                candidate_map[i].add(j)
+
+    return candidate_map
+def endpoint_candidate_map_for_chains(chains, V, radius, max_neighbors_per_chain=64, use_gpu=False):
     n = len(chains)
     candidate_map = [set() for _ in range(n)]
 
@@ -706,7 +970,14 @@ def endpoint_candidate_map_for_chains(chains, V, radius, max_neighbors_per_chain
     if len(valid_chain_ids) < 2:
         return candidate_map
 
-    if not SCIPY_AVAILABLE or cKDTree is None:
+    if use_gpu and CUPY_AVAILABLE:
+        candidate_map = gpu_chain_endpoint_candidates(
+            chains,
+            V,
+            radius=radius,
+            block_size=2048,
+        )
+    elif not SCIPY_AVAILABLE or cKDTree is None:
         for ii in range(len(valid_chain_ids)):
             i = valid_chain_ids[ii]
             ai0 = V[int(chains[i][0])]
@@ -725,27 +996,27 @@ def endpoint_candidate_map_for_chains(chains, V, radius, max_neighbors_per_chain
                     candidate_map[i].add(j)
                     candidate_map[j].add(i)
         return candidate_map
+    else:
+        endpoint_pts = []
+        endpoint_owner = []
+        for i in valid_chain_ids:
+            ch = chains[i]
+            endpoint_pts.append(V[int(ch[0])])
+            endpoint_owner.append(i)
+            endpoint_pts.append(V[int(ch[-1])])
+            endpoint_owner.append(i)
 
-    endpoint_pts = []
-    endpoint_owner = []
-    for i in valid_chain_ids:
-        ch = chains[i]
-        endpoint_pts.append(V[int(ch[0])])
-        endpoint_owner.append(i)
-        endpoint_pts.append(V[int(ch[-1])])
-        endpoint_owner.append(i)
+        endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
+        tree = cKDTree(endpoint_pts)
+        neighs = tree.query_ball_point(endpoint_pts, r=radius)
 
-    endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
-    tree = cKDTree(endpoint_pts)
-    neighs = tree.query_ball_point(endpoint_pts, r=radius)
-
-    for ep_idx, js in enumerate(neighs):
-        i = endpoint_owner[ep_idx]
-        for j_ep in js:
-            j = endpoint_owner[j_ep]
-            if j == i:
-                continue
-            candidate_map[i].add(j)
+        for ep_idx, js in enumerate(neighs):
+            i = endpoint_owner[ep_idx]
+            for j_ep in js:
+                j = endpoint_owner[j_ep]
+                if j == i:
+                    continue
+                candidate_map[i].add(j)
 
     for i in valid_chain_ids:
         if len(candidate_map[i]) <= max_neighbors_per_chain:
@@ -791,7 +1062,8 @@ def fill_small_holes_from_loops(
     loops = extract_boundary_loops_ordered(
         mesh,
         max_loop_edges=max_hole_edges,
-        max_loops=max_candidate_loops
+        max_loops=max_candidate_loops,
+        boundary_cache=boundary_cache,
     )
     stats["candidate_loops"] = int(len(loops))
     if len(loops) == 0:
@@ -920,6 +1192,10 @@ def stitch_boundary_gaps(
     max_bridge_pairs=6000,
     min_triangle_area=1e-8,
     boundary_cache=None,
+    use_gpu_prefilter=False,
+    gpu_min_boundary_vertices=12000,
+    knn_neighbors=8,
+    use_knn_candidates=True,
 ):
     stats = {
         "boundary_vertices": 0,
@@ -927,6 +1203,8 @@ def stitch_boundary_gaps(
         "mutual_pairs": 0,
         "bridge_quads": 0,
         "added_faces": 0,
+        "gpu_prefilter_used": False,
+        "candidate_mode": "none",
     }
 
     if boundary_cache is None:
@@ -947,52 +1225,95 @@ def stitch_boundary_gaps(
     V = np.asarray(mesh.vertices, dtype=np.float64)
     VN = estimate_vertex_normals_fast(mesh)
 
-    pts = V[boundary_vs]
-    if SCIPY_AVAILABLE and cKDTree is not None:
-        tree = cKDTree(pts)
-        neighs = tree.query_ball_point(pts, r=max_bridge_dist)
-    else:
-        neighs = []
-        for i in range(len(pts)):
-            d = np.linalg.norm(pts - pts[i], axis=1)
-            neighs.append(np.where(d <= max_bridge_dist)[0].tolist())
-
     best_match = {}
-    for i_local, js in enumerate(neighs):
-        vi = int(boundary_vs[i_local])
-        pi = V[vi]
-        ni = VN[vi]
-        best_j = None
-        best_d = None
 
-        for j_local in js:
-            if j_local == i_local:
-                continue
-            vj = int(boundary_vs[j_local])
+    use_gpu_now = bool(
+        use_gpu_prefilter
+        and CUPY_AVAILABLE
+        and len(boundary_vs) >= int(gpu_min_boundary_vertices)
+        and not use_knn_candidates
+    )
 
-            if vi == vj:
-                continue
-            if edge_exists(edge_set, vi, vj):
-                continue
-            if len(set(adj.get(vi, [])) & set(adj.get(vj, []))) > 0:
-                continue
+    if use_knn_candidates:
+        candidate_pairs = knn_candidate_pairs_boundary(
+            boundary_vs,
+            V,
+            k_neighbors=knn_neighbors,
+            max_dist=max_bridge_dist,
+        )
+        stats["candidate_mode"] = "knn"
 
-            pj = V[vj]
-            d = float(np.linalg.norm(pi - pj))
-            if d <= 1e-12 or d > max_bridge_dist:
-                continue
+        best_match = best_match_from_candidate_pairs(
+            candidate_pairs,
+            V=V,
+            adj=adj,
+            edge_set=edge_set,
+            VN=VN,
+            normal_dot_min=normal_dot_min,
+            max_bridge_dist=max_bridge_dist,
+        )
 
-            nj = VN[vj]
-            nd = float(abs(np.dot(ni, nj)))
-            if nd < normal_dot_min:
-                continue
+    elif use_gpu_now:
+        candidate_pairs = gpu_boundary_candidate_pairs(
+            boundary_vs,
+            V,
+            VN,
+            max_bridge_dist=max_bridge_dist,
+            normal_dot_min=normal_dot_min,
+            block_size=1024,
+        )
+        stats["gpu_prefilter_used"] = True
+        stats["candidate_mode"] = "gpu_radius"
 
-            if best_d is None or d < best_d:
-                best_d = d
-                best_j = vj
+        best_match = best_match_from_candidate_pairs(
+            candidate_pairs,
+            V=V,
+            adj=adj,
+            edge_set=edge_set,
+            VN=VN,
+            normal_dot_min=normal_dot_min,
+            max_bridge_dist=max_bridge_dist,
+        )
 
-        if best_j is not None:
-            best_match[vi] = best_j
+    else:
+        pts = V[boundary_vs]
+
+        if SCIPY_AVAILABLE and cKDTree is not None:
+            tree = cKDTree(pts)
+            try:
+                local_pairs = tree.query_pairs(r=max_bridge_dist, output_type="ndarray")
+            except TypeError:
+                local_pairs = np.array(list(tree.query_pairs(r=max_bridge_dist)), dtype=np.int32)
+        else:
+            local_pairs_list = []
+            for i in range(len(pts)):
+                d = np.linalg.norm(pts[i + 1:] - pts[i], axis=1)
+                js = np.where(d <= max_bridge_dist)[0]
+                for j in js:
+                    local_pairs_list.append([i, i + 1 + int(j)])
+            local_pairs = np.asarray(local_pairs_list, dtype=np.int32) if local_pairs_list else np.empty((0, 2), dtype=np.int32)
+
+        if len(local_pairs) > 0:
+            candidate_pairs = np.column_stack([
+                boundary_vs[local_pairs[:, 0]],
+                boundary_vs[local_pairs[:, 1]],
+            ]).astype(np.int32)
+
+            candidate_pairs = np.vstack([
+                candidate_pairs,
+                candidate_pairs[:, ::-1]
+            ])
+            stats["candidate_mode"] = "cpu_radius"
+
+            best_match = best_match_from_candidate_pairs(
+                candidate_pairs,
+                V=V,
+                adj=adj,
+                edge_set=edge_set,
+                VN=VN,
+                normal_dot_min=normal_dot_min,
+                max_bridge_dist=max_bridge_dist,
+            )
 
     stats["candidate_pairs"] = int(len(best_match))
     if not best_match:
@@ -1023,11 +1344,10 @@ def stitch_boundary_gaps(
         a = int(a)
         b = int(b)
 
-        if a not in partner or b not in partner:
+        pa = partner.get(a, None)
+        pb = partner.get(b, None)
+        if pa is None or pb is None:
             continue
-
-        pa = partner[a]
-        pb = partner[b]
 
         if pa == pb or pa in (a, b) or pb in (a, b):
             continue
@@ -1043,24 +1363,26 @@ def stitch_boundary_gaps(
         C = V[pb]
         D = V[pa]
 
-        area1 = triangle_area_3d(A, B, C) + triangle_area_3d(A, C, D)
-        area2 = triangle_area_3d(A, B, D) + triangle_area_3d(B, C, D)
+        area_ABC = triangle_area_3d(A, B, C)
+        area_ACD = triangle_area_3d(A, C, D)
+        area_ABD = triangle_area_3d(A, B, D)
+        area_BCD = triangle_area_3d(B, C, D)
+
+        area1 = area_ABC + area_ACD
+        area2 = area_ABD + area_BCD
 
         faces_candidate = None
         if area1 >= area2:
-            if triangle_area_3d(A, B, C) > min_triangle_area and triangle_area_3d(A, C, D) > min_triangle_area:
+            if area_ABC > min_triangle_area and area_ACD > min_triangle_area:
                 faces_candidate = [[a, b, pb], [a, pb, pa]]
         else:
-            if triangle_area_3d(A, B, pa) > min_triangle_area and triangle_area_3d(B, pb, pa) > min_triangle_area:
+            if area_ABD > min_triangle_area and area_BCD > min_triangle_area:
                 faces_candidate = [[a, b, pa], [b, pb, pa]]
 
         if faces_candidate is None:
             continue
 
-        for f in faces_candidate:
-            if len(set(f)) == 3:
-                new_faces.append(f)
-
+        new_faces.extend(faces_candidate)
         used_quads.add(quad_key)
 
     stats["bridge_quads"] = int(len(used_quads))
@@ -1075,7 +1397,6 @@ def stitch_boundary_gaps(
 
     stats["added_faces"] = int(len(new_faces))
     return out, stats
-
 def stitch_open_boundary_chains(
     mesh,
     max_chain_endpoint_dist=0.55,
@@ -1096,7 +1417,12 @@ def stitch_open_boundary_chains(
         "added_faces": 0,
     }
 
-    chains = extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000)
+    chains = extract_open_boundary_chains(
+        mesh,
+        max_chain_edges=800,
+        max_chains=12000,
+        boundary_cache=boundary_cache,
+    )
     stats["chain_count"] = int(len(chains))
     if len(chains) < 2:
         return mesh.copy(), stats
@@ -1112,25 +1438,42 @@ def stitch_open_boundary_chains(
         if len(ch) < min_chain_vertices:
             chain_infos.append(None)
             continue
-        pts = V[ch]
+
+        ids = np.asarray(ch, dtype=np.int32)
+        pts = V[ids]
         clen = chain_length(pts)
         if clen <= 1e-8:
             chain_infos.append(None)
             continue
+
+        sample_n = min(len(ids), 24)
+        if sample_n < 2:
+            chain_infos.append(None)
+            continue
+
+        sample_idx = np.linspace(0, len(ids) - 1, sample_n).astype(np.int32)
+
         chain_infos.append({
-            "ids": np.asarray(ch, dtype=np.int32),
+            "ids": ids,
             "pts": pts,
             "len": clen,
+            "p0": pts[0],
+            "p1": pts[-1],
+            "t0": endpoint_tangent(pts, at_start=True),
+            "t1": endpoint_tangent(pts, at_start=False),
+            "nmean": mean_vertex_normal(VN, ids),
+            "sample_idx": sample_idx,
         })
 
-    candidate_map = endpoint_candidate_map_for_chains(
+    candidate_map = knn_candidate_map_for_chains(
         chains,
         V,
-        radius=max_chain_endpoint_dist,
-        max_neighbors_per_chain=max_chain_neighbor_candidates,
+        k_neighbors=max_chain_neighbor_candidates,
+        max_dist=max_chain_endpoint_dist,
     )
 
     candidates = []
+    max_ep_dist2 = float(max_chain_endpoint_dist * max_chain_endpoint_dist)
 
     for i in range(len(chains)):
         infoA = chain_infos[i]
@@ -1153,11 +1496,10 @@ def stitch_open_boundary_chains(
             ptsA2 = V[A2]
             ptsB2 = V[B2]
 
-            ep_dist = max(
-                np.linalg.norm(ptsA2[0] - ptsB2[0]),
-                np.linalg.norm(ptsA2[-1] - ptsB2[-1]),
-            )
-            if ep_dist > max_chain_endpoint_dist:
+            d0 = np.sum((ptsA2[0] - ptsB2[0]) ** 2)
+            d1 = np.sum((ptsA2[-1] - ptsB2[-1]) ** 2)
+            ep_dist = float(np.sqrt(max(d0, d1)))
+            if d0 > max_ep_dist2 or d1 > max_ep_dist2:
                 continue
 
             lenA = infoA["len"]
@@ -1172,6 +1514,7 @@ def stitch_open_boundary_chains(
 
             idxA = np.linspace(0, len(A2) - 1, sample_n).astype(np.int32)
             idxB = np.linspace(0, len(B2) - 1, sample_n).astype(np.int32)
+
             avg_gap = float(np.mean(np.linalg.norm(V[A2[idxA]] - V[B2[idxB]], axis=1)))
             if avg_gap > max_chain_avg_gap:
                 continue
@@ -1180,6 +1523,7 @@ def stitch_open_boundary_chains(
             ta1 = endpoint_tangent(ptsA2, at_start=False)
             tb0 = endpoint_tangent(ptsB2, at_start=True)
             tb1 = endpoint_tangent(ptsB2, at_start=False)
+
             tscore = 0.5 * (abs(np.dot(ta0, tb0)) + abs(np.dot(ta1, tb1)))
             if tscore < tangent_dot_min:
                 continue
@@ -1260,6 +1604,8 @@ def run_early_hole_repair(
     chain_normal_dot_min=0.20,
     max_chain_pairs=256,
     max_chain_neighbor_candidates=64,
+    use_gpu_gap_prefilter=False,
+    use_gpu_chain=False,
     verbose=False,
 ):
     stats = {
@@ -1268,6 +1614,7 @@ def run_early_hole_repair(
         "loop_fill": {},
         "gap_stitch": {},
         "chain_stitch": {},
+        "timings_sec": {},
     }
 
     if not enable:
@@ -1276,13 +1623,18 @@ def run_early_hole_repair(
     out = mesh.copy()
 
     if try_trimesh_fill:
+        t0 = time.perf_counter()
         try:
             before_faces = len(out.faces)
             trimesh.repair.fill_holes(out)
             stats["trimesh_fill_applied"] = len(out.faces) > before_faces
         except Exception:
             pass
+        stats["timings_sec"]["trimesh_fill"] = round(time.perf_counter() - t0, 4)
+    else:
+        stats["timings_sec"]["trimesh_fill"] = 0.0
 
+    t0 = time.perf_counter()
     boundary_cache = build_boundary_cache(out)
     out, loop_stats = fill_small_holes_from_loops(
         out,
@@ -1294,8 +1646,10 @@ def run_early_hole_repair(
         boundary_cache=boundary_cache,
     )
     stats["loop_fill"] = loop_stats
+    stats["timings_sec"]["loop_fill"] = round(time.perf_counter() - t0, 4)
 
     if enable_gap_stitch:
+        t0 = time.perf_counter()
         boundary_cache = build_boundary_cache(out)
         out, gap_stats = stitch_boundary_gaps(
             out,
@@ -1303,7 +1657,12 @@ def run_early_hole_repair(
             normal_dot_min=bridge_normal_dot_min,
             max_bridge_pairs=max_bridge_pairs,
             boundary_cache=boundary_cache,
+            use_gpu_prefilter=use_gpu_gap_prefilter,
+            gpu_min_boundary_vertices=12000,
+            knn_neighbors=8,
+            use_knn_candidates=True,
         )
+        stats["timings_sec"]["gap_stitch"] = round(time.perf_counter() - t0, 4)
     else:
         gap_stats = {
             "boundary_vertices": 0,
@@ -1311,10 +1670,13 @@ def run_early_hole_repair(
             "mutual_pairs": 0,
             "bridge_quads": 0,
             "added_faces": 0,
+            "gpu_prefilter_used": False,
         }
+        stats["timings_sec"]["gap_stitch"] = 0.0
     stats["gap_stitch"] = gap_stats
 
     if enable_chain_stitch:
+        t0 = time.perf_counter()
         boundary_cache = build_boundary_cache(out)
         out, chain_stats = stitch_open_boundary_chains(
             out,
@@ -1328,6 +1690,7 @@ def run_early_hole_repair(
             max_chain_neighbor_candidates=max_chain_neighbor_candidates,
             boundary_cache=boundary_cache,
         )
+        stats["timings_sec"]["chain_stitch"] = round(time.perf_counter() - t0, 4)
     else:
         chain_stats = {
             "chain_count": 0,
@@ -1335,9 +1698,12 @@ def run_early_hole_repair(
             "accepted_pairs": 0,
             "added_faces": 0,
         }
+        stats["timings_sec"]["chain_stitch"] = 0.0
     stats["chain_stitch"] = chain_stats
 
+    t0 = time.perf_counter()
     out = clean_mesh_light(out, fix_normals=False)
+    stats["timings_sec"]["post_clean"] = round(time.perf_counter() - t0, 4)
 
     if verbose:
         total_added = (
@@ -1348,9 +1714,18 @@ def run_early_hole_repair(
         print(
             f"[2/8] 早期空洞修补... "
             f"loop_filled={loop_stats.get('filled_holes', 0)} "
+            f"gap_mode={gap_stats.get('candidate_mode', 'na')} "
+            f"gap_boundary_v={gap_stats.get('boundary_vertices', 0)} "
+            f"gap_candidates={gap_stats.get('candidate_pairs', 0)} "
+            f"gap_mutual={gap_stats.get('mutual_pairs', 0)} "
             f"gap_quads={gap_stats.get('bridge_quads', 0)} "
+            f"chain_count={chain_stats.get('chain_count', 0)} "
+            f"chain_candidates={chain_stats.get('candidate_pairs', 0)} "
             f"chain_pairs={chain_stats.get('accepted_pairs', 0)} "
-            f"added_faces={total_added}"
+            f"added_faces={total_added} "
+            f"time_loop={stats['timings_sec']['loop_fill']}s "
+            f"time_gap={stats['timings_sec']['gap_stitch']}s "
+            f"time_chain={stats['timings_sec']['chain_stitch']}s"
         )
 
     return out, stats
@@ -1550,14 +1925,27 @@ def detect_planes(mesh, cfg, verbose=False):
     face_counts = np.bincount(patch_labels, minlength=patch_count)
     area_sums = np.bincount(patch_labels, weights=cache["face_areas"], minlength=patch_count)
 
-    valid_patch_ids = np.where(
+    valid_patch_mask = (
         (face_counts >= cfg["min_patch_faces"]) &
         (area_sums >= cfg["min_plane_area"])
-    )[0]
+    )
+    valid_patch_ids = np.where(valid_patch_mask)[0]
 
-    for pid in valid_patch_ids:
-        patch = np.where(patch_labels == pid)[0].astype(np.int32)
-        planes.extend(split_planes(patch, cache, cfg, 0))
+    if len(valid_patch_ids) > 0:
+        order = np.argsort(patch_labels, kind="mergesort")
+        labels_sorted = patch_labels[order]
+
+        starts = np.flatnonzero(
+            np.r_[True, labels_sorted[1:] != labels_sorted[:-1]]
+        )
+        ends = np.r_[starts[1:], len(order)]
+
+        for s, e in zip(starts, ends):
+            pid = int(labels_sorted[s])
+            if not valid_patch_mask[pid]:
+                continue
+            patch = order[s:e].astype(np.int32)
+            planes.extend(split_planes(patch, cache, cfg, 0))
 
     planes = dedup_planes(planes)
 
@@ -1941,6 +2329,12 @@ def process_mesh(args):
     num_workers = args.num_workers if args.num_workers and args.num_workers > 0 else max(1, cpu_count() - 1)
     use_cuda = cuda_enabled(args)
 
+    # 细分 GPU 使用范围：
+    # early hole fill 保留 GPU 预筛
+    # plane detect / refine 默认强制走 CPU，避免整体变慢
+    use_cuda_early = use_cuda
+    use_cuda_planes = False
+    use_cuda_chain = False
     detect_cfg = {
         "patch_normal_angle_deg": args.patch_normal_angle_deg,
         "min_patch_faces": args.min_patch_faces,
@@ -1954,7 +2348,7 @@ def process_mesh(args):
         "use_distance_strategy": args.use_distance_strategy,
         "near_ratio": args.near_ratio,
         "far_ratio": args.far_ratio,
-        "use_cuda": use_cuda,
+        "use_cuda": use_cuda_planes,
     }
 
     refine_cfg = {
@@ -1972,7 +2366,7 @@ def process_mesh(args):
         "use_distance_strategy": args.use_distance_strategy,
         "near_ratio": args.near_ratio,
         "far_ratio": args.far_ratio,
-        "use_cuda": use_cuda,
+        "use_cuda": use_cuda_planes,
     }
 
     timings = {}
@@ -1982,6 +2376,9 @@ def process_mesh(args):
         print(f"scipy sparse available: {SCIPY_AVAILABLE}")
         print(f"cupy available: {CUPY_AVAILABLE}")
         print(f"cuda enabled: {use_cuda}")
+        print(f"cuda early-hole: {use_cuda_early}")
+        print(f"cuda planes: {use_cuda_planes}")
+        print(f"cuda chains: {use_cuda_chain}")
         print(f"num_workers: {num_workers}")
         print("[0/8] 读取网格...")
 
@@ -2023,6 +2420,8 @@ def process_mesh(args):
         chain_normal_dot_min=args.chain_normal_dot_min,
         max_chain_pairs=args.max_chain_pairs,
         max_chain_neighbor_candidates=args.max_chain_neighbor_candidates,
+        use_gpu_gap_prefilter=use_cuda_early,
+        use_gpu_chain=use_cuda_chain,
         verbose=args.verbose
     )
     timings["early_hole_fill"] = round(time.perf_counter() - t0, 4)
