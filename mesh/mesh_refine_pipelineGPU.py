@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import time
 import argparse
@@ -7,7 +8,52 @@ from multiprocessing import cpu_count
 
 import numpy as np
 import trimesh
+# =============================
+# Default run config / presets
+# =============================
+DEFAULT_INPUT = r".\input\imu_fusion_model_final_20260413_193242.ply"
+DEFAULT_OUTPUT_DIR = r".\outputs_default"
+DEFAULT_SENSOR_ORIGIN = "0,0,0"
+DEFAULT_NUM_WORKERS = 8
+DEFAULT_PRESET = "balanced"
 
+PRESET_CONFIGS = {
+    # 正式平衡版：优先推荐
+    "balanced": {
+        "patch_normal_angle_deg": 24.0,
+        "min_patch_faces": 25,
+        "min_plane_faces": 80,
+        "min_plane_area": 0.0008,
+        "base_face_plane_dist": 0.014,
+        "plane_normal_angle_deg": 18.0,
+        "sigma_dist_mult": 3.6,
+        "max_split_depth": 3,
+    },
+
+    # 快速版：批处理/预览更合适
+    "fast": {
+        "patch_normal_angle_deg": 24.0,
+        "min_patch_faces": 25,
+        "min_plane_faces": 100,
+        "min_plane_area": 0.0008,
+        "base_face_plane_dist": 0.014,
+        "plane_normal_angle_deg": 18.0,
+        "sigma_dist_mult": 3.6,
+        "max_split_depth": 4,
+    },
+
+    # 细节版：保留更多 plane
+    "detail": {
+        "patch_normal_angle_deg": 24.0,
+        "min_patch_faces": 25,
+        "min_plane_faces": 70,
+        "min_plane_area": 0.0008,
+        "base_face_plane_dist": 0.014,
+        "plane_normal_angle_deg": 18.0,
+        "sigma_dist_mult": 3.6,
+        "max_split_depth": 4,
+    },
+}
 try:
     import scipy.sparse as sp
     from scipy.sparse.csgraph import connected_components as sp_connected_components
@@ -214,9 +260,10 @@ def build_vertex_adjacency_sparse(num_vertices, faces):
 
 def boundary_vertices(mesh):
     try:
-        e = np.sort(mesh.edges_sorted, axis=1)
-        ue, cnt = np.unique(e, axis=0, return_counts=True)
-        return ue[cnt == 1].reshape(-1)
+        be = get_boundary_edges(mesh)
+        if len(be) == 0:
+            return np.empty(0, dtype=np.int32)
+        return np.unique(be.reshape(-1)).astype(np.int32, copy=False)
     except Exception:
         return np.empty(0, dtype=np.int32)
 
@@ -436,9 +483,14 @@ def ear_clip_triangulation_2d(poly):
 
 def get_boundary_edges(mesh):
     try:
-        e = np.sort(mesh.edges_sorted, axis=1)
-        ue, cnt = np.unique(e, axis=0, return_counts=True)
-        return ue[cnt == 1]
+        edges_u = np.asarray(mesh.edges_unique, dtype=np.int32)
+        if len(edges_u) == 0:
+            return np.empty((0, 2), dtype=np.int32)
+
+        inv = np.asarray(mesh.edges_unique_inverse, dtype=np.int64).reshape(-1)
+        counts = np.bincount(inv, minlength=len(edges_u))
+
+        return edges_u[counts == 1]
     except Exception:
         return np.empty((0, 2), dtype=np.int32)
 
@@ -461,7 +513,7 @@ def build_boundary_cache(mesh):
     if len(boundary) == 0:
         boundary_vs = np.empty(0, dtype=np.int32)
     else:
-        boundary_vs = np.array(sorted(set(boundary.reshape(-1).tolist())), dtype=np.int32)
+        boundary_vs = np.unique(boundary.reshape(-1)).astype(np.int32, copy=False)
     return {
         "boundary": boundary,
         "adj": adj,
@@ -1897,31 +1949,58 @@ def split_planes(face_ids, cache, cfg, depth=0):
     return res
 
 def dedup_planes(planes, overlap=0.85):
+    # 先把每个 plane 的 face_ids 统一变成“已排序且唯一”的 int32 数组
+    prepared = []
+    for p in planes:
+        ids = np.unique(np.asarray(p["face_ids"], dtype=np.int32))
+        q = dict(p)
+        q["face_ids"] = ids
+        prepared.append(q)
+
     kept = []
     kept_ids = []
 
-    for p in sorted(planes, key=lambda x: (len(x["face_ids"]), x["area"]), reverse=True):
-        ids = np.sort(np.asarray(p["face_ids"], dtype=np.int32))
+    # 仍然优先保留更大的 plane
+    for p in sorted(prepared, key=lambda x: (len(x["face_ids"]), x["area"]), reverse=True):
+        ids = p["face_ids"]
+        n_ids = len(ids)
         ok = True
+
         for k_ids in kept_ids:
-            inter = np.intersect1d(ids, k_ids, assume_unique=False).size
-            denom = max(1, min(len(ids), len(k_ids)))
-            if inter / denom >= overlap:
+            min_len = min(n_ids, len(k_ids))
+            if min_len == 0:
+                continue
+
+            # overlap 阈值对应的最少交集数
+            need = int(np.ceil(overlap * min_len))
+
+            # 因为 ids 和 k_ids 都已经 unique + sorted
+            inter = np.intersect1d(ids, k_ids, assume_unique=True).size
+            if inter >= need:
                 ok = False
                 break
+
         if ok:
             kept.append(p)
             kept_ids.append(ids)
+
     return kept
 
 def detect_planes(mesh, cfg, verbose=False):
     if verbose:
         print("[4/8] 多平面识别...")
 
-    cache = make_cache(mesh)
-    planes = []
+    dp_timings = {}
 
+    t0 = time.perf_counter()
+    cache = make_cache(mesh)
+    dp_timings["make_cache"] = round(time.perf_counter() - t0, 4)
+
+    t0 = time.perf_counter()
     patch_labels, patch_count = initial_patch_labels(cache, cfg["patch_normal_angle_deg"])
+    dp_timings["initial_patch_labels"] = round(time.perf_counter() - t0, 4)
+
+    t0 = time.perf_counter()
     face_counts = np.bincount(patch_labels, minlength=patch_count)
     area_sums = np.bincount(patch_labels, weights=cache["face_areas"], minlength=patch_count)
 
@@ -1930,7 +2009,10 @@ def detect_planes(mesh, cfg, verbose=False):
         (area_sums >= cfg["min_plane_area"])
     )
     valid_patch_ids = np.where(valid_patch_mask)[0]
+    dp_timings["patch_filter"] = round(time.perf_counter() - t0, 4)
 
+    planes = []
+    t0 = time.perf_counter()
     if len(valid_patch_ids) > 0:
         order = np.argsort(patch_labels, kind="mergesort")
         labels_sorted = patch_labels[order]
@@ -1946,15 +2028,19 @@ def detect_planes(mesh, cfg, verbose=False):
                 continue
             patch = order[s:e].astype(np.int32)
             planes.extend(split_planes(patch, cache, cfg, 0))
+    dp_timings["split_planes_total"] = round(time.perf_counter() - t0, 4)
 
+    t0 = time.perf_counter()
     planes = dedup_planes(planes)
+    dp_timings["dedup_planes"] = round(time.perf_counter() - t0, 4)
 
     if verbose:
         print(f"  初始 patch 数: {patch_count}")
         print(f"  有效 patch 数: {len(valid_patch_ids)}")
         print(f"  识别平面数: {len(planes)}")
+        print(f"  detect_planes breakdown: {dp_timings}")
 
-    return planes, cache
+    return planes, cache, dp_timings
 
 # =============================
 # Plane refinement
@@ -2440,8 +2526,13 @@ def process_mesh(args):
     timings["filter_components"] = round(time.perf_counter() - t0, 4)
 
     t0 = time.perf_counter()
-    planes, shared_cache = detect_planes(mesh, detect_cfg, args.verbose)
+    planes, shared_cache, detect_breakdown = detect_planes(mesh, detect_cfg, args.verbose)
     timings["detect_planes"] = round(time.perf_counter() - t0, 4)
+    timings["detect_planes_make_cache"] = detect_breakdown["make_cache"]
+    timings["detect_planes_initial_patch_labels"] = detect_breakdown["initial_patch_labels"]
+    timings["detect_planes_patch_filter"] = detect_breakdown["patch_filter"]
+    timings["detect_planes_split_planes_total"] = detect_breakdown["split_planes_total"]
+    timings["detect_planes_dedup_planes"] = detect_breakdown["dedup_planes"]
 
     t0 = time.perf_counter()
     mesh, reports1 = refine_planes_parallel(
@@ -2517,14 +2608,21 @@ def process_mesh(args):
     timings["clean_mesh_final"] = round(time.perf_counter() - t0, 4)
 
     t0 = time.perf_counter()
-    after = mesh_report(mesh, include_components=True)
+    after = mesh_report(
+        mesh,
+        include_components=not args.skip_component_count_in_report
+    )
     timings["final_report"] = round(time.perf_counter() - t0, 4)
 
     t0 = time.perf_counter()
-    obj_path, ply_path, planes_path, report_path = save_outputs(
-        mesh, planes, reports1, reports2, before, after,
-        args.output_dir, args.input, num_workers, timings, hole_stats, use_cuda
-    )
+    if args.profile_fast_mode:
+        ensure_dir(args.output_dir)
+        obj_path, ply_path, planes_path, report_path = None, None, None, None
+    else:
+        obj_path, ply_path, planes_path, report_path = save_outputs(
+            mesh, planes, reports1, reports2, before, after,
+            args.output_dir, args.input, num_workers, timings, hole_stats, use_cuda
+        )
     timings["save_outputs"] = round(time.perf_counter() - t0, 4)
     timings["total"] = round(time.perf_counter() - total_t0, 4)
 
@@ -2537,15 +2635,30 @@ def process_mesh(args):
     for k, v in timings.items():
         print(f"  {k}: {v:.3f}")
     print("===================================")
+def apply_preset(args):
+    preset_name = getattr(args, "preset", DEFAULT_PRESET)
+    cfg = PRESET_CONFIGS.get(preset_name, PRESET_CONFIGS[DEFAULT_PRESET])
 
+    # 只覆盖 plane detection 相关参数
+    args.patch_normal_angle_deg = cfg["patch_normal_angle_deg"]
+    args.min_patch_faces = cfg["min_patch_faces"]
+    args.min_plane_faces = cfg["min_plane_faces"]
+    args.min_plane_area = cfg["min_plane_area"]
+    args.base_face_plane_dist = cfg["base_face_plane_dist"]
+    args.plane_normal_angle_deg = cfg["plane_normal_angle_deg"]
+    args.sigma_dist_mult = cfg["sigma_dist_mult"]
+    args.max_split_depth = cfg["max_split_depth"]
+
+    return args
 # =============================
 # CLI
 # =============================
 def build_parser():
     p = argparse.ArgumentParser(description="Mesh refine pipeline GPU version (CPU-GPU hybrid)")
 
-    p.add_argument("--input", required=True)
-    p.add_argument("--output_dir", required=True)
+    p.add_argument("--input", default=DEFAULT_INPUT, help="输入网格路径，默认使用预设 PLY")
+    p.add_argument("--output_dir", default=DEFAULT_OUTPUT_DIR, help="输出目录")
+    p.add_argument("--preset", choices=["balanced", "fast", "detail"], default=DEFAULT_PRESET, help="参数预设")
 
     p.add_argument("--min_component_faces", type=int, default=80)
     p.add_argument("--min_component_area", type=float, default=0.0015)
@@ -2580,12 +2693,12 @@ def build_parser():
     # plane detection
     p.add_argument("--patch_normal_angle_deg", type=float, default=24.0)
     p.add_argument("--min_patch_faces", type=int, default=25)
-    p.add_argument("--min_plane_faces", type=int, default=40)
+    p.add_argument("--min_plane_faces", type=int, default=80)
     p.add_argument("--min_plane_area", type=float, default=0.0008)
     p.add_argument("--base_face_plane_dist", type=float, default=0.014)
     p.add_argument("--plane_normal_angle_deg", type=float, default=18.0)
     p.add_argument("--sigma_dist_mult", type=float, default=3.6)
-    p.add_argument("--max_split_depth", type=int, default=7)
+    p.add_argument("--max_split_depth", type=int, default=3)
 
     # plane refine
     p.add_argument("--vertex_inlier_dist", type=float, default=0.008)
@@ -2599,9 +2712,12 @@ def build_parser():
     p.add_argument("--expand_rings", type=int, default=1)
 
     # distance strategy
-    p.add_argument("--sensor_origin", type=str, default=None)
+    p.add_argument("--sensor_origin", type=str, default=DEFAULT_SENSOR_ORIGIN)
     p.add_argument("--distance_gain", type=float, default=0.45)
-    p.add_argument("--use_distance_strategy", action="store_true")
+    p.add_argument("--use_distance_strategy", dest="use_distance_strategy", action="store_true", help="启用距离策略")
+    p.add_argument("--no_use_distance_strategy", dest="use_distance_strategy", action="store_false",
+                   help="关闭距离策略")
+    p.set_defaults(use_distance_strategy=True)
     p.add_argument("--near_ratio", type=float, default=0.25)
     p.add_argument("--far_ratio", type=float, default=0.50)
 
@@ -2624,17 +2740,59 @@ def build_parser():
     p.add_argument("--noise_min_extent", type=float, default=0.018)
     p.add_argument("--noise_keep_top_k", type=int, default=10)
 
-    p.add_argument("--skip_final_fix_normals", action="store_true")
-    p.add_argument("--num_workers", type=int, default=0)
+    p.add_argument("--skip_final_fix_normals", dest="skip_final_fix_normals", action="store_true",
+                   help="跳过最终法线修复")
+    p.add_argument("--enable_final_fix_normals", dest="skip_final_fix_normals", action="store_false",
+                   help="启用最终法线修复")
+    p.set_defaults(skip_final_fix_normals=True)
+    p.add_argument("--num_workers", type=int, default=DEFAULT_NUM_WORKERS)
 
     # GPU
-    p.add_argument("--use_cuda", action="store_true", help="启用 CUDA / CuPy 混合加速（需已安装 cupy）")
+    p.add_argument("--use_cuda", dest="use_cuda", action="store_true", help="启用 CUDA / CuPy 混合加速（需已安装 cupy）")
+    p.add_argument("--no_use_cuda", dest="use_cuda", action="store_false", help="关闭 CUDA / CuPy")
+    p.set_defaults(use_cuda=True)
 
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", dest="verbose", action="store_true", help="显示详细日志")
+    p.add_argument("--quiet", dest="verbose", action="store_false", help="静默模式")
+    p.set_defaults(verbose=True)
+    p.add_argument("--skip_component_count_in_report", action="store_true", help="调参时跳过最终组件统计，加快测试")
+    p.add_argument("--profile_fast_mode", action="store_true", help="调参时跳过OBJ/PLY/JSON导出，加快测试")
     return p
 
 def main():
-    process_mesh(build_parser().parse_args())
+    parser = build_parser()
+
+    if len(sys.argv) == 1:
+        print("[INFO] 未提供命令行参数，使用代码内默认 preset 直接运行。")
+
+    args = parser.parse_args()
+
+    # 应用 preset，覆盖 plane detection 相关参数
+    args = apply_preset(args)
+
+    # 如果用户没有手工指定 output_dir，则按 preset 自动命名输出目录
+    if args.output_dir == DEFAULT_OUTPUT_DIR:
+        args.output_dir = rf".\outputs_{args.preset}"
+
+    print("========== DEFAULT RUN CONFIG ==========")
+    print(f"preset: {args.preset}")
+    print(f"input: {args.input}")
+    print(f"output_dir: {args.output_dir}")
+    print(f"sensor_origin: {args.sensor_origin}")
+    print(f"use_cuda: {getattr(args, 'use_cuda', False)}")
+    print(f"use_distance_strategy: {args.use_distance_strategy}")
+    print(f"num_workers: {args.num_workers}")
+    print(f"patch_normal_angle_deg: {args.patch_normal_angle_deg}")
+    print(f"min_patch_faces: {args.min_patch_faces}")
+    print(f"min_plane_faces: {args.min_plane_faces}")
+    print(f"min_plane_area: {args.min_plane_area}")
+    print(f"base_face_plane_dist: {args.base_face_plane_dist}")
+    print(f"plane_normal_angle_deg: {args.plane_normal_angle_deg}")
+    print(f"sigma_dist_mult: {args.sigma_dist_mult}")
+    print(f"max_split_depth: {args.max_split_depth}")
+    print("========================================")
+
+    process_mesh(args)
 
 if __name__ == "__main__":
     main()

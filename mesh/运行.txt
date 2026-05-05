@@ -1,0 +1,181 @@
+1. 直接运行默认正式版
+python .\mesh_refine_pipelineGPU.py
+作用：使用代码内默认配置直接运行。
+默认等价于：
+
+使用默认 PLY 输入
+使用 balanced 预设
+开启 CUDA
+开启距离策略
+使用默认输出目录
+2. 运行正式平衡版
+python .\mesh_refine_pipelineGPU.py --preset balanced
+作用：使用推荐的正式平衡参数运行。
+特点：质量与速度较均衡，适合作为默认正式输出。
+
+3. 运行快速版
+python .\mesh_refine_pipelineGPU.py --preset fast
+作用：使用快速版参数运行。
+特点：速度更快，适合批处理、预览、快速测试。
+
+4. 运行细节版
+python .\mesh_refine_pipelineGPU.py --preset detail
+作用：使用细节保留版参数运行。
+特点：保留更多 plane，适合更重视细节效果的情况。
+
+5. 指定输入文件运行
+python .\mesh_refine_pipelineGPU.py --input ".\input\your_mesh.ply"
+作用：使用指定输入网格文件运行。
+
+6. 指定输出目录运行
+python .\mesh_refine_pipelineGPU.py --output_dir ".\outputs_test"
+作用：将输出结果保存到指定目录。
+
+7. 指定输入文件 + 平衡版运行
+python .\mesh_refine_pipelineGPU.py --input ".\input\your_mesh.ply" --preset balanced
+作用：对指定模型使用平衡版参数运行。
+
+8. 指定输入文件 + 快速版运行
+python .\mesh_refine_pipelineGPU.py --input ".\input\your_mesh.ply" --preset fast
+作用：对指定模型使用快速版参数运行。
+
+9. 指定输入文件 + 细节版运行
+python .\mesh_refine_pipelineGPU.py --input ".\input\your_mesh.ply" --preset detail
+作用：对指定模型使用细节版参数运行。
+
+10. 仅做性能测试，不导出文件
+python .\mesh_refine_pipelineGPU.py --profile_fast_mode
+作用：只跑流程和计时，不导出 OBJ/PLY/JSON。
+适合：调参测速。
+
+11. 性能测试时跳过最终组件统计
+python .\mesh_refine_pipelineGPU.py --skip_component_count_in_report
+作用：跳过最终 components 统计，减少测试时间。
+
+12. 推荐的快速性能测试命令
+python .\mesh_refine_pipelineGPU.py --profile_fast_mode --skip_component_count_in_report
+作用：调参测速专用。
+特点：不导出文件、不统计最终组件数，速度更快。
+
+13. 使用快速版做性能测试
+python .\mesh_refine_pipelineGPU.py --preset fast --profile_fast_mode --skip_component_count_in_report
+作用：用快速版参数做纯性能测试。
+
+14. 使用平衡版做性能测试
+python .\mesh_refine_pipelineGPU.py --preset balanced --profile_fast_mode --skip_component_count_in_report
+作用：用正式平衡版参数做纯性能测试。
+
+15. 使用细节版做性能测试
+python .\mesh_refine_pipelineGPU.py --preset detail --profile_fast_mode --skip_component_count_in_report
+作用：用细节版参数做纯性能测试。
+
+16. 关闭 CUDA 运行
+python .\mesh_refine_pipelineGPU.py --no_use_cuda
+作用：强制关闭 CUDA / CuPy，加回 CPU 路径。
+适合：排查 GPU 相关问题。
+
+17. 开启 CUDA 运行
+python .\mesh_refine_pipelineGPU.py --use_cuda
+作用：显式开启 CUDA。
+说明：如果代码里已经默认开启，这条主要用于明确指定。
+
+18. 关闭距离策略
+python .\mesh_refine_pipelineGPU.py --no_use_distance_strategy
+作用：关闭基于传感器距离的策略。
+
+19. 开启距离策略
+python .\mesh_refine_pipelineGPU.py --use_distance_strategy
+作用：显式开启距离策略。
+说明：如果代码里已经默认开启，这条主要用于明确指定。
+
+20. 指定传感器原点
+python .\mesh_refine_pipelineGPU.py --sensor_origin "0,0,0"
+作用：设置传感器原点坐标，用于距离策略。
+
+21. 指定线程数
+python .\mesh_refine_pipelineGPU.py --num_workers 8
+作用：设置平面精修等阶段使用的线程数。
+
+22. 静默运行
+python .\mesh_refine_pipelineGPU.py --quiet
+作用：关闭详细日志输出。
+
+23. 显示详细日志运行
+python .\mesh_refine_pipelineGPU.py --verbose
+作用：显示详细日志。
+说明：如果代码里已经默认 verbose，这条主要用于显式指定。
+
+24. 启用最终法线修复
+python .\mesh_refine_pipelineGPU.py --enable_final_fix_normals
+作用：在流程结束后执行最终法线修复。
+
+25. 跳过最终法线修复
+python .\mesh_refine_pipelineGPU.py --skip_final_fix_normals
+作用：跳过最终法线修复。
+说明：如果代码里默认已跳过，这条主要用于显式指定。
+
+26. 关闭早期空洞修补
+python .\mesh_refine_pipelineGPU.py --disable_early_hole_fill
+作用：禁用早期空洞修补与裂缝桥接阶段。
+适合：排查该阶段耗时或验证其效果。
+
+27. 关闭 trimesh 的 fill_holes
+python .\mesh_refine_pipelineGPU.py --disable_trimesh_fill_holes
+作用：禁用 trimesh.repair.fill_holes。
+
+28. 关闭 gap stitch
+python .\mesh_refine_pipelineGPU.py --disable_gap_stitch
+作用：禁用边界点桥接阶段。
+
+29. 关闭 chain stitch
+python .\mesh_refine_pipelineGPU.py --disable_chain_stitch
+作用：禁用开放边界链缝合阶段。
+
+30. 开启 far second pass
+python .\mesh_refine_pipelineGPU.py --enable_far_second_pass
+作用：对远距离平面执行第二轮精修。
+适合：想进一步增强远处平面的修复效果时使用。
+
+31. 开启全局平滑
+python .\mesh_refine_pipelineGPU.py --global_smooth_iter 1
+作用：执行 1 次全局平滑。
+
+32. 指定全局平滑方法
+python .\mesh_refine_pipelineGPU.py --global_smooth_iter 1 --global_smooth_method taubin
+作用：执行全局平滑，并指定方法为 taubin。
+可选方法：
+
+taubin
+laplacian
+simple
+33. 手动指定 plane 参数运行
+python .\mesh_refine_pipelineGPU.py --min_plane_faces 80 --max_split_depth 3
+作用：手动覆盖 plane 检测关键参数。
+
+34. 手动指定 patch 角度运行
+python .\mesh_refine_pipelineGPU.py --patch_normal_angle_deg 24
+作用：手动设置初始 patch 法向角阈值。
+
+35. 手动指定最小 plane 面数运行
+python .\mesh_refine_pipelineGPU.py --min_plane_faces 80
+作用：手动设置最小 plane 面数阈值。
+
+36. 手动指定最大递归深度运行
+python .\mesh_refine_pipelineGPU.py --max_split_depth 3
+作用：手动设置平面切分最大递归深度。
+
+37. 毕业设计/正式输出推荐命令
+python .\mesh_refine_pipelineGPU.py --preset balanced
+作用：正式输出推荐命令。
+
+38. 快速预览推荐命令
+python .\mesh_refine_pipelineGPU.py --preset fast
+作用：快速预览推荐命令。
+
+39. 细节优先推荐命令
+python .\mesh_refine_pipelineGPU.py --preset detail
+作用：细节优先推荐命令。
+
+40. 最常用调参测速命令
+python .\mesh_refine_pipelineGPU.py --preset balanced --profile_fast_mode --skip_component_count_in_report
+作用：最常用的调参测速命令。
