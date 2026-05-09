@@ -22,16 +22,34 @@ class InputAdapter:
         timestamp_unit: str = "auto",
         validate: bool = False,
         print_timestamp_debug_once: bool = False,
+        logger=None,
     ):
         self.scanner = scanner
         self.timestamp_unit = timestamp_unit
         self.validate_frame = validate
         self.print_timestamp_debug_once = print_timestamp_debug_once
+        self.logger = logger
 
         self._last_raw_ts: Optional[float] = None
         self._last_norm_ts: Optional[float] = None
         self._frame_counter_fallback = 0
         self._printed_ts_debug = False
+
+    def _log(self, msg: str, level: str = "status", force: bool = False):
+        if self.logger is None:
+            return
+
+        if level == "warning":
+            self.logger.warning(msg, force=force)
+        elif level == "debug":
+            self.logger.debug(msg, force=force)
+        elif level == "profile":
+            if hasattr(self.logger, "profile"):
+                self.logger.profile(msg, force=force)
+            else:
+                self.logger.status(msg, force=force)
+        else:
+            self.logger.status(msg, force=force)
 
     def _normalize_device_timestamp(self, ts) -> Optional[float]:
         if ts is None:
@@ -124,10 +142,13 @@ class InputAdapter:
         if isinstance(data, dict):
             raw_ts = data.get("device_timestamp", data.get("timestamp", None))
 
-        print(
-            "[InputAdapter] timestamp debug: "
-            f"raw={raw_ts}, normalized={norm_ts}, unit_mode={self.timestamp_unit}"
+        self._log(
+            f"timestamp debug: raw={raw_ts}, "
+            f"normalized={norm_ts}, unit_mode={self.timestamp_unit}",
+            level="debug",
+            force=True,
         )
+
         self._printed_ts_debug = True
 
     def get_frame(self) -> Optional[RGBDFrame]:
@@ -192,7 +213,7 @@ class InputAdapter:
                 "timestamp_source": ts_source,
                 "frame_info": data.get("frame_info", None),
                 "raw_depth": data.get("raw_depth", None),
-            }
+            },
         )
 
         if self.validate_frame:

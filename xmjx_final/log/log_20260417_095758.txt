@@ -1,0 +1,192 @@
+✅ 日志已保存到: H:\School assessment\Design\Graduation-Project\xmjx_final\log\log_20260417_095758.txt
+[Config] save_log=True
+[Config] log_dir=H:\School assessment\Design\Graduation-Project\xmjx_final\log
+[Config] model_dir=H:\School assessment\Design\Graduation-Project\xmjx_final\model
+✅ 已从指定路径加载: H:\School assessment\Design\奥比中光Win64-Release\sdk\libs\OpenNI2.dll
+✅ OpenNI C API函数原型定义完成
+初始化OpenNI SDK...
+✅ OpenNI SDK初始化成功
+  [0] Astra (Orbbec)
+✅ 设备打开成功，句柄: 2897027601008
+创建 深度 传感器流...
+✅ 流创建成功，句柄: 2898647380912
+✅ 流启动成功
+[TrackingWorker] started[Main] Pipeline started. Press Ctrl+C to stop.
+[MappingWorker] started
+
+[InputAdapter] timestamp debug: raw=0, normalized=0.0, unit_mode=us
+[RGBDPreprocessor] auto depth_scale: dtype=float32, p95=1512.469, depth_scale=1000.0
+[RGBDPreprocessor] auto depth_scale: dtype=float32, p95=1512.469, depth_scale=1000.0
+[Main][TS] frame=3, dt=0.067376s
+[Main][TS] frame=6, dt=0.101066s
+[Main][TS] frame=8, dt=0.067376s
+[Main][TS] frame=11, dt=0.101066s
+[Main][TS] frame=14, dt=0.101065s
+[Main][TS] frame=18, dt=0.134754s
+[ODOM] frame=3, vo_rot=0.05deg, imu_rot=0.00deg, info=1181135.1, t_raw=0.0003m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[Main][TS] frame=21, dt=0.101065s
+[Main][TS] frame=24, dt=0.101065s
+[Main][TS] frame=28, dt=0.134754s
+[Main][TS] frame=30, dt=0.067377s
+[Main][TS] frame=34, dt=0.134753s
+[Main][TS] frame=37, dt=0.101066s
+[ODOM] frame=18, vo_rot=0.23deg, imu_rot=0.00deg, info=1176139.4, t_raw=0.0007m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[Main][TS] frame=41, dt=0.134753s
+[Main][TS] frame=44, dt=0.101066s
+[Main][TS] frame=46, dt=0.067376s
+[Main][TS] frame=49, dt=0.101066s
+[Main][TS] frame=54, dt=0.168442s
+[ODOM] frame=37, vo_rot=0.74deg, imu_rot=0.00deg, info=1168692.2, t_raw=0.0066m, accepted_t=True, t_use=0.0020m, imu_delta_ok=False
+[Main][TS] frame=57, dt=0.101065s
+[Main][TS] frame=61, dt=0.134754s
+[Main][TS] frame=64, dt=0.101065s
+[ODOM] frame=54, vo_rot=0.23deg, imu_rot=0.00deg, info=1167342.5, t_raw=0.0036m, accepted_t=True, t_use=0.0024m, imu_delta_ok=False
+[ODOM] frame=71, vo_rot=0.04deg, imu_rot=0.00deg, info=1176389.4, t_raw=0.0007m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=94, vo_rot=0.23deg, imu_rot=0.00deg, info=1178581.9, t_raw=0.0009m, accepted_t=True, t_use=0.0003m, imu_delta_ok=False
+[ODOM] frame=109, vo_rot=0.39deg, imu_rot=0.00deg, info=1186582.3, t_raw=0.0004m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=128, vo_rot=0.26deg, imu_rot=0.00deg, info=1177801.4, t_raw=0.0003m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=147, vo_rot=0.09deg, imu_rot=0.00deg, info=1171414.8, t_raw=0.0018m, accepted_t=True, t_use=0.0005m, imu_delta_ok=False
+[TrackingWorker] frame=147 mode=tracking success=True score=1.000 valid=208214 time=585.05ms fps=1.69
+[MappingWorker] frame=147 integrated=True mesh_vertices=16863 time=39.41ms fps=1.70
+[ODOM] frame=164, vo_rot=0.82deg, imu_rot=0.00deg, info=1168837.7, t_raw=0.0022m, accepted_t=True, t_use=0.0009m, imu_delta_ok=False
+[ODOM] frame=180, vo_rot=0.47deg, imu_rot=0.00deg, info=1179363.3, t_raw=0.0030m, accepted_t=True, t_use=0.0004m, imu_delta_ok=False
+[ODOM] frame=199, vo_rot=0.16deg, imu_rot=0.00deg, info=1190941.0, t_raw=0.0033m, accepted_t=True, t_use=0.0010m, imu_delta_ok=False
+[ODOM] frame=217, vo_rot=0.25deg, imu_rot=0.00deg, info=1187712.0, t_raw=0.0016m, accepted_t=True, t_use=0.0006m, imu_delta_ok=False
+[ODOM] frame=234, vo_rot=0.20deg, imu_rot=0.00deg, info=1188986.1, t_raw=0.0018m, accepted_t=True, t_use=0.0003m, imu_delta_ok=False
+[ODOM] frame=248, vo_rot=0.05deg, imu_rot=0.00deg, info=1186058.1, t_raw=0.0023m, accepted_t=True, t_use=0.0008m, imu_delta_ok=False
+[ODOM] frame=268, vo_rot=0.21deg, imu_rot=0.00deg, info=1184811.3, t_raw=0.0013m, accepted_t=True, t_use=0.0003m, imu_delta_ok=False
+[ODOM] frame=285, vo_rot=0.26deg, imu_rot=0.00deg, info=1193025.2, t_raw=0.0009m, accepted_t=True, t_use=0.0003m, imu_delta_ok=False
+[ODOM] frame=304, vo_rot=0.11deg, imu_rot=0.00deg, info=1191489.8, t_raw=0.0010m, accepted_t=True, t_use=0.0002m, imu_delta_ok=False
+[ODOM] frame=321, vo_rot=0.59deg, imu_rot=0.00deg, info=1164220.4, t_raw=0.0045m, accepted_t=True, t_use=0.0014m, imu_delta_ok=False
+[TrackingWorker] frame=321 mode=tracking success=True score=1.000 valid=205366 time=580.53ms fps=1.72
+[MappingWorker] frame=321 integrated=True mesh_vertices=17950 time=42.22ms fps=1.72
+[ODOM] frame=336, vo_rot=0.19deg, imu_rot=0.00deg, info=1172829.9, t_raw=0.0016m, accepted_t=True, t_use=0.0005m, imu_delta_ok=False
+[ODOM] frame=355, vo_rot=0.75deg, imu_rot=0.00deg, info=1166551.1, t_raw=0.0011m, accepted_t=True, t_use=0.0002m, imu_delta_ok=False
+[ODOM] frame=374, vo_rot=0.31deg, imu_rot=0.00deg, info=1185251.4, t_raw=0.0005m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=389, vo_rot=0.10deg, imu_rot=0.00deg, info=1185269.0, t_raw=0.0007m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=407, vo_rot=0.30deg, imu_rot=0.00deg, info=1182650.7, t_raw=0.0040m, accepted_t=True, t_use=0.0012m, imu_delta_ok=False
+[ODOM] frame=425, vo_rot=0.09deg, imu_rot=0.00deg, info=1189773.0, t_raw=0.0013m, accepted_t=True, t_use=0.0005m, imu_delta_ok=False
+[ODOM] frame=443, vo_rot=0.49deg, imu_rot=0.00deg, info=1164239.2, t_raw=0.0044m, accepted_t=True, t_use=0.0010m, imu_delta_ok=False
+[ODOM] frame=460, vo_rot=0.47deg, imu_rot=0.00deg, info=1165100.3, t_raw=0.0041m, accepted_t=True, t_use=0.0019m, imu_delta_ok=False
+[ODOM] frame=477, vo_rot=0.65deg, imu_rot=0.00deg, info=1141468.5, t_raw=0.0067m, accepted_t=True, t_use=0.0009m, imu_delta_ok=False
+[ODOM] frame=492, vo_rot=1.43deg, imu_rot=0.00deg, info=1116587.4, t_raw=0.0081m, accepted_t=True, t_use=0.0030m, imu_delta_ok=False
+[TrackingWorker] frame=492 mode=tracking success=True score=1.000 valid=210548 time=585.28ms fps=1.75
+[MappingWorker] frame=492 integrated=True mesh_vertices=19624 time=43.69ms fps=1.75
+[ODOM] frame=510, vo_rot=1.66deg, imu_rot=0.00deg, info=1135575.7, t_raw=0.0100m, accepted_t=True, t_use=0.0051m, imu_delta_ok=False
+[ODOM] frame=530, vo_rot=2.40deg, imu_rot=0.00deg, info=1089795.3, t_raw=0.0120m, accepted_t=True, t_use=0.0071m, imu_delta_ok=False
+[ODOM] frame=547, vo_rot=2.16deg, imu_rot=0.00deg, info=1171303.7, t_raw=0.0077m, accepted_t=True, t_use=0.0063m, imu_delta_ok=False
+[ODOM] frame=562, vo_rot=1.06deg, imu_rot=0.00deg, info=1298385.2, t_raw=0.0078m, accepted_t=True, t_use=0.0065m, imu_delta_ok=False
+[ODOM] frame=581, vo_rot=1.86deg, imu_rot=0.00deg, info=1307999.5, t_raw=0.0108m, accepted_t=True, t_use=0.0076m, imu_delta_ok=False
+[ODOM] frame=598, vo_rot=0.50deg, imu_rot=0.00deg, info=1374570.2, t_raw=0.0026m, accepted_t=True, t_use=0.0057m, imu_delta_ok=False
+[ODOM] frame=617, vo_rot=0.76deg, imu_rot=0.00deg, info=1334728.6, t_raw=0.0104m, accepted_t=True, t_use=0.0069m, imu_delta_ok=False
+[ODOM] frame=633, vo_rot=1.29deg, imu_rot=0.00deg, info=1317375.7, t_raw=0.0099m, accepted_t=True, t_use=0.0078m, imu_delta_ok=False
+[ODOM] frame=651, vo_rot=1.22deg, imu_rot=0.00deg, info=1324391.5, t_raw=0.0110m, accepted_t=True, t_use=0.0087m, imu_delta_ok=False
+[ODOM] frame=669, vo_rot=0.29deg, imu_rot=0.00deg, info=1404885.6, t_raw=0.0012m, accepted_t=True, t_use=0.0059m, imu_delta_ok=False
+[TrackingWorker] frame=669 mode=tracking success=True score=1.000 valid=237921 time=578.26ms fps=1.72
+[MappingWorker] frame=669 integrated=True mesh_vertices=29055 time=62.82ms fps=1.71
+[ODOM] frame=684, vo_rot=0.03deg, imu_rot=0.00deg, info=1401453.3, t_raw=0.0026m, accepted_t=True, t_use=0.0048m, imu_delta_ok=False
+[ODOM] frame=705, vo_rot=3.03deg, imu_rot=0.00deg, info=1279442.6, t_raw=0.0128m, accepted_t=True, t_use=0.0063m, imu_delta_ok=False
+[ODOM] frame=720, vo_rot=1.06deg, imu_rot=0.00deg, info=1424355.7, t_raw=0.0121m, accepted_t=True, t_use=0.0079m, imu_delta_ok=False
+[ODOM] frame=740, vo_rot=0.32deg, imu_rot=0.00deg, info=1503517.8, t_raw=0.0019m, accepted_t=True, t_use=0.0061m, imu_delta_ok=False
+[ODOM] frame=758, vo_rot=0.33deg, imu_rot=0.00deg, info=1467825.2, t_raw=0.0090m, accepted_t=True, t_use=0.0066m, imu_delta_ok=False
+[ODOM] frame=774, vo_rot=1.22deg, imu_rot=0.00deg, info=1433076.5, t_raw=0.0035m, accepted_t=True, t_use=0.0046m, imu_delta_ok=False
+[ODOM] frame=793, vo_rot=0.85deg, imu_rot=0.00deg, info=1431078.4, t_raw=0.0042m, accepted_t=True, t_use=0.0045m, imu_delta_ok=False
+[ODOM] frame=810, vo_rot=0.62deg, imu_rot=0.00deg, info=1431154.2, t_raw=0.0063m, accepted_t=True, t_use=0.0017m, imu_delta_ok=False
+[ODOM] frame=828, vo_rot=0.12deg, imu_rot=0.00deg, info=1469945.2, t_raw=0.0021m, accepted_t=True, t_use=0.0013m, imu_delta_ok=False
+[ODOM] frame=847, vo_rot=0.68deg, imu_rot=0.00deg, info=1416258.1, t_raw=0.0044m, accepted_t=True, t_use=0.0007m, imu_delta_ok=False
+[TrackingWorker] frame=847 mode=tracking success=True score=1.000 valid=242357 time=584.62ms fps=1.71
+[MappingWorker] frame=847 integrated=True mesh_vertices=34413 time=72.91ms fps=1.71
+[ODOM] frame=863, vo_rot=0.19deg, imu_rot=0.00deg, info=1448576.2, t_raw=0.0019m, accepted_t=True, t_use=0.0010m, imu_delta_ok=False
+[ODOM] frame=884, vo_rot=0.03deg, imu_rot=0.00deg, info=1463228.5, t_raw=0.0023m, accepted_t=True, t_use=0.0006m, imu_delta_ok=False
+[ODOM] frame=898, vo_rot=0.20deg, imu_rot=0.00deg, info=1444329.9, t_raw=0.0063m, accepted_t=True, t_use=0.0015m, imu_delta_ok=False
+[ODOM] frame=917, vo_rot=0.15deg, imu_rot=0.00deg, info=1447972.6, t_raw=0.0023m, accepted_t=True, t_use=0.0007m, imu_delta_ok=False
+[ODOM] frame=936, vo_rot=2.07deg, imu_rot=0.00deg, info=1278142.2, t_raw=0.0070m, accepted_t=True, t_use=0.0023m, imu_delta_ok=False
+[ODOM] frame=950, vo_rot=1.32deg, imu_rot=0.00deg, info=1436645.1, t_raw=0.0062m, accepted_t=True, t_use=0.0030m, imu_delta_ok=False
+[ODOM] frame=971, vo_rot=2.65deg, imu_rot=0.00deg, info=1406002.3, t_raw=0.0125m, accepted_t=True, t_use=0.0046m, imu_delta_ok=False
+[ODOM] frame=987, vo_rot=1.36deg, imu_rot=0.00deg, info=1494137.7, t_raw=0.0053m, accepted_t=True, t_use=0.0046m, imu_delta_ok=False
+[ODOM] frame=1006, vo_rot=1.94deg, imu_rot=0.00deg, info=1428832.8, t_raw=0.0165m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=1024, vo_rot=0.43deg, imu_rot=0.00deg, info=1484621.3, t_raw=0.0112m, accepted_t=True, t_use=0.0034m, imu_delta_ok=False
+[TrackingWorker] frame=1024 mode=tracking success=True score=1.000 valid=249482 time=594.83ms fps=1.70
+[MappingWorker] frame=1024 integrated=True mesh_vertices=39183 time=83.95ms fps=1.70
+[ODOM] frame=1042, vo_rot=1.36deg, imu_rot=0.00deg, info=1431142.5, t_raw=0.0099m, accepted_t=True, t_use=0.0041m, imu_delta_ok=False
+[TrackingWorker] frame=1062 mode=lost success=False score=0.000 valid=251311 time=563.95ms fps=1.59
+[ODOM] frame=1077, vo_rot=2.30deg, imu_rot=0.00deg, info=1448431.1, t_raw=0.0058m, accepted_t=True, t_use=0.0034m, imu_delta_ok=False
+[ODOM] frame=1096, vo_rot=2.55deg, imu_rot=0.00deg, info=1423851.9, t_raw=0.0161m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=1110, vo_rot=0.27deg, imu_rot=0.00deg, info=1620997.0, t_raw=0.0048m, accepted_t=True, t_use=0.0014m, imu_delta_ok=False
+[ODOM] frame=1129, vo_rot=0.67deg, imu_rot=0.00deg, info=1662963.5, t_raw=0.0032m, accepted_t=True, t_use=0.0007m, imu_delta_ok=False
+[ODOM] frame=1146, vo_rot=1.16deg, imu_rot=0.00deg, info=1629675.0, t_raw=0.0034m, accepted_t=True, t_use=0.0015m, imu_delta_ok=False
+[ODOM] frame=1168, vo_rot=0.58deg, imu_rot=0.00deg, info=1660595.6, t_raw=0.0046m, accepted_t=True, t_use=0.0022m, imu_delta_ok=False
+[ODOM] frame=1186, vo_rot=0.54deg, imu_rot=0.00deg, info=1679767.6, t_raw=0.0043m, accepted_t=True, t_use=0.0022m, imu_delta_ok=False
+[ODOM] frame=1205, vo_rot=0.83deg, imu_rot=0.00deg, info=1666698.1, t_raw=0.0020m, accepted_t=True, t_use=0.0015m, imu_delta_ok=False
+[TrackingWorker] frame=1205 mode=tracking success=True score=1.000 valid=252019 time=587.46ms fps=1.70
+[ODOM] frame=1221, vo_rot=0.40deg, imu_rot=0.00deg, info=1676556.8, t_raw=0.0029m, accepted_t=True, t_use=0.0017m, imu_delta_ok=False
+[MappingWorker] frame=1221 integrated=True mesh_vertices=64204 time=112.67ms fps=1.56
+[ODOM] frame=1240, vo_rot=0.08deg, imu_rot=0.00deg, info=1688025.8, t_raw=0.0026m, accepted_t=True, t_use=0.0009m, imu_delta_ok=False
+[ODOM] frame=1258, vo_rot=0.20deg, imu_rot=0.00deg, info=1685964.7, t_raw=0.0048m, accepted_t=True, t_use=0.0017m, imu_delta_ok=False
+[ODOM] frame=1277, vo_rot=0.70deg, imu_rot=0.00deg, info=1649697.7, t_raw=0.0082m, accepted_t=True, t_use=0.0036m, imu_delta_ok=False
+[ODOM] frame=1295, vo_rot=0.87deg, imu_rot=0.00deg, info=1649072.8, t_raw=0.0069m, accepted_t=True, t_use=0.0045m, imu_delta_ok=False
+[ODOM] frame=1311, vo_rot=0.70deg, imu_rot=0.00deg, info=1685207.1, t_raw=0.0068m, accepted_t=True, t_use=0.0051m, imu_delta_ok=False
+[ODOM] frame=1329, vo_rot=0.41deg, imu_rot=0.00deg, info=1734360.1, t_raw=0.0013m, accepted_t=True, t_use=0.0039m, imu_delta_ok=False
+[ODOM] frame=1351, vo_rot=0.23deg, imu_rot=0.00deg, info=1730987.2, t_raw=0.0015m, accepted_t=True, t_use=0.0024m, imu_delta_ok=False
+[ODOM] frame=1369, vo_rot=0.30deg, imu_rot=0.00deg, info=1740162.5, t_raw=0.0031m, accepted_t=True, t_use=0.0022m, imu_delta_ok=False
+[ODOM] frame=1384, vo_rot=0.26deg, imu_rot=0.00deg, info=1729852.1, t_raw=0.0033m, accepted_t=True, t_use=0.0021m, imu_delta_ok=False
+[TrackingWorker] frame=1384 mode=tracking success=True score=1.000 valid=251141 time=602.85ms fps=1.66
+[ODOM] frame=1403, vo_rot=0.73deg, imu_rot=0.00deg, info=1700013.7, t_raw=0.0093m, accepted_t=True, t_use=0.0040m, imu_delta_ok=False
+[MappingWorker] frame=1403 integrated=True mesh_vertices=60946 time=137.50ms fps=1.51
+[ODOM] frame=1422, vo_rot=1.01deg, imu_rot=0.00deg, info=1723703.5, t_raw=0.0095m, accepted_t=True, t_use=0.0052m, imu_delta_ok=False
+[ODOM] frame=1438, vo_rot=0.51deg, imu_rot=0.00deg, info=1773291.8, t_raw=0.0072m, accepted_t=True, t_use=0.0057m, imu_delta_ok=False
+[ODOM] frame=1457, vo_rot=0.18deg, imu_rot=0.00deg, info=1806712.2, t_raw=0.0019m, accepted_t=True, t_use=0.0042m, imu_delta_ok=False
+[ODOM] frame=1474, vo_rot=0.19deg, imu_rot=0.00deg, info=1806682.7, t_raw=0.0072m, accepted_t=True, t_use=0.0049m, imu_delta_ok=False
+[ODOM] frame=1491, vo_rot=0.48deg, imu_rot=0.00deg, info=1812006.2, t_raw=0.0051m, accepted_t=True, t_use=0.0049m, imu_delta_ok=False
+[ODOM] frame=1510, vo_rot=0.23deg, imu_rot=0.00deg, info=1842814.1, t_raw=0.0019m, accepted_t=True, t_use=0.0031m, imu_delta_ok=False
+[ODOM] frame=1532, vo_rot=0.46deg, imu_rot=0.00deg, info=1851989.3, t_raw=0.0021m, accepted_t=True, t_use=0.0028m, imu_delta_ok=False
+[ODOM] frame=1547, vo_rot=0.46deg, imu_rot=0.00deg, info=1831768.8, t_raw=0.0028m, accepted_t=True, t_use=0.0021m, imu_delta_ok=False
+[ODOM] frame=1567, vo_rot=1.66deg, imu_rot=0.00deg, info=1694428.9, t_raw=0.0078m, accepted_t=True, t_use=0.0031m, imu_delta_ok=False
+[TrackingWorker] frame=1567 mode=tracking success=True score=1.000 valid=258589 time=590.24ms fps=1.62
+[ODOM] frame=1585, vo_rot=0.68deg, imu_rot=0.00deg, info=1863149.1, t_raw=0.0034m, accepted_t=True, t_use=0.0025m, imu_delta_ok=False
+[MappingWorker] frame=1585 integrated=True mesh_vertices=63350 time=131.47ms fps=1.51
+[ODOM] frame=1601, vo_rot=0.79deg, imu_rot=0.00deg, info=1909073.0, t_raw=0.0095m, accepted_t=True, t_use=0.0036m, imu_delta_ok=False
+[ODOM] frame=1624, vo_rot=0.94deg, imu_rot=0.00deg, info=1955349.6, t_raw=0.0121m, accepted_t=True, t_use=0.0058m, imu_delta_ok=False
+[ODOM] frame=1642, vo_rot=0.89deg, imu_rot=0.00deg, info=1980835.2, t_raw=0.0186m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=1662, vo_rot=1.35deg, imu_rot=0.00deg, info=2027868.2, t_raw=0.0186m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=1680, vo_rot=0.93deg, imu_rot=0.00deg, info=2122098.0, t_raw=0.0139m, accepted_t=True, t_use=0.0042m, imu_delta_ok=False
+[ODOM] frame=1696, vo_rot=0.37deg, imu_rot=0.00deg, info=2203775.6, t_raw=0.0061m, accepted_t=True, t_use=0.0047m, imu_delta_ok=False
+[ODOM] frame=1718, vo_rot=0.36deg, imu_rot=0.00deg, info=2242603.9, t_raw=0.0059m, accepted_t=True, t_use=0.0050m, imu_delta_ok=False
+[ODOM] frame=1738, vo_rot=0.43deg, imu_rot=0.00deg, info=2281517.3, t_raw=0.0042m, accepted_t=True, t_use=0.0048m, imu_delta_ok=False
+[ODOM] frame=1753, vo_rot=0.48deg, imu_rot=0.00deg, info=2329362.1, t_raw=0.0047m, accepted_t=True, t_use=0.0047m, imu_delta_ok=False
+[TrackingWorker] frame=1753 mode=tracking success=True score=1.000 valid=272906 time=624.19ms fps=1.63
+[ODOM] frame=1774, vo_rot=0.79deg, imu_rot=0.00deg, info=2354158.1, t_raw=0.0096m, accepted_t=True, t_use=0.0061m, imu_delta_ok=False
+[MappingWorker] frame=1774 integrated=True mesh_vertices=77490 time=142.67ms fps=1.46
+[ODOM] frame=1790, vo_rot=0.66deg, imu_rot=0.00deg, info=2433087.0, t_raw=0.0081m, accepted_t=True, t_use=0.0067m, imu_delta_ok=False
+[ODOM] frame=1814, vo_rot=0.44deg, imu_rot=0.00deg, info=2480865.4, t_raw=0.0079m, accepted_t=True, t_use=0.0071m, imu_delta_ok=False
+[ODOM] frame=1834, vo_rot=0.19deg, imu_rot=0.00deg, info=2523015.6, t_raw=0.0017m, accepted_t=True, t_use=0.0052m, imu_delta_ok=False
+[ODOM] frame=1853, vo_rot=1.34deg, imu_rot=0.00deg, info=2437036.1, t_raw=0.0062m, accepted_t=True, t_use=0.0040m, imu_delta_ok=False
+[ODOM] frame=1868, vo_rot=0.23deg, imu_rot=0.00deg, info=2486530.8, t_raw=0.0063m, accepted_t=True, t_use=0.0016m, imu_delta_ok=False
+[ODOM] frame=1889, vo_rot=0.47deg, imu_rot=0.00deg, info=2463153.7, t_raw=0.0053m, accepted_t=True, t_use=0.0008m, imu_delta_ok=False
+[ODOM] frame=1912, vo_rot=0.39deg, imu_rot=0.00deg, info=2438642.0, t_raw=0.0059m, accepted_t=True, t_use=0.0021m, imu_delta_ok=False
+[ODOM] frame=1929, vo_rot=0.37deg, imu_rot=0.00deg, info=2439914.7, t_raw=0.0008m, accepted_t=False, t_use=0.0000m, imu_delta_ok=False
+[ODOM] frame=1949, vo_rot=0.25deg, imu_rot=0.00deg, info=2443866.0, t_raw=0.0016m, accepted_t=True, t_use=0.0005m, imu_delta_ok=False
+[TrackingWorker] frame=1949 mode=tracking success=True score=1.000 valid=279500 time=618.63ms fps=1.59
+[ODOM] frame=1964, vo_rot=0.23deg, imu_rot=0.00deg, info=2408644.4, t_raw=0.0021m, accepted_t=True, t_use=0.0009m, imu_delta_ok=False
+[MappingWorker] frame=1964 integrated=True mesh_vertices=82389 time=143.99ms fps=1.46
+[ODOM] frame=1984, vo_rot=0.26deg, imu_rot=0.00deg, info=2392333.1, t_raw=0.0041m, accepted_t=True, t_use=0.0019m, imu_delta_ok=False
+[ODOM] frame=2007, vo_rot=0.57deg, imu_rot=0.00deg, info=2316323.7, t_raw=0.0071m, accepted_t=True, t_use=0.0028m, imu_delta_ok=False
+[ODOM] frame=2027, vo_rot=0.54deg, imu_rot=0.00deg, info=2313315.7, t_raw=0.0060m, accepted_t=True, t_use=0.0023m, imu_delta_ok=False
+[Main] Stopping pipeline...
+[MappingWorker] stopped
+[ODOM] frame=2042, vo_rot=0.28deg, imu_rot=0.00deg, info=2322866.2, t_raw=0.0039m, accepted_t=True, t_use=0.0027m, imu_delta_ok=False
+[TrackingWorker] stopped
+
+清理SDK资源...
+✅ 流已停止
+✅ 流已销毁
+✅ 设备已关闭
+✅ OpenNI SDK已关闭
+✅ 所有SDK资源已清理
+[Main] Input timestamp info: {'timestamp_unit': 'us', 'last_raw_ts': 69229705, 'last_norm_ts': 69.229705}
+[Main] Tracking stats: {'processed_frames': 115, 'pushed_to_mapping': 114, 'failed_frames': 1, 'last_frame_id': 2042, 'fps': 1.6268025480581438}
+[Main] Mapping stats: {'processed_packets': 113, 'failed_packets': 0, 'last_frame_id': 2027, 'fps': 1.6134788734328271, 'integrated_frames': 113}
+[Open3D WARNING] Write OBJ can not include triangle normals.
+✅ 模型历史版: H:\School assessment\Design\Graduation-Project\xmjx_final\model\imu_fusion_model_final_20260417_095908.obj
+✅ 模型最新版: H:\School assessment\Design\Graduation-Project\xmjx_final\model\imu_fusion_model_final.obj
+[Main] Log file: H:\School assessment\Design\Graduation-Project\xmjx_final\log\log_20260417_095758.txt

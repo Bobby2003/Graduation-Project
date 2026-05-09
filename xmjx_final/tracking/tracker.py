@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import open3d as o3d
 
@@ -13,12 +14,12 @@ class Tracker:
     def __init__(
         self,
         imu_manager=None,
-        width=640,
-        height=480,
-        fx=525.0,
-        fy=525.0,
-        cx=319.5,
-        cy=239.5,
+        width=320,
+        height=240,
+        fx=262.5,
+        fy=262.5,
+        cx=159.75,
+        cy=119.75,
         input_color_is_bgr=False,
         depth_scale=None,
         depth_trunc=2.0,
@@ -38,7 +39,11 @@ class Tracker:
         imu_as_vo_init_only=True,
         allow_imu_fallback_when_vo_fails=True,
 
-        debug_print_odom=True,
+        debug_print_odom=False,
+
+        # profiling
+        enable_profile=True,
+        profile_print_interval=30,
     ):
         self.imu_manager = imu_manager
         self.min_valid_pixels = min_valid_pixels
@@ -73,15 +78,26 @@ class Tracker:
         self.allow_imu_fallback_when_vo_fails = allow_imu_fallback_when_vo_fails
 
         self.debug_print_odom = debug_print_odom
+        self.enable_profile = enable_profile
+        self.profile_print_interval = max(1, int(profile_print_interval))
 
         self.prev_rgbd = None
         self.prev_frame = None
         self.prev_cam_ts = None
 
-        # 保存 world -> current_camera 的外参，直接兼容你原型的 TSDF integrate 用法
+        # 保存 world -> current_camera 的外参，兼容 TSDF integrate 用法
         self.T_c_w = np.eye(4, dtype=np.float64)
 
         self.last_trans = np.zeros(3, dtype=np.float64)
+        
+        # print(
+        #     f"[Tracker.__init__] width={width}, height={height}, "
+        #     f"fx={fx}, fy={fy}, cx={cx}, cy={cy}, "
+        #     f"depth_trunc={depth_trunc}, min_valid_pixels={min_valid_pixels}, "
+        #     f"enable_profile={self.enable_profile}, "
+        #     f"profile_print_interval={self.profile_print_interval}"
+        # )
+
 
     # ---------- utils ----------
     @staticmethod
@@ -141,18 +157,122 @@ class Tracker:
         )
         return dR_imu_cam, imu_rot_deg, ok
 
+    def _need_print(self, frame_id: int) -> bool:
+        return frame_id % self.profile_print_interval == 0
+
+    def _maybe_print_profile(
+        self,
+        frame_id,
+        t_validate_ms,
+        t_pre_ms,
+        t_imu_ms,
+        t_odom_ms,
+        t_post_ms,
+        t_total_ms,
+    ):
+        if not self.enable_profile:
+            return
+        if not self._need_print(frame_id):
+            return
+
+        print(
+            f"[TRACK_PROFILE] frame={frame_id} "
+            f"validate={t_validate_ms:.2f}ms "
+            f"pre={t_pre_ms:.2f}ms "
+            f"imu={t_imu_ms:.2f}ms "
+            f"odom={t_odom_ms:.2f}ms "
+            f"post={t_post_ms:.2f}ms "
+            f"total={t_total_ms:.2f}ms"
+        )
+
+    def _maybe_print_rgbd_shape(self, frame_id, current_rgbd):
+        if current_rgbd is None:
+            return
+        if not self._need_print(frame_id):
+            return
+
+        print(
+            "tracker rgbd:",
+            np.asarray(current_rgbd.color).shape,
+            np.asarray(current_rgbd.depth).shape,
+        )
+
+    def _maybe_print_odom_summary(
+        self,
+        frame_id,
+        success,
+        vo_rot_deg,
+        imu_rot_deg,
+        info_trace,
+        odom_t_norm,
+        accepted_t,
+        trans_refined,
+        imu_delta_available,
+    ):
+        if not self.debug_print_odom:
+            return
+        if not self._need_print(frame_id):
+            return
+
+        if success:
+            print(
+                f"[ODOM] frame={frame_id}, "
+                f"vo_rot={vo_rot_deg:.2f}deg, "
+                f"imu_rot={imu_rot_deg:.2f}deg, "
+                f"info={info_trace:.1f}, "
+                f"t_raw={odom_t_norm:.4f}m, "
+                f"accepted_t={accepted_t}, "
+                f"t_use={np.linalg.norm(trans_refined):.4f}m, "
+                f"imu_delta_ok={imu_delta_available}"
+            )
+        else:
+            print(
+                f"[ODOM] frame={frame_id}, "
+                f"failed, imu_rot={imu_rot_deg:.2f}deg, "
+                f"imu_delta_ok={imu_delta_available}"
+            )
+
     def track(self, frame: RGBDFrame) -> TrackingResult:
+        t0 = time.perf_counter()
+
+        # ---------- validate ----------
         frame.validate()
+        t1 = time.perf_counter()
 
         if not self._is_frame_trackable(frame):
+            t_end = time.perf_counter()
+            self._maybe_print_profile(
+                frame.frame_id,
+                (t1 - t0) * 1000.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                (t_end - t0) * 1000.0,
+            )
             return self._make_lost_result(
                 frame,
                 "not_enough_valid_pixels",
                 {"valid_pixel_count": frame.valid_pixel_count},
             )
 
+        # ---------- preprocess ----------
         current_rgbd, rgbd_info = self.preprocessor.preprocess(frame.color, frame.depth)
+        t2 = time.perf_counter()
+
+        self._maybe_print_rgbd_shape(frame.frame_id, current_rgbd)
+
         if current_rgbd is None:
+            t_end = time.perf_counter()
+            self._maybe_print_profile(
+                frame.frame_id,
+                (t1 - t0) * 1000.0,
+                (t2 - t1) * 1000.0,
+                0.0,
+                0.0,
+                0.0,
+                (t_end - t0) * 1000.0,
+            )
             return self._make_lost_result(frame, "rgbd_preprocess_failed", rgbd_info)
 
         cam_ts = float(frame.device_timestamp)
@@ -163,6 +283,17 @@ class Tracker:
             self.prev_frame = frame
             self.prev_cam_ts = cam_ts
             self.T_c_w = np.eye(4, dtype=np.float64)
+
+            t_end = time.perf_counter()
+            self._maybe_print_profile(
+                frame.frame_id,
+                (t1 - t0) * 1000.0,
+                (t2 - t1) * 1000.0,
+                0.0,
+                0.0,
+                0.0,
+                (t_end - t0) * 1000.0,
+            )
 
             return TrackingResult(
                 frame_id=frame.frame_id,
@@ -177,11 +308,13 @@ class Tracker:
                 },
             )
 
-        # ---------- IMU delta 仅用于 VO 初值 / 失败兜底 ----------
+        # ---------- IMU delta ----------
         dR_imu_cam, imu_rot_deg, imu_delta_available = self._compute_imu_delta(
             self.prev_cam_ts, cam_ts
         )
+        t3 = time.perf_counter()
 
+        # ---------- odometry ----------
         init_delta = np.eye(4, dtype=np.float64)
         if self.imu_as_vo_init_only and imu_delta_available:
             init_delta[:3, :3] = dR_imu_cam
@@ -192,9 +325,11 @@ class Tracker:
             self.preprocessor.get_intrinsic(),
             init_delta,
             o3d.pipelines.odometry.RGBDOdometryJacobianFromHybridTerm(),
-            self.option
+            self.option,
         )
+        t4 = time.perf_counter()
 
+        # ---------- post / gating ----------
         bad_frame = False
         fused_delta = np.eye(4, dtype=np.float64)
         fused_R = np.eye(3, dtype=np.float64)
@@ -205,9 +340,9 @@ class Tracker:
         accepted_t = False
         odom_t_norm = 0.0
 
-        # ---------- 旋转策略 ----------
-        # VO 好 -> 用 VO
-        # VO 差/失败 -> 小角度 IMU 兜底
+        # 旋转策略：
+        # 1. VO 好：优先用 VO 旋转
+        # 2. VO 差/失败：允许用小角度 IMU 兜底
         if success and info is not None:
             dR_vo = self.normalize_rotation(delta_refined[:3, :3])
             vo_rot_deg = self.rot_deg(dR_vo)
@@ -241,6 +376,29 @@ class Tracker:
             self.prev_frame = frame
             self.prev_cam_ts = cam_ts
 
+            t5 = time.perf_counter()
+            self._maybe_print_profile(
+                frame.frame_id,
+                (t1 - t0) * 1000.0,
+                (t2 - t1) * 1000.0,
+                (t3 - t2) * 1000.0,
+                (t4 - t3) * 1000.0,
+                (t5 - t4) * 1000.0,
+                (t5 - t0) * 1000.0,
+            )
+
+            self._maybe_print_odom_summary(
+                frame_id=frame.frame_id,
+                success=False,
+                vo_rot_deg=vo_rot_deg,
+                imu_rot_deg=imu_rot_deg,
+                info_trace=info_trace,
+                odom_t_norm=odom_t_norm,
+                accepted_t=accepted_t,
+                trans_refined=trans_refined,
+                imu_delta_available=imu_delta_available,
+            )
+
             return self._make_lost_result(
                 frame,
                 "odometry_failed_or_gated",
@@ -254,17 +412,42 @@ class Tracker:
 
         fused_delta[:3, :3] = fused_R
 
-        # ---------- 平移策略 ----------
-        # 平移只信 VO，不信 IMU
+        # 平移策略：
+        # 1. 平移只信 VO
+        # 2. IMU 不提供平移
         if success and info is not None:
             raw_t = delta_refined[:3, 3].copy()
             odom_t_norm = float(np.linalg.norm(raw_t))
 
-            # 异常大平移，整帧拒绝
+            # 明显异常的大平移，直接拒绝
             if odom_t_norm > 0.05:
                 self.prev_rgbd = current_rgbd
                 self.prev_frame = frame
                 self.prev_cam_ts = cam_ts
+                self.last_trans[:] = 0.0
+
+                t5 = time.perf_counter()
+                self._maybe_print_profile(
+                    frame.frame_id,
+                    (t1 - t0) * 1000.0,
+                    (t2 - t1) * 1000.0,
+                    (t3 - t2) * 1000.0,
+                    (t4 - t3) * 1000.0,
+                    (t5 - t4) * 1000.0,
+                    (t5 - t0) * 1000.0,
+                )
+
+                self._maybe_print_odom_summary(
+                    frame_id=frame.frame_id,
+                    success=False,
+                    vo_rot_deg=vo_rot_deg,
+                    imu_rot_deg=imu_rot_deg,
+                    info_trace=info_trace,
+                    odom_t_norm=odom_t_norm,
+                    accepted_t=False,
+                    trans_refined=np.zeros(3, dtype=np.float64),
+                    imu_delta_available=imu_delta_available,
+                )
 
                 return self._make_lost_result(
                     frame,
@@ -302,24 +485,17 @@ class Tracker:
 
         fused_delta[:3, 3] = trans_refined
 
-        if self.debug_print_odom:
-            if success and info is not None:
-                print(
-                    f"[ODOM] frame={frame.frame_id}, "
-                    f"vo_rot={vo_rot_deg:.2f}deg, "
-                    f"imu_rot={imu_rot_deg:.2f}deg, "
-                    f"info={info_trace:.1f}, "
-                    f"t_raw={odom_t_norm:.4f}m, "
-                    f"accepted_t={accepted_t}, "
-                    f"t_use={np.linalg.norm(trans_refined):.4f}m, "
-                    f"imu_delta_ok={imu_delta_available}"
-                )
-            else:
-                print(
-                    f"[ODOM] frame={frame.frame_id}, "
-                    f"failed, imu_rot={imu_rot_deg:.2f}deg, "
-                    f"imu_delta_ok={imu_delta_available}"
-                )
+        self._maybe_print_odom_summary(
+            frame_id=frame.frame_id,
+            success=True,
+            vo_rot_deg=vo_rot_deg,
+            imu_rot_deg=imu_rot_deg,
+            info_trace=info_trace,
+            odom_t_norm=odom_t_norm,
+            accepted_t=accepted_t,
+            trans_refined=trans_refined,
+            imu_delta_available=imu_delta_available,
+        )
 
         # ---------- 位姿链更新 ----------
         # world -> current_camera
@@ -332,6 +508,17 @@ class Tracker:
         score = 0.0
         if info_trace > 0:
             score = min(1.0, info_trace / (self.min_info_trace * 2.0))
+
+        t5 = time.perf_counter()
+        self._maybe_print_profile(
+            frame.frame_id,
+            (t1 - t0) * 1000.0,
+            (t2 - t1) * 1000.0,
+            (t3 - t2) * 1000.0,
+            (t4 - t3) * 1000.0,
+            (t5 - t4) * 1000.0,
+            (t5 - t0) * 1000.0,
+        )
 
         return TrackingResult(
             frame_id=frame.frame_id,

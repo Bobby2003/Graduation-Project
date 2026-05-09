@@ -7,6 +7,7 @@ class TeeStream:
     """
     将输出同时写到终端和日志文件
     """
+
     def __init__(self, console_stream, file_stream):
         self.console_stream = console_stream
         self.file_stream = file_stream
@@ -60,7 +61,10 @@ class LogRedirectManager:
         sys.stderr = TeeStream(self.stderr_backup, self.log_file)
 
         self.enabled = True
-        print(f"✅ 日志已保存到: {self.log_path}")
+
+        sys.stdout.write(f"✅ 日志已保存到: {self.log_path}\n")
+        sys.stdout.flush()
+
         return self.log_path
 
     def stop(self):

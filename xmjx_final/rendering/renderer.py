@@ -21,6 +21,7 @@ class Renderer:
         mesh_show_back_face=True,
         axis_size=0.3,
         enable_log=True,
+        logger=None,
     ):
         self.window_name = window_name
         self.width = width
@@ -29,20 +30,36 @@ class Renderer:
         self.mesh_show_back_face = mesh_show_back_face
         self.axis_size = axis_size
         self.enable_log = enable_log
+        self.logger = logger
 
         self._vis = None
         self._mesh = None
         self._axes = None
         self._initialized = False
         self._view_initialized = False
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         self._last_rendered_frame_id = None
         self._last_mesh_vertex_count = 0
 
-    def _log(self, msg: str):
-        if self.enable_log:
-            print(msg)
+    def _log(self, msg: str, level: str = "status", force: bool = False):
+        if not self.enable_log:
+            return
+
+        if self.logger is None:
+            return
+
+        if level == "warning":
+            self.logger.warning(msg, force=force)
+        elif level == "debug":
+            self.logger.debug(msg, force=force)
+        elif level == "profile":
+            if hasattr(self.logger, "profile"):
+                self.logger.profile(msg, force=force)
+            else:
+                self.logger.status(msg, force=force)
+        else:
+            self.logger.status(msg, force=force)
 
     def initialize(self):
         with self._lock:
@@ -56,7 +73,7 @@ class Renderer:
                 height=self.height,
             )
             if not ok:
-                self._log("[Renderer] failed to create window")
+                self._log("failed to create window", level="warning", force=True)
                 return False
 
             opt = self._vis.get_render_option()
@@ -65,7 +82,7 @@ class Renderer:
 
             self._axes = o3d.geometry.TriangleMesh.create_coordinate_frame(
                 size=self.axis_size,
-                origin=[0, 0, 0]
+                origin=[0, 0, 0],
             )
             self._vis.add_geometry(self._axes)
 
@@ -73,7 +90,7 @@ class Renderer:
             self._vis.add_geometry(self._mesh)
 
             self._initialized = True
-            self._log("[Renderer] initialized")
+            self._log("initialized", force=True)
             return True
 
     def _update_mesh_geometry(self, new_mesh):
@@ -102,7 +119,7 @@ class Renderer:
         if not self._view_initialized:
             self._vis.reset_view_point(True)
             self._view_initialized = True
-            self._log("[Renderer] auto focus initialized")
+            self._log("auto focus initialized", force=True)
 
     def render(self, tracking, map_snapshot):
         """
@@ -150,7 +167,7 @@ class Renderer:
         if map_snapshot is not None:
             map_info = map_snapshot.map_data
 
-        self._log(f"[Renderer] tracking={tracking_info}, map={map_info}")
+        self._log(f"tracking={tracking_info}, map={map_info}")
 
     def close(self):
         with self._lock:
@@ -158,4 +175,4 @@ class Renderer:
                 self._vis.destroy_window()
                 self._vis = None
             self._initialized = False
-            self._log("[Renderer] closed")
+            self._log("closed", force=True)
