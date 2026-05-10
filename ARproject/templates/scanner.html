@@ -91,18 +91,56 @@
         display: none;
     }
 
-    @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+    /* 8. 流状态提示 */
+    .stream-status-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+    }
+    .status-content {
+        text-align: center;
+    }
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 3px solid rgba(0, 242, 255, 0.2);
+        border-top-color: var(--neon-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    .status-text {
+        font-family: 'Syncopate', monospace;
+        font-size: 14px;
+        color: var(--neon-blue);
+        letter-spacing: 2px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="scanner-viewport">
     <!-- 背景流：支持 Video 或 Canvas -->
-    <!-- 原本是 <video>，改为 <img> -->
-   <img id="scanner-stream"
+    <img id="scanner-stream"
          src="/video_feed/"
          style="width: 100%; height: 100%; object-fit: cover;"
-         onerror="console.error('AR流连接中断');">
+         onerror="handleStreamError()">
+
+    <!-- 流连接状态提示 -->
+    <div id="stream-status" class="stream-status-overlay" style="display: none;">
+        <div class="status-content">
+            <div class="loading-spinner"></div>
+            <div class="status-text">INITIALIZING AR SCANNER...</div>
+        </div>
+    </div>
+
     <!-- AR 诊断仪表盘 -->
     <div class="link-diagnostics">
         <div style="border-bottom: 1px solid rgba(0,242,255,0.3); margin-bottom: 10px; padding-bottom: 5px;">SYS_DIAGNOSTIC</div>
@@ -149,6 +187,34 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- 稍后生成的关键逻辑：scanner.js -->
 <script src="{% static 'js/scanner.js' %}"></script>
+<script>
+    // 立即隐藏加载界面，让流自己显示
+    var statusOverlay = document.getElementById('stream-status');
+    if (statusOverlay) {
+        statusOverlay.style.display = 'none';
+    }
+
+    // FPS 显示更新
+    var lastUpdate = 0;
+    var frameCount = 0;
+    setInterval(function() {
+        var now = Date.now();
+        if (now - lastUpdate > 1000) {
+            var feFps = Math.round(frameCount * 1000 / (now - lastUpdate));
+            document.getElementById('fe-fps').textContent = feFps;
+            frameCount = 0;
+            lastUpdate = now;
+        }
+        frameCount++;
+    }, 100);
+
+    // 模拟延迟显示
+    function updateLatency() {
+        var latency = Math.round(Math.random() * 20 + 10);
+        document.getElementById('latency').textContent = latency + ' ms';
+    }
+    setInterval(updateLatency, 1000);
+    updateLatency();
+</script>
 {% endblock %}

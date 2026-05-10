@@ -32,9 +32,40 @@
         /* 顶部导航控制条 */
         .top-nav {
             position: fixed;
-            top: 20px; left: 25px; right: 25px;
-            display: flex; justify-content: space-between; align-items: center;
+            top: 15px;
+            left: 25px;
+            right: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             z-index: 50;
+            background: rgba(5, 6, 8, 0.8);
+            padding: 10px 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--neon);
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(0, 242, 255, 0.05);
         }
 
         .btn-return {
@@ -76,7 +107,7 @@
             display: grid;
             grid-template-columns: 350px 1fr 350px;
             height: 100vh;
-            padding: 80px 25px 25px 25px; /* 上边距留出给顶级导航 */
+            padding: 90px 25px 25px 25px;
             gap: 25px;
             box-sizing: border-box;
         }
@@ -201,18 +232,24 @@
 <body>
     <div class="scanline"></div>
 
-    <!-- 新增的顶部控制条 -->
+    <!-- 顶部导航 -->
     <div class="top-nav">
-        <!-- 提供给 AR 控制器的回城按钮 -->
         <a href="/" class="btn-return">
             <span>◄</span>
-            LOGOUT / MAIN_HUB
+            MAIN
         </a>
-
-        <!-- 用作 AR 引擎连接状态的指示器，这行千万别删 -->
+        <div class="nav-center">
+            <a href="{% url 'dashboard' %}" class="active">终端</a>
+            <a href="{% url 'missions' %}">任务</a>
+            <a href="{% url 'achievements' %}">成就</a>
+            <a href="{% url 'equipment' %}">装备</a>
+            <a href="{% url 'market' %}">黑市</a>
+            <a href="{% url 'ranking' %}">排行</a>
+            <a href="{% url 'settings' %}">设置</a>
+        </div>
         <div class="network-status" id="gesture-status-text">
             <div class="status-dot"></div>
-            CONNECTING...
+            ONLINE
         </div>
     </div>
 

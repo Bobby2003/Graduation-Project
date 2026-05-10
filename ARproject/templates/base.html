@@ -81,6 +81,11 @@
                     USER: {{ user.username }}
                 </span>
                 <a href="{% url 'dashboard' %}" class="nav-link nav-link-term">[个人终端]</a>
+                <a href="{% url 'missions' %}" class="nav-link nav-link-term">[任务]</a>
+                <a href="{% url 'achievements' %}" class="nav-link nav-link-term">[成就]</a>
+                <a href="{% url 'equipment' %}" class="nav-link nav-link-term">[装备]</a>
+                <a href="{% url 'settings' %}" class="nav-link nav-link-term">[设置]</a>
+                <a href="{% url 'about' %}" class="nav-link nav-link-term">[关于]</a>
                 <a href="{% url 'logout' %}" class="nav-link nav-link-logout">[断开神经]</a>
             {% else %}
                 <a href="{% url 'login' %}" class="nav-link nav-link-term">[系统登录]</a>

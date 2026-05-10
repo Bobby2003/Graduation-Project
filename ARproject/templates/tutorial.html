@@ -1,0 +1,586 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUTORIAL | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --green: #00ff88;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at center, #0a111a 0%, #050608 100%);
+        }
+
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--neon);
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+        .btn-return:hover, .btn-return.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon);
+        }
+
+        .page-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            color: var(--neon);
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        /* 进度指示器 */
+        .progress-bar {
+            max-width: 900px;
+            margin: 40px auto 0;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 60px;
+            right: 60px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .progress-fill {
+            position: absolute;
+            top: 20px;
+            left: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon), var(--purple));
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 14px;
+            color: #555;
+            transition: 0.3s;
+        }
+        .progress-step.active .step-number {
+            border-color: var(--neon);
+            color: var(--neon);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+        .progress-step.completed .step-number {
+            background: var(--neon);
+            border-color: var(--neon);
+            color: #000;
+        }
+        .step-label {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
+        .progress-step.active .step-label,
+        .progress-step.completed .step-label {
+            color: var(--neon);
+        }
+
+        /* 教程内容区 */
+        .tutorial-container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 0 30px;
+        }
+
+        .tutorial-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            padding: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+        .tutorial-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon), var(--purple));
+        }
+
+        .card-step {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            color: var(--neon);
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 28px;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+        }
+
+        .card-desc {
+            font-size: 16px;
+            color: #999;
+            line-height: 1.8;
+            margin-bottom: 35px;
+        }
+
+        /* 步骤说明 */
+        .step-list {
+            margin-bottom: 40px;
+        }
+        .step-item {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+            border-left: 3px solid transparent;
+            transition: 0.3s;
+        }
+        .step-item:hover, .step-item.ar-hover {
+            border-left-color: var(--neon);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .step-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .step-content p {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.6;
+        }
+
+        /* 手势演示区 */
+        .gesture-demo {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            margin: 30px 0;
+        }
+        .demo-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            color: #666;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .gestures-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .gesture-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: 0.3s;
+        }
+        .gesture-item:hover, .gesture-item.ar-hover {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.05);
+        }
+        .gesture-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .gesture-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .gesture-action {
+            font-size: 12px;
+            color: var(--neon);
+        }
+
+        /* 提示框 */
+        .tip-box {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        .tip-icon {
+            font-size: 24px;
+        }
+        .tip-content h4 {
+            font-size: 14px;
+            color: var(--neon);
+            margin-bottom: 5px;
+        }
+        .tip-content p {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        /* 导航按钮 */
+        .tutorial-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        .btn-nav {
+            padding: 15px 35px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-nav:hover, .btn-nav.ar-hover {
+            border-color: var(--neon);
+            color: var(--neon);
+        }
+        .btn-nav.primary {
+            border-color: var(--neon);
+            color: var(--neon);
+        }
+        .btn-nav.primary:hover, .btn-nav.primary.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon);
+        }
+
+        /* 设备连接示意图 */
+        .device-diagram {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .diagram-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .diagram-box {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 120px;
+        }
+        .diagram-box.highlight {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.05);
+        }
+        .diagram-box .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .diagram-box .label {
+            font-size: 12px;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        .diagram-arrow {
+            font-size: 24px;
+            color: #555;
+        }
+
+        #gesture-status-text {
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .gestures-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .diagram-flow {
+                flex-direction: column;
+            }
+            .diagram-arrow {
+                transform: rotate(90deg);
+            }
+            .progress-bar {
+                overflow-x: auto;
+                padding-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">NEW OPERATOR TRAINING</div>
+        <div class="nav-center">
+            <a href="{% url 'dashboard' %}">终端</a>
+            <a href="{% url 'missions' %}">任务</a>
+            <a href="{% url 'achievements' %}">成就</a>
+            <a href="{% url 'equipment' %}">装备</a>
+            <a href="{% url 'market' %}">黑市</a>
+            <a href="{% url 'ranking' %}">排行</a>
+            <a href="{% url 'settings' %}">设置</a>
+        </div>
+        <div id="gesture-status-text">CONNECTING...</div>
+    </div>
+
+    <!-- 步骤进度 -->
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: 0%;"></div>
+        <div class="progress-step active">
+            <div class="step-number">1</div>
+            <div class="step-label">基础认知</div>
+        </div>
+        <div class="progress-step">
+            <div class="step-number">2</div>
+            <div class="step-label">设备连接</div>
+        </div>
+        <div class="progress-step">
+            <div class="step-number">3</div>
+            <div class="step-label">手势训练</div>
+        </div>
+        <div class="progress-step">
+            <div class="step-number">4</div>
+            <div class="step-label">首次扫描</div>
+        </div>
+    </div>
+
+    <!-- 教程内容 -->
+    <div class="tutorial-container">
+        <div class="tutorial-card">
+            <div class="card-step">STEP 01 // 基础认知</div>
+            <div class="card-title">欢迎，PATHFINDER</div>
+            <div class="card-desc">
+                AR REALM 是一个基于深度相机与手势识别的增强现实交互系统。
+                在这里，你将通过手势控制与虚拟位面世界进行沉浸式交互。
+                本教程将引导你完成初始设置并掌握基本操作。
+            </div>
+
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-icon">🎯</div>
+                    <div class="step-content">
+                        <h4>系统目标</h4>
+                        <p>通过深度扫描现实环境，将虚拟内容与真实世界叠加，实现无缝的 AR 体验。</p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-icon">⚡</div>
+                    <div class="step-content">
+                        <h4>核心能力</h4>
+                        <p>深度感知 · 手势识别 · 实时渲染 · 位面切换</p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-icon">🏆</div>
+                    <div class="step-content">
+                        <h4>成长体系</h4>
+                        <p>完成任务获取经验值与信用点，提升战力等级，解锁更多位面与装备。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gesture-demo">
+                <div class="demo-title">SUPPORTED GESTURES // 支持的手势</div>
+                <div class="gestures-grid">
+                    <div class="gesture-item">
+                        <div class="gesture-icon">🤏</div>
+                        <div class="gesture-name">捏合</div>
+                        <div class="gesture-action">选择 / 确认</div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">👆</div>
+                        <div class="gesture-name">指向</div>
+                        <div class="gesture-action">瞄准 / 移动</div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">🖐️</div>
+                        <div class="gesture-name">张开</div>
+                        <div class="gesture-action">滚动 / 拖拽</div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✊</div>
+                        <div class="gesture-name">握拳</div>
+                        <div class="gesture-action">取消 / 返回</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <div class="tip-icon">💡</div>
+                <div class="tip-content">
+                    <h4>提示</h4>
+                    <p>确保在光线充足的环境中使用系统，避免手势被其他物体遮挡以获得最佳识别效果。</p>
+                </div>
+            </div>
+
+            <div class="device-diagram">
+                <div class="diagram-flow">
+                    <div class="diagram-box">
+                        <div class="icon">📷</div>
+                        <div class="label">奥比中光相机</div>
+                    </div>
+                    <div class="diagram-arrow">→</div>
+                    <div class="diagram-box highlight">
+                        <div class="icon">🧠</div>
+                        <div class="label">处理引擎</div>
+                    </div>
+                    <div class="diagram-arrow">→</div>
+                    <div class="diagram-box">
+                        <div class="icon">🥽</div>
+                        <div class="label">AR 显示</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tutorial-nav">
+                <div></div>
+                <button class="btn-nav primary" onclick="nextStep()">
+                    NEXT STEP
+                    <span>→</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script>
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateProgress();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            const progressFill = document.querySelector('.progress-fill');
+            const steps = document.querySelectorAll('.progress-step');
+            
+            const percentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressFill.style.width = percentage + '%';
+
+            steps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                } else if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

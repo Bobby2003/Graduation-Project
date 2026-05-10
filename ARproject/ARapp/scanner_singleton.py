@@ -1,8 +1,6 @@
 import threading
 import atexit
-import time
 from .scanner_engine import DepthScannerEngine
-
 
 class ScannerManager:
     _instance = None
@@ -26,7 +24,6 @@ class ScannerManager:
                 if success:
                     print("[SYSTEM] ✅ AR 硬件连接成功")
                     self.is_initialized = True
-                    # 注册退出钩子：当 Python 进程结束（Ctrl+C）时自动断开相机
                     atexit.register(self.stop)
                 else:
                     print("[SYSTEM] ❌ AR 硬件初始化失败")
@@ -34,10 +31,18 @@ class ScannerManager:
             return True
 
     def get_frame(self):
-        """获取帧的回调"""
+        """获取深度预览帧"""
         if not self.is_initialized:
-            if not self.start(): return None
+            if not self.start():
+                return None
         return self.engine.get_processed_frame()
+
+    def get_color_frame(self):
+        """获取最新彩色帧，供手势识别调用"""
+        if not self.is_initialized:
+            if not self.start():
+                return None
+        return self.engine.get_latest_color_frame()
 
     def get_fps(self):
         return self.engine.last_be_fps
@@ -49,7 +54,6 @@ class ScannerManager:
                 print("[SYSTEM] 正在安全释放 AR 硬件...")
                 self.engine.cleanup()
                 self.is_initialized = False
-
 
 # 实例化全局唯一的管理器
 ar_scanner = ScannerManager()

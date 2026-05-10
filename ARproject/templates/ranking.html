@@ -20,16 +20,34 @@
 
         /* 顶部导航控制条 */
         .top-nav {
-            padding: 20px 30px;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
-            background: rgba(5, 6, 8, 0.8);
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
             z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: #00f2ff;
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(0, 242, 255, 0.05);
         }
 
         .btn-return {
@@ -151,13 +169,18 @@
 <body>
     <!-- 顶部导航 -->
     <div class="top-nav">
-        <!-- 退回主网关 (指向 home 或 dashboard 都可以) -->
-        <a href="{% url 'home' %}" class="btn-return">◄ MAIN_HUB</a>
-
-        <!-- AR 连接状态指示器 -->
-        <div id="gesture-status-text" style="color:#00f2ff; font-family:'Syncopate'; font-size:12px; letter-spacing: 2px;">
-            CONNECTING...
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">GLOBAL HALL OF FAME</div>
+        <div class="nav-center">
+            <a href="{% url 'dashboard' %}">终端</a>
+            <a href="{% url 'missions' %}">任务</a>
+            <a href="{% url 'achievements' %}">成就</a>
+            <a href="{% url 'equipment' %}">装备</a>
+            <a href="{% url 'market' %}">黑市</a>
+            <a href="{% url 'ranking' %}" class="active">排行</a>
+            <a href="{% url 'settings' %}">设置</a>
         </div>
+        <div id="gesture-status-text" style="color:#00f2ff; font-family:'Syncopate'; font-size:11px; letter-spacing: 2px;">CONNECTING...</div>
     </div>
 
     <!-- 榜单主体 -->
@@ -196,7 +219,7 @@
 
         <div class="rank-item">
             <div class="rank-num">04</div>
-            <div class="rank-user">{{ username|upper|default:"GUEST_994" }}</div>
+            <div class="rank-user">PATHFINDER_001</div>
             <div style="display: flex; align-items: center;">
                 <span class="power-label">PWR</span>
                 <div class="rank-power">45,000</div>

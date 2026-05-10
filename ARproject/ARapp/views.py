@@ -64,6 +64,30 @@ def ranking(request):
     # 这里以后可以从 UserProfile 查 Combat Power 排序
     return render(request, 'ranking.html')
 
+# 任务系统视图
+def missions(request):
+    return render(request, 'missions.html')
+
+# 成就系统视图
+def achievements(request):
+    return render(request, 'achievements.html')
+
+# 装备系统视图
+def equipment(request):
+    return render(request, 'equipment.html')
+
+# 系统设置视图
+def settings(request):
+    return render(request, 'settings.html')
+
+# 新手引导视图
+def tutorial(request):
+    return render(request, 'tutorial.html')
+
+# 关于页面视图
+def about(request):
+    return render(request, 'about.html')
+
 def error_404(request, exception):
     return render(request, '404.html', status=404)
 
@@ -128,27 +152,55 @@ def view_scanner(request):
     return render(request, 'scanner.html')
 
 
-def video_feed_gen():
+def video_feed_gen(request):
     """MJPEG 流生成器"""
     manager = ARScannerManager.get_instance()
+    frame_count = 0
+    last_log_time = time.time()
+
     while True:
-        if manager.is_active:
-            # 调用 scanner_engine.py 中的 process_frame
+        # 检查请求是否已断开
+        try:
+            # Django 会自动处理断开连接
+            pass
+        except GeneratorExit:
+            break
+
+        frame_count += 1
+
+        # 始终生成帧（模拟模式或真实相机）
+        try:
             res = manager.engine.get_processed_frame()
-            if res:
+            if res and res[0]:
                 frame_bytes, fps = res
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
             else:
-                time.sleep(0.01)
-        else:
-            time.sleep(0.5)
+                # 生成备用黑色帧
+                import numpy as np
+                import cv2
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                ok, buf = cv2.imencode('.jpg', frame)
+                if ok:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
+        except Exception as e:
+            print(f"[VideoFeed] 帧生成错误: {e}")
+
+        # 每5秒打印一次状态
+        current_time = time.time()
+        if current_time - last_log_time > 5:
+            print(f"[VideoFeed] 运行中, 已生成 {frame_count} 帧, is_active={manager.is_active}")
+            last_log_time = current_time
+
+        # 控制帧率 ~30fps
+        time.sleep(0.033)
 
 def video_feed(request):
     """
     匹配 urls.py 中的 path('video_feed/', views.video_feed, name='video_feed')
     """
     return StreamingHttpResponse(
-        video_feed_gen(),
+        video_feed_gen(request),
         content_type='multipart/x-mixed-replace; boundary=frame'
     )

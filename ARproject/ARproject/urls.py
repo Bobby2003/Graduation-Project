@@ -33,6 +33,12 @@ path('login/', views.user_login, name='login'),
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
     path('market/', views.market, name='market'),
     path('ranking/', views.ranking, name='ranking'),
+    path('missions/', views.missions, name='missions'),
+    path('achievements/', views.achievements, name='achievements'),
+    path('equipment/', views.equipment, name='equipment'),
+    path('settings/', views.settings, name='settings'),
+    path('tutorial/', views.tutorial, name='tutorial'),
+    path('about/', views.about, name='about'),
     path('scanner/', views.view_scanner, name='scanner'),  # 扫描器主页
     path('video_feed/', views.video_feed, name='video_feed'),  # 真实的视频流数据接口
 ] + static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
