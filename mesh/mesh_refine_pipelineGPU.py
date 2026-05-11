@@ -1,5 +1,3 @@
-# [VAR-1] 限制 BLAS 线程数避免与 ThreadPoolExecutor 过订
-# 必须在 numpy/scipy 导入前设置！
 import os
 os.environ.setdefault('OMP_NUM_THREADS', '2')
 os.environ.setdefault('OPENBLAS_NUM_THREADS', '2')
@@ -16,6 +14,22 @@ from multiprocessing import cpu_count
 
 import numpy as np
 import trimesh
+
+# scipy 改为硬依赖（整个 pipeline 离开它跑不动）
+try:
+    import scipy.sparse as sp
+    from scipy.sparse.csgraph import connected_components as sp_connected_components
+    from scipy.spatial import cKDTree
+except ImportError:
+    raise ImportError("This pipeline requires scipy. Install with: pip install scipy")
+
+# CUPY 仅用于运行环境标识；目前所有计算路径已收敛到 CPU
+try:
+    import cupy as cp  # noqa: F401
+    CUPY_AVAILABLE = True
+except Exception:
+    cp = None
+    CUPY_AVAILABLE = False
 
 # =============================
 # Default run config / presets
@@ -59,38 +73,6 @@ PRESET_CONFIGS = {
     },
 }
 
-try:
-    import scipy.sparse as sp
-    from scipy.sparse.csgraph import connected_components as sp_connected_components
-    from scipy.spatial import cKDTree
-    SCIPY_AVAILABLE = True
-except Exception:
-    sp = None
-    sp_connected_components = None
-    cKDTree = None
-    SCIPY_AVAILABLE = False
-
-# =============================
-# CUDA / CuPy
-# =============================
-try:
-    import cupy as cp
-    CUPY_AVAILABLE = True
-except Exception:
-    cp = None
-    CUPY_AVAILABLE = False
-
-def cuda_enabled(args):
-    return bool(getattr(args, "use_cuda", False) and CUPY_AVAILABLE)
-
-def to_cpu(x):
-    if CUPY_AVAILABLE and isinstance(x, cp.ndarray):
-        return cp.asnumpy(x)
-    return np.asarray(x)
-
-def xp_module(use_gpu=False):
-    return cp if (use_gpu and CUPY_AVAILABLE) else np
-
 # =============================
 # Basic
 # =============================
@@ -105,60 +87,37 @@ def parse_vec3(s):
         raise ValueError("sensor_origin 应为 x,y,z")
     return np.array(vals, dtype=np.float64)
 
-def robust_sigma(x, use_gpu=False):
-    xp = xp_module(use_gpu)
-    x = xp.asarray(x, dtype=xp.float64)
+def robust_sigma(x):
+    x = np.asarray(x, dtype=np.float64)
     if x.size == 0:
         return 0.0
-    med = xp.median(x)
-    mad = xp.median(xp.abs(x - med)) + 1e-12
-    out = 1.4826 * mad
-    if use_gpu and CUPY_AVAILABLE:
-        return float(cp.asnumpy(out))
-    return float(out)
+    med = np.median(x)
+    mad = np.median(np.abs(x - med)) + 1e-12
+    return float(1.4826 * mad)
 
-# [VAR-2] 加速 mesh_report：跳过 is_watertight / mesh.area / bounding_box 等慢属性
-def mesh_report(mesh, include_components=False):
-    comps = None
-    if include_components:
-        try:
-            _, n_comp = connected_face_labels(mesh)
-            comps = int(n_comp)
-        except Exception:
-            comps = None
-
+# [VAR-2] 加速 mesh_report：只返回必要字段，跳过 is_watertight / mesh.area
+def mesh_report(mesh):
     V = np.asarray(mesh.vertices, dtype=np.float64)
-    if len(V) > 0:
-        bbox_extent = (V.max(axis=0) - V.min(axis=0)).tolist()
-    else:
-        bbox_extent = None
-
+    bbox_extent = (V.max(axis=0) - V.min(axis=0)).tolist() if len(V) > 0 else None
     return {
         "vertices": int(len(mesh.vertices)),
         "faces": int(len(mesh.faces)),
-        "components": comps,
-        "watertight": None,         # 跳过 is_watertight（要算 edges_unique，慢）
-        "bbox_extent": bbox_extent,  # 直接用 V 算
-        "surface_area": None,        # 跳过 mesh.area（要算 area_faces）
+        "bbox_extent": bbox_extent,
     }
 
 def load_mesh(path):
     obj = trimesh.load(path, force="mesh", process=False, maintain_order=True)
-
     if isinstance(obj, trimesh.Scene):
         meshes = [g for g in obj.geometry.values() if isinstance(g, trimesh.Trimesh)]
         if not meshes:
             raise ValueError("Scene 中没有可用网格")
         obj = trimesh.util.concatenate(meshes)
-
     if not isinstance(obj, trimesh.Trimesh) or len(obj.vertices) == 0 or len(obj.faces) == 0:
         raise ValueError("无效或空网格")
-
     return obj
 
 def clean_mesh_light(mesh, fix_normals=False):
     mesh = mesh.copy()
-
     for fn in [
         "remove_duplicate_faces",
         "remove_degenerate_faces",
@@ -169,68 +128,54 @@ def clean_mesh_light(mesh, fix_normals=False):
             getattr(mesh, fn)()
         except Exception:
             pass
-
     if fix_normals:
         try:
             trimesh.repair.fix_normals(mesh)
         except Exception:
             pass
-
     return mesh
 
-def abs_normal_dot(normals, normal, use_gpu=False):
-    xp = xp_module(use_gpu)
-    arr_n = xp.asarray(normals, dtype=xp.float64)
-    n = xp.asarray(normal, dtype=xp.float64)
-    out = xp.clip(xp.abs(arr_n @ n), 0.0, 1.0)
-    return to_cpu(out) if use_gpu else out
+def abs_normal_dot(normals, normal):
+    return np.clip(
+        np.abs(np.asarray(normals, dtype=np.float64) @ np.asarray(normal, dtype=np.float64)),
+        0.0,
+        1.0,
+    )
 
 # =============================
 # PCA / Plane
 # =============================
-def weighted_pca(points, weights=None, use_gpu=False):
-    xp = xp_module(use_gpu)
-    p = xp.asarray(points, dtype=xp.float64)
-
-    if p.shape[0] == 0:
+def weighted_pca(points, weights=None):
+    p = np.asarray(points, dtype=np.float64)
+    if len(p) == 0:
         return np.zeros(3), np.array([0.0, 0.0, 1.0]), np.zeros(3)
 
-    w = xp.ones(len(p), dtype=xp.float64) if weights is None else xp.asarray(weights, dtype=xp.float64)
-    sw = xp.sum(w) + 1e-12
-    c = xp.sum(p * w[:, None], axis=0) / sw
-    x = (p - c) * xp.sqrt(w[:, None])
+    w = np.ones(len(p), dtype=np.float64) if weights is None else np.asarray(weights, dtype=np.float64)
+    sw = np.sum(w) + 1e-12
+    c = np.sum(p * w[:, None], axis=0) / sw
+    x = (p - c) * np.sqrt(w[:, None])
     cov = (x.T @ x) / sw
-    vals, vecs = xp.linalg.eigh(cov)
+    vals, vecs = np.linalg.eigh(cov)
     n = vecs[:, 0]
-    n = n / (xp.linalg.norm(n) + 1e-12)
+    n = n / (np.linalg.norm(n) + 1e-12)
+    return c, n, vals
 
-    if use_gpu and CUPY_AVAILABLE:
-        return cp.asnumpy(c), cp.asnumpy(n), cp.asnumpy(vals)
-    return np.asarray(c), np.asarray(n), np.asarray(vals)
-
-def robust_plane(points, weights=None, iters=3, huber_k=1.5, use_gpu=False):
-    xp = xp_module(use_gpu)
-    p = xp.asarray(points, dtype=xp.float64)
-
-    if p.shape[0] == 0:
+def robust_plane(points, weights=None, iters=3, huber_k=1.5):
+    p = np.asarray(points, dtype=np.float64)
+    if len(p) == 0:
         return np.zeros(3), np.array([0.0, 0.0, 1.0], dtype=np.float64)
 
-    w = xp.ones(len(p), dtype=xp.float64) if weights is None else xp.asarray(weights, dtype=xp.float64).copy()
-    c = xp.mean(p, axis=0)
-    n = xp.asarray([0.0, 0.0, 1.0], dtype=xp.float64)
+    w = np.ones(len(p), dtype=np.float64) if weights is None else np.asarray(weights, dtype=np.float64).copy()
+    c = p.mean(axis=0)
+    n = np.array([0.0, 0.0, 1.0], dtype=np.float64)
 
     for _ in range(iters):
-        c_cpu, n_cpu, _ = weighted_pca(to_cpu(p), to_cpu(w), use_gpu=use_gpu)
-        c = xp.asarray(c_cpu, dtype=xp.float64)
-        n = xp.asarray(n_cpu, dtype=xp.float64)
-        d = (p - c) @ n
-        s = robust_sigma(d, use_gpu=use_gpu) + 1e-12
-        r = xp.abs(d) / (huber_k * s + 1e-12)
-        w = xp.where(r <= 1.0, w, w / (r + 1e-12))
-
-    if use_gpu and CUPY_AVAILABLE:
-        return cp.asnumpy(c), cp.asnumpy(n)
-    return np.asarray(c), np.asarray(n)
+        c, n, _ = weighted_pca(p, w)
+        d = np.dot(p - c, n)
+        s = robust_sigma(d) + 1e-12
+        r = np.abs(d) / (huber_k * s + 1e-12)
+        w = np.where(r <= 1.0, w, w / (r + 1e-12))
+    return c, n
 
 def dist_cfg(plane_dist, bbox_diag, near_ratio=0.25, far_ratio=0.50):
     r = plane_dist / (bbox_diag + 1e-12)
@@ -244,8 +189,6 @@ def dist_cfg(plane_dist, bbox_diag, near_ratio=0.25, far_ratio=0.50):
 # Sparse graph
 # =============================
 def make_sparse_graph_from_pairs(num_nodes, pairs):
-    if not SCIPY_AVAILABLE:
-        return None
     if pairs is None or len(pairs) == 0:
         return sp.csr_matrix((num_nodes, num_nodes), dtype=np.uint8)
 
@@ -259,9 +202,6 @@ def make_sparse_graph_from_pairs(num_nodes, pairs):
     return g
 
 def build_vertex_adjacency_sparse(num_vertices, faces):
-    if not SCIPY_AVAILABLE:
-        return None
-
     f = np.asarray(faces, dtype=np.int32)
     rows = np.concatenate([f[:, 0], f[:, 1], f[:, 1], f[:, 2], f[:, 2], f[:, 0]])
     cols = np.concatenate([f[:, 1], f[:, 0], f[:, 2], f[:, 1], f[:, 0], f[:, 2]])
@@ -288,16 +228,6 @@ def connected_face_labels(mesh):
     if n_faces == 0:
         return np.empty(0, dtype=np.int32), 0
 
-    if not SCIPY_AVAILABLE:
-        comps = list(mesh.split(only_watertight=False))
-        labels = np.empty(n_faces, dtype=np.int32)
-        offset = 0
-        for i, c in enumerate(comps):
-            n = len(c.faces)
-            labels[offset:offset + n] = i
-            offset += n
-        return labels, len(comps)
-
     face_adj = np.asarray(mesh.face_adjacency, dtype=np.int32)
     if face_adj.size == 0:
         labels = np.arange(n_faces, dtype=np.int32)
@@ -313,7 +243,6 @@ def connected_face_labels(mesh):
 # [VAR-3] 早退：所有面都保留时直接返回原 mesh，避免重建 Trimesh + 丢缓存
 def submesh_from_face_mask(mesh, face_mask):
     face_mask = np.asarray(face_mask, dtype=bool)
-
     if face_mask.all():
         return mesh
 
@@ -416,12 +345,10 @@ def remove_floating_noise_fast(mesh, min_faces=20, min_area=0.0005, min_extent=0
 def plane_basis_from_normal(normal):
     n = np.asarray(normal, dtype=np.float64)
     n = n / (np.linalg.norm(n) + 1e-12)
-
     if abs(n[2]) < 0.9:
         a = np.array([0.0, 0.0, 1.0], dtype=np.float64)
     else:
         a = np.array([1.0, 0.0, 0.0], dtype=np.float64)
-
     u = np.cross(n, a)
     u = u / (np.linalg.norm(u) + 1e-12)
     v = np.cross(n, u)
@@ -469,19 +396,15 @@ def ear_clip_triangulation_2d(poly):
     while len(idx) > 3 and guard < max_guard:
         ear_found = False
         m = len(idx)
-
         for i in range(m):
             i_prev = idx[(i - 1) % m]
             i_curr = idx[i]
             i_next = idx[(i + 1) % m]
-
             a = poly[i_prev]
             b = poly[i_curr]
             c = poly[i_next]
-
             if not is_convex_corner(a, b, c, ccw=ccw):
                 continue
-
             has_inside = False
             for j in idx:
                 if j in (i_prev, i_curr, i_next):
@@ -491,20 +414,16 @@ def ear_clip_triangulation_2d(poly):
                     break
             if has_inside:
                 continue
-
             tris.append((i_prev, i_curr, i_next))
             del idx[i]
             ear_found = True
             break
-
         if not ear_found:
             return []
-
         guard += 1
 
     if len(idx) == 3:
         tris.append((idx[0], idx[1], idx[2]))
-
     return tris
 
 def get_boundary_edges(mesh):
@@ -512,10 +431,8 @@ def get_boundary_edges(mesh):
         edges_u = np.asarray(mesh.edges_unique, dtype=np.int32)
         if len(edges_u) == 0:
             return np.empty((0, 2), dtype=np.int32)
-
         inv = np.asarray(mesh.edges_unique_inverse, dtype=np.int64).reshape(-1)
         counts = np.bincount(inv, minlength=len(edges_u))
-
         return edges_u[counts == 1]
     except Exception:
         return np.empty((0, 2), dtype=np.int32)
@@ -590,38 +507,30 @@ def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000, bou
     for a, b in list(valid_edges):
         if (a, b) in visited:
             continue
-
         start = a
         prev = a
         cur = b
         loop = [start]
         visited.add((a, b))
-
         ok = True
         while True:
             loop.append(cur)
             if len(loop) > max_loop_edges:
                 ok = False
                 break
-
             ns = adj.get(cur, [])
             if len(ns) != 2:
                 ok = False
                 break
-
             nxt = ns[0] if ns[1] == prev else ns[1]
-
             if nxt == start:
                 break
-
             ek = edge_key(cur, nxt)
             if ek in visited:
                 ok = False
                 break
-
             visited.add(ek)
             prev, cur = cur, nxt
-
         if ok and 3 <= len(loop) <= max_loop_edges:
             loops.append(np.array(loop, dtype=np.int32))
             if len(loops) >= max_loops:
@@ -634,7 +543,6 @@ def extract_boundary_loops_ordered(mesh, max_loop_edges=128, max_loops=4000, bou
         if key not in seen:
             seen.add(key)
             uniq.append(loop)
-
     return uniq
 
 def extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000, boundary_cache=None):
@@ -661,35 +569,28 @@ def extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000, bo
         ns = adj.get(start, [])
         if len(ns) != 1:
             continue
-
         nxt = ns[0]
         if edge_key(start, nxt) in visited:
             continue
-
         chain = [start]
         prev = start
         cur = nxt
         visited.add(edge_key(start, nxt))
-
         while True:
             chain.append(cur)
             if len(chain) > max_chain_edges:
                 break
-
             ns_cur = adj.get(cur, [])
             if len(ns_cur) == 1:
                 break
             if len(ns_cur) != 2:
                 break
-
             nxt2 = ns_cur[0] if ns_cur[1] == prev else ns_cur[1]
             ek = edge_key(cur, nxt2)
             if ek in visited:
                 break
-
             visited.add(ek)
             prev, cur = cur, nxt2
-
         if len(chain) >= 2:
             chains.append(np.array(chain, dtype=np.int32))
             if len(chains) >= max_chains:
@@ -702,7 +603,6 @@ def extract_open_boundary_chains(mesh, max_chain_edges=800, max_chains=12000, bo
         if key not in seen:
             seen.add(key)
             uniq.append(ch)
-
     return uniq
 
 def chain_length(points):
@@ -745,10 +645,8 @@ def orient_chain_pair_for_min_gap(A_ids, B_ids, V):
         (A_ids, B_ids[::-1]),
         (A_ids[::-1], B_ids[::-1]),
     ]
-
     best = None
     best_score = None
-
     for a_ids, b_ids in cands:
         a0 = V[int(a_ids[0])]
         a1 = V[int(a_ids[-1])]
@@ -758,7 +656,6 @@ def orient_chain_pair_for_min_gap(A_ids, B_ids, V):
         if best_score is None or score < best_score:
             best_score = score
             best = (np.asarray(a_ids, dtype=np.int32), np.asarray(b_ids, dtype=np.int32))
-
     return best
 
 def is_polygon_convex_2d(poly, eps=1e-12):
@@ -766,7 +663,6 @@ def is_polygon_convex_2d(poly, eps=1e-12):
     n = len(poly)
     if n < 4:
         return True
-
     sign = 0
     for i in range(n):
         a = poly[i]
@@ -796,92 +692,6 @@ def fan_triangulation_2d(poly):
             tris.append((0, i + 1, i))
     return tris
 
-def gpu_boundary_candidate_pairs(boundary_vs, V, VN, max_bridge_dist, normal_dot_min, block_size=1024):
-    if not CUPY_AVAILABLE:
-        return np.empty((0, 2), dtype=np.int32)
-
-    ids = np.asarray(boundary_vs, dtype=np.int32)
-    if len(ids) < 2:
-        return np.empty((0, 2), dtype=np.int32)
-
-    pts = cp.asarray(V[ids], dtype=cp.float64)
-    nrm = cp.asarray(VN[ids], dtype=cp.float64)
-    r2 = float(max_bridge_dist * max_bridge_dist)
-
-    pairs_all = []
-
-    for i0 in range(0, len(ids), block_size):
-        i1 = min(i0 + block_size, len(ids))
-        A = pts[i0:i1]
-        AN = nrm[i0:i1]
-
-        d2 = cp.sum((A[:, None, :] - pts[None, :, :]) ** 2, axis=2)
-        nd = cp.abs(AN @ nrm.T)
-
-        mask = (d2 > 1e-24) & (d2 <= r2) & (nd >= normal_dot_min)
-
-        ii, jj = cp.where(mask)
-        if ii.size == 0:
-            continue
-
-        ii = cp.asnumpy(ii) + i0
-        jj = cp.asnumpy(jj)
-
-        pairs = np.column_stack([ids[ii], ids[jj]]).astype(np.int32)
-        pairs_all.append(pairs)
-
-    if not pairs_all:
-        return np.empty((0, 2), dtype=np.int32)
-
-    return np.vstack(pairs_all)
-
-def gpu_chain_endpoint_candidates(chains, V, radius, block_size=2048):
-    candidate_map = [set() for _ in range(len(chains))]
-    if not CUPY_AVAILABLE:
-        return candidate_map
-
-    valid_chain_ids = [i for i, ch in enumerate(chains) if len(ch) >= 2]
-    if len(valid_chain_ids) < 2:
-        return candidate_map
-
-    endpoint_pts = []
-    endpoint_owner = []
-
-    for i in valid_chain_ids:
-        ch = chains[i]
-        endpoint_pts.append(V[int(ch[0])])
-        endpoint_pts.append(V[int(ch[-1])])
-        endpoint_owner.append(i)
-        endpoint_owner.append(i)
-
-    endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
-    owner = np.asarray(endpoint_owner, dtype=np.int32)
-
-    P = cp.asarray(endpoint_pts, dtype=cp.float64)
-    r2 = float(radius * radius)
-
-    for i0 in range(0, len(endpoint_pts), block_size):
-        i1 = min(i0 + block_size, len(endpoint_pts))
-        A = P[i0:i1]
-
-        d2 = cp.sum((A[:, None, :] - P[None, :, :]) ** 2, axis=2)
-        mask = (d2 > 1e-24) & (d2 <= r2)
-
-        ii, jj = cp.where(mask)
-        if ii.size == 0:
-            continue
-
-        ii = cp.asnumpy(ii) + i0
-        jj = cp.asnumpy(jj)
-
-        for a_idx, b_idx in zip(ii, jj):
-            ca = int(owner[a_idx])
-            cb = int(owner[b_idx])
-            if ca != cb:
-                candidate_map[ca].add(cb)
-
-    return candidate_map
-
 def best_match_from_candidate_pairs(candidate_pairs, V, adj, edge_set, VN, normal_dot_min, max_bridge_dist):
     if len(candidate_pairs) == 0:
         return {}
@@ -895,7 +705,6 @@ def best_match_from_candidate_pairs(candidate_pairs, V, adj, edge_set, VN, norma
 
     Pi = V[gi]
     Pj = V[gj]
-
     d = np.linalg.norm(Pi - Pj, axis=1)
     nd = np.abs(np.sum(VN[gi] * VN[gj], axis=1))
 
@@ -919,16 +728,13 @@ def best_match_from_candidate_pairs(candidate_pairs, V, adj, edge_set, VN, norma
             return
         if len(adj_set.get(a, set()) & adj_set.get(b, set())) > 0:
             return
-
         old = best_dist.get(a, None)
         if old is None or dist_ab < old:
             best_dist[a] = float(dist_ab)
             best_match[a] = int(b)
 
     for a, b, dist_ab in zip(gi, gj, d):
-        a = int(a)
-        b = int(b)
-        consider(a, b, dist_ab)
+        consider(int(a), int(b), dist_ab)
 
     return best_match
 
@@ -938,53 +744,30 @@ def knn_candidate_pairs_boundary(boundary_vs, V, k_neighbors=8, max_dist=np.inf)
         return np.empty((0, 2), dtype=np.int32)
 
     pts = np.asarray(V[ids], dtype=np.float64)
+    tree = cKDTree(pts)
+    k = min(int(k_neighbors) + 1, len(ids))
+    dists, idxs = tree.query(pts, k=k)
 
-    if SCIPY_AVAILABLE and cKDTree is not None:
-        tree = cKDTree(pts)
-        k = min(int(k_neighbors) + 1, len(ids))
-        dists, idxs = tree.query(pts, k=k)
-
-        if k == 1:
-            return np.empty((0, 2), dtype=np.int32)
-
-        dists = np.atleast_2d(dists)
-        idxs = np.atleast_2d(idxs)
-
-        src = np.repeat(np.arange(len(ids), dtype=np.int32), k - 1)
-        dst = idxs[:, 1:].reshape(-1).astype(np.int32)
-        dd = dists[:, 1:].reshape(-1)
-
-        mask = np.isfinite(dd)
-        if np.isfinite(max_dist):
-            mask &= (dd <= float(max_dist))
-
-        if not np.any(mask):
-            return np.empty((0, 2), dtype=np.int32)
-
-        src = src[mask]
-        dst = dst[mask]
-
-        return np.column_stack([ids[src], ids[dst]]).astype(np.int32)
-
-    pairs = []
-    for i in range(len(pts)):
-        d = np.linalg.norm(pts - pts[i], axis=1)
-        order = np.argsort(d)
-        used = 0
-        for j in order:
-            if j == i:
-                continue
-            if np.isfinite(max_dist) and d[j] > max_dist:
-                continue
-            pairs.append([ids[i], ids[j]])
-            used += 1
-            if used >= k_neighbors:
-                break
-
-    if not pairs:
+    if k == 1:
         return np.empty((0, 2), dtype=np.int32)
 
-    return np.asarray(pairs, dtype=np.int32)
+    dists = np.atleast_2d(dists)
+    idxs = np.atleast_2d(idxs)
+
+    src = np.repeat(np.arange(len(ids), dtype=np.int32), k - 1)
+    dst = idxs[:, 1:].reshape(-1).astype(np.int32)
+    dd = dists[:, 1:].reshape(-1)
+
+    mask = np.isfinite(dd)
+    if np.isfinite(max_dist):
+        mask &= (dd <= float(max_dist))
+
+    if not np.any(mask):
+        return np.empty((0, 2), dtype=np.int32)
+
+    src = src[mask]
+    dst = dst[mask]
+    return np.column_stack([ids[src], ids[dst]]).astype(np.int32)
 
 def knn_candidate_map_for_chains(chains, V, k_neighbors=8, max_dist=np.inf):
     n = len(chains)
@@ -996,7 +779,6 @@ def knn_candidate_map_for_chains(chains, V, k_neighbors=8, max_dist=np.inf):
 
     endpoint_pts = []
     endpoint_owner = []
-
     for i in valid_chain_ids:
         ch = chains[i]
         endpoint_pts.append(V[int(ch[0])])
@@ -1007,48 +789,23 @@ def knn_candidate_map_for_chains(chains, V, k_neighbors=8, max_dist=np.inf):
     endpoint_pts = np.asarray(endpoint_pts, dtype=np.float64)
     endpoint_owner = np.asarray(endpoint_owner, dtype=np.int32)
 
-    if SCIPY_AVAILABLE and cKDTree is not None:
-        tree = cKDTree(endpoint_pts)
-        k = min(int(k_neighbors) + 1, len(endpoint_pts))
-        dists, idxs = tree.query(endpoint_pts, k=k)
+    tree = cKDTree(endpoint_pts)
+    k = min(int(k_neighbors) + 1, len(endpoint_pts))
+    dists, idxs = tree.query(endpoint_pts, k=k)
 
-        dists = np.atleast_2d(dists)
-        idxs = np.atleast_2d(idxs)
+    dists = np.atleast_2d(dists)
+    idxs = np.atleast_2d(idxs)
 
-        for ep_idx in range(len(endpoint_pts)):
-            src_chain = int(endpoint_owner[ep_idx])
-            for d, j_ep in zip(dists[ep_idx, 1:], idxs[ep_idx, 1:]):
-                if not np.isfinite(d):
-                    continue
-                if np.isfinite(max_dist) and d > max_dist:
-                    continue
-                dst_chain = int(endpoint_owner[j_ep])
-                if dst_chain != src_chain:
-                    candidate_map[src_chain].add(dst_chain)
-    else:
-        for ii in range(len(valid_chain_ids)):
-            i = valid_chain_ids[ii]
-            ai0 = V[int(chains[i][0])]
-            ai1 = V[int(chains[i][-1])]
-            ranked = []
-            for jj in range(len(valid_chain_ids)):
-                if ii == jj:
-                    continue
-                j = valid_chain_ids[jj]
-                bj0 = V[int(chains[j][0])]
-                bj1 = V[int(chains[j][-1])]
-                d = min(
-                    np.linalg.norm(ai0 - bj0),
-                    np.linalg.norm(ai0 - bj1),
-                    np.linalg.norm(ai1 - bj0),
-                    np.linalg.norm(ai1 - bj1),
-                )
-                if np.isfinite(max_dist) and d > max_dist:
-                    continue
-                ranked.append((d, j))
-            ranked.sort(key=lambda x: x[0])
-            for _, j in ranked[:k_neighbors]:
-                candidate_map[i].add(j)
+    for ep_idx in range(len(endpoint_pts)):
+        src_chain = int(endpoint_owner[ep_idx])
+        for d, j_ep in zip(dists[ep_idx, 1:], idxs[ep_idx, 1:]):
+            if not np.isfinite(d):
+                continue
+            if np.isfinite(max_dist) and d > max_dist:
+                continue
+            dst_chain = int(endpoint_owner[j_ep])
+            if dst_chain != src_chain:
+                candidate_map[src_chain].add(dst_chain)
 
     return candidate_map
 
@@ -1089,34 +846,27 @@ def fill_small_holes_from_loops(
         pts = V[loop]
         if len(pts) < 3:
             continue
-
         bb = pts.max(axis=0) - pts.min(axis=0)
         diam = float(np.linalg.norm(bb))
         if diam > max_hole_diameter:
             continue
-
         c, n, _ = weighted_pca(pts)
         residual = np.abs(np.dot(pts - c, n))
         if residual.max() > max_plane_residual:
             continue
-
         u, v = plane_basis_from_normal(n)
         poly2d = np.column_stack(((pts - c) @ u, (pts - c) @ v))
         area = abs(polygon_area_2d(poly2d))
         if area <= 1e-12 or area > max_hole_area:
             continue
-
         if is_polygon_convex_2d(poly2d):
             tris_local = fan_triangulation_2d(poly2d)
         else:
             tris_local = ear_clip_triangulation_2d(poly2d)
-
         if len(tris_local) == 0:
             continue
-
         stats["accepted_loops"] += 1
         stats["filled_holes"] += 1
-
         for a, b, cidx in tris_local:
             ia = int(loop[a])
             ib = int(loop[b])
@@ -1137,8 +887,7 @@ def estimate_vertex_normals_fast(mesh):
     try:
         return np.asarray(mesh.vertex_normals, dtype=np.float64)
     except Exception:
-        v = np.zeros((len(mesh.vertices), 3), dtype=np.float64)
-        return v
+        return np.zeros((len(mesh.vertices), 3), dtype=np.float64)
 
 def edge_exists(edge_set, a, b):
     k = (a, b) if a < b else (b, a)
@@ -1150,14 +899,12 @@ def triangle_area_3d(a, b, c):
 def zipper_triangulate_between_chains(A_ids, B_ids, V, min_triangle_area=1e-8):
     A_ids = np.asarray(A_ids, dtype=np.int32)
     B_ids = np.asarray(B_ids, dtype=np.int32)
-
     if len(A_ids) < 2 or len(B_ids) < 2:
         return []
 
     i = 0
     j = 0
     tris = []
-
     while i < len(A_ids) - 1 or j < len(B_ids) - 1:
         if i == len(A_ids) - 1:
             a = int(A_ids[i])
@@ -1167,7 +914,6 @@ def zipper_triangulate_between_chains(A_ids, B_ids, V, min_triangle_area=1e-8):
                 tris.append([a, b, c])
             j += 1
             continue
-
         if j == len(B_ids) - 1:
             a = int(A_ids[i])
             b = int(A_ids[i + 1])
@@ -1184,7 +930,6 @@ def zipper_triangulate_between_chains(A_ids, B_ids, V, min_triangle_area=1e-8):
 
         cost_a = np.linalg.norm(V[a1] - V[b0])
         cost_b = np.linalg.norm(V[a0] - V[b1])
-
         if cost_a <= cost_b:
             if len({a0, a1, b0}) == 3 and triangle_area_3d(V[a0], V[a1], V[b0]) > min_triangle_area:
                 tris.append([a0, a1, b0])
@@ -1193,7 +938,6 @@ def zipper_triangulate_between_chains(A_ids, B_ids, V, min_triangle_area=1e-8):
             if len({a0, b0, b1}) == 3 and triangle_area_3d(V[a0], V[b0], V[b1]) > min_triangle_area:
                 tris.append([a0, b0, b1])
             j += 1
-
     return tris
 
 def stitch_boundary_gaps(
@@ -1203,10 +947,7 @@ def stitch_boundary_gaps(
     max_bridge_pairs=6000,
     min_triangle_area=1e-8,
     boundary_cache=None,
-    use_gpu_prefilter=False,
-    gpu_min_boundary_vertices=12000,
     knn_neighbors=8,
-    use_knn_candidates=True,
 ):
     stats = {
         "boundary_vertices": 0,
@@ -1214,8 +955,6 @@ def stitch_boundary_gaps(
         "mutual_pairs": 0,
         "bridge_quads": 0,
         "added_faces": 0,
-        "gpu_prefilter_used": False,
-        "candidate_mode": "none",
     }
 
     if boundary_cache is None:
@@ -1236,95 +975,14 @@ def stitch_boundary_gaps(
     V = np.asarray(mesh.vertices, dtype=np.float64)
     VN = estimate_vertex_normals_fast(mesh)
 
-    best_match = {}
-
-    use_gpu_now = bool(
-        use_gpu_prefilter
-        and CUPY_AVAILABLE
-        and len(boundary_vs) >= int(gpu_min_boundary_vertices)
-        and not use_knn_candidates
+    candidate_pairs = knn_candidate_pairs_boundary(
+        boundary_vs, V, k_neighbors=knn_neighbors, max_dist=max_bridge_dist
     )
 
-    if use_knn_candidates:
-        candidate_pairs = knn_candidate_pairs_boundary(
-            boundary_vs,
-            V,
-            k_neighbors=knn_neighbors,
-            max_dist=max_bridge_dist,
-        )
-        stats["candidate_mode"] = "knn"
-
-        best_match = best_match_from_candidate_pairs(
-            candidate_pairs,
-            V=V,
-            adj=adj,
-            edge_set=edge_set,
-            VN=VN,
-            normal_dot_min=normal_dot_min,
-            max_bridge_dist=max_bridge_dist,
-        )
-
-    elif use_gpu_now:
-        candidate_pairs = gpu_boundary_candidate_pairs(
-            boundary_vs,
-            V,
-            VN,
-            max_bridge_dist=max_bridge_dist,
-            normal_dot_min=normal_dot_min,
-            block_size=1024,
-        )
-        stats["gpu_prefilter_used"] = True
-        stats["candidate_mode"] = "gpu_radius"
-
-        best_match = best_match_from_candidate_pairs(
-            candidate_pairs,
-            V=V,
-            adj=adj,
-            edge_set=edge_set,
-            VN=VN,
-            normal_dot_min=normal_dot_min,
-            max_bridge_dist=max_bridge_dist,
-        )
-
-    else:
-        pts = V[boundary_vs]
-
-        if SCIPY_AVAILABLE and cKDTree is not None:
-            tree = cKDTree(pts)
-            try:
-                local_pairs = tree.query_pairs(r=max_bridge_dist, output_type="ndarray")
-            except TypeError:
-                local_pairs = np.array(list(tree.query_pairs(r=max_bridge_dist)), dtype=np.int32)
-        else:
-            local_pairs_list = []
-            for i in range(len(pts)):
-                d = np.linalg.norm(pts[i + 1:] - pts[i], axis=1)
-                js = np.where(d <= max_bridge_dist)[0]
-                for j in js:
-                    local_pairs_list.append([i, i + 1 + int(j)])
-            local_pairs = np.asarray(local_pairs_list, dtype=np.int32) if local_pairs_list else np.empty((0, 2), dtype=np.int32)
-
-        if len(local_pairs) > 0:
-            candidate_pairs = np.column_stack([
-                boundary_vs[local_pairs[:, 0]],
-                boundary_vs[local_pairs[:, 1]],
-            ]).astype(np.int32)
-
-            candidate_pairs = np.vstack([
-                candidate_pairs,
-                candidate_pairs[:, ::-1]
-            ])
-            stats["candidate_mode"] = "cpu_radius"
-
-            best_match = best_match_from_candidate_pairs(
-                candidate_pairs,
-                V=V,
-                adj=adj,
-                edge_set=edge_set,
-                VN=VN,
-                normal_dot_min=normal_dot_min,
-                max_bridge_dist=max_bridge_dist,
-            )
+    best_match = best_match_from_candidate_pairs(
+        candidate_pairs, V=V, adj=adj, edge_set=edge_set, VN=VN,
+        normal_dot_min=normal_dot_min, max_bridge_dist=max_bridge_dist,
+    )
 
     stats["candidate_pairs"] = int(len(best_match))
     if not best_match:
@@ -1354,12 +1012,10 @@ def stitch_boundary_gaps(
     for a, b in boundary:
         a = int(a)
         b = int(b)
-
         pa = partner.get(a, None)
         pb = partner.get(b, None)
         if pa is None or pb is None:
             continue
-
         if pa == pb or pa in (a, b) or pb in (a, b):
             continue
         if pa == b or pb == a:
@@ -1397,14 +1053,12 @@ def stitch_boundary_gaps(
         used_quads.add(quad_key)
 
     stats["bridge_quads"] = int(len(used_quads))
-
     if len(new_faces) == 0:
         return mesh.copy(), stats
 
     F = np.asarray(mesh.faces, dtype=np.int32)
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
     out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-
     stats["added_faces"] = int(len(new_faces))
     return out, stats
 
@@ -1429,10 +1083,7 @@ def stitch_open_boundary_chains(
     }
 
     chains = extract_open_boundary_chains(
-        mesh,
-        max_chain_edges=800,
-        max_chains=12000,
-        boundary_cache=boundary_cache,
+        mesh, max_chain_edges=800, max_chains=12000, boundary_cache=boundary_cache,
     )
     stats["chain_count"] = int(len(chains))
     if len(chains) < 2:
@@ -1449,36 +1100,16 @@ def stitch_open_boundary_chains(
         if len(ch) < min_chain_vertices:
             chain_infos.append(None)
             continue
-
         ids = np.asarray(ch, dtype=np.int32)
         pts = V[ids]
         clen = chain_length(pts)
         if clen <= 1e-8:
             chain_infos.append(None)
             continue
-
-        sample_n = min(len(ids), 24)
-        if sample_n < 2:
-            chain_infos.append(None)
-            continue
-
-        sample_idx = np.linspace(0, len(ids) - 1, sample_n).astype(np.int32)
-
-        chain_infos.append({
-            "ids": ids,
-            "pts": pts,
-            "len": clen,
-            "p0": pts[0],
-            "p1": pts[-1],
-            "t0": endpoint_tangent(pts, at_start=True),
-            "t1": endpoint_tangent(pts, at_start=False),
-            "nmean": mean_vertex_normal(VN, ids),
-            "sample_idx": sample_idx,
-        })
+        chain_infos.append({"ids": ids, "pts": pts, "len": clen})
 
     candidate_map = knn_candidate_map_for_chains(
-        chains,
-        V,
+        chains, V,
         k_neighbors=max_chain_neighbor_candidates,
         max_dist=max_chain_endpoint_dist,
     )
@@ -1490,11 +1121,7 @@ def stitch_open_boundary_chains(
         infoA = chain_infos[i]
         if infoA is None:
             continue
-
         js = sorted(j for j in candidate_map[i] if j > i)
-        if not js and (not SCIPY_AVAILABLE or cKDTree is None):
-            js = list(range(i + 1, len(chains)))
-
         for j in js:
             infoB = chain_infos[j]
             if infoB is None:
@@ -1502,7 +1129,6 @@ def stitch_open_boundary_chains(
 
             A = infoA["ids"]
             B = infoB["ids"]
-
             A2, B2 = orient_chain_pair_for_min_gap(A, B, V)
             ptsA2 = V[A2]
             ptsB2 = V[B2]
@@ -1525,7 +1151,6 @@ def stitch_open_boundary_chains(
 
             idxA = np.linspace(0, len(A2) - 1, sample_n).astype(np.int32)
             idxB = np.linspace(0, len(B2) - 1, sample_n).astype(np.int32)
-
             avg_gap = float(np.mean(np.linalg.norm(V[A2[idxA]] - V[B2[idxB]], axis=1)))
             if avg_gap > max_chain_avg_gap:
                 continue
@@ -1534,7 +1159,6 @@ def stitch_open_boundary_chains(
             ta1 = endpoint_tangent(ptsA2, at_start=False)
             tb0 = endpoint_tangent(ptsB2, at_start=True)
             tb1 = endpoint_tangent(ptsB2, at_start=False)
-
             tscore = 0.5 * (abs(np.dot(ta0, tb0)) + abs(np.dot(ta1, tb1)))
             if tscore < tangent_dot_min:
                 continue
@@ -1566,19 +1190,15 @@ def stitch_open_boundary_chains(
     for _, A2, B2 in candidates:
         setA = set(A2.tolist())
         setB = set(B2.tolist())
-
         if len(setA & used_vertices) > 0 or len(setB & used_vertices) > 0:
             continue
-
         tris = zipper_triangulate_between_chains(A2, B2, V, min_triangle_area=min_triangle_area)
         if len(tris) == 0:
             continue
-
         new_faces.extend(tris)
         used_vertices.update(setA)
         used_vertices.update(setB)
         accepted += 1
-
         if accepted >= max_chain_pairs:
             break
 
@@ -1589,7 +1209,6 @@ def stitch_open_boundary_chains(
     F = np.asarray(mesh.faces, dtype=np.int32)
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
     out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
-
     stats["added_faces"] = int(len(new_faces))
     return out, stats
 
@@ -1614,8 +1233,6 @@ def run_early_hole_repair(
     chain_normal_dot_min=0.20,
     max_chain_pairs=256,
     max_chain_neighbor_candidates=64,
-    use_gpu_gap_prefilter=False,
-    use_gpu_chain=False,
     verbose=False,
 ):
     stats = {
@@ -1667,20 +1284,13 @@ def run_early_hole_repair(
             normal_dot_min=bridge_normal_dot_min,
             max_bridge_pairs=max_bridge_pairs,
             boundary_cache=boundary_cache,
-            use_gpu_prefilter=use_gpu_gap_prefilter,
-            gpu_min_boundary_vertices=12000,
             knn_neighbors=8,
-            use_knn_candidates=True,
         )
         stats["timings_sec"]["gap_stitch"] = round(time.perf_counter() - t0, 4)
     else:
         gap_stats = {
-            "boundary_vertices": 0,
-            "candidate_pairs": 0,
-            "mutual_pairs": 0,
-            "bridge_quads": 0,
-            "added_faces": 0,
-            "gpu_prefilter_used": False,
+            "boundary_vertices": 0, "candidate_pairs": 0, "mutual_pairs": 0,
+            "bridge_quads": 0, "added_faces": 0,
         }
         stats["timings_sec"]["gap_stitch"] = 0.0
     stats["gap_stitch"] = gap_stats
@@ -1703,17 +1313,11 @@ def run_early_hole_repair(
         stats["timings_sec"]["chain_stitch"] = round(time.perf_counter() - t0, 4)
     else:
         chain_stats = {
-            "chain_count": 0,
-            "candidate_pairs": 0,
-            "accepted_pairs": 0,
-            "added_faces": 0,
+            "chain_count": 0, "candidate_pairs": 0,
+            "accepted_pairs": 0, "added_faces": 0,
         }
         stats["timings_sec"]["chain_stitch"] = 0.0
     stats["chain_stitch"] = chain_stats
-
-    t0 = time.perf_counter()
-    out = clean_mesh_light(out, fix_normals=False)
-    stats["timings_sec"]["post_clean"] = round(time.perf_counter() - t0, 4)
 
     if verbose:
         total_added = (
@@ -1724,7 +1328,6 @@ def run_early_hole_repair(
         print(
             f"[2/8] 早期空洞修补... "
             f"loop_filled={loop_stats.get('filled_holes', 0)} "
-            f"gap_mode={gap_stats.get('candidate_mode', 'na')} "
             f"gap_boundary_v={gap_stats.get('boundary_vertices', 0)} "
             f"gap_candidates={gap_stats.get('candidate_pairs', 0)} "
             f"gap_mutual={gap_stats.get('mutual_pairs', 0)} "
@@ -1752,8 +1355,8 @@ def make_cache(mesh):
     bbox_diag = float(np.linalg.norm(mesh.bounding_box.extents)) + 1e-12
 
     face_adj_pairs = np.asarray(mesh.face_adjacency, dtype=np.int32) if mesh.face_adjacency is not None else np.empty((0, 2), dtype=np.int32)
-    face_adj_csr = make_sparse_graph_from_pairs(len(F), face_adj_pairs) if SCIPY_AVAILABLE else None
-    vert_adj_csr = build_vertex_adjacency_sparse(len(V), F) if SCIPY_AVAILABLE else None
+    face_adj_csr = make_sparse_graph_from_pairs(len(F), face_adj_pairs)
+    vert_adj_csr = build_vertex_adjacency_sparse(len(V), F)
 
     is_boundary = np.zeros(len(V), dtype=bool)
     b = boundary_vertices(mesh)
@@ -1777,15 +1380,12 @@ def make_cache(mesh):
 # Plane detection
 # =============================
 def connected_groups_sparse(ids, csr_graph, face_adj_pairs=None):
-    """小集合走 CSR fancy indexing，大集合才走 face_adj_pairs 过滤"""
+    """小集合走 CSR fancy indexing，大集合走 face_adj_pairs 过滤"""
     ids = np.asarray(ids, dtype=np.int32)
     n = len(ids)
     if n == 0:
         return []
     if n == 1:
-        return [ids]
-
-    if not SCIPY_AVAILABLE:
         return [ids]
 
     N = csr_graph.shape[0] if csr_graph is not None else (
@@ -1803,7 +1403,6 @@ def connected_groups_sparse(ids, csr_graph, face_adj_pairs=None):
         in_set[ids] = True
         mask = in_set[face_adj_pairs[:, 0]] & in_set[face_adj_pairs[:, 1]]
         sel = face_adj_pairs[mask]
-
         if len(sel) == 0:
             return [ids[i:i + 1] for i in range(n)]
 
@@ -1811,7 +1410,6 @@ def connected_groups_sparse(ids, csr_graph, face_adj_pairs=None):
         remap[ids] = np.arange(n, dtype=np.int32)
         rs = remap[sel[:, 0]]
         cs = remap[sel[:, 1]]
-
         rows = np.concatenate([rs, cs])
         cols = np.concatenate([cs, rs])
         data = np.ones(len(rows), dtype=np.uint8)
@@ -1819,36 +1417,27 @@ def connected_groups_sparse(ids, csr_graph, face_adj_pairs=None):
         n_comp, labels = sp_connected_components(small, directed=False, return_labels=True)
         return [ids[labels == i] for i in range(n_comp)]
 
-    if csr_graph is not None:
-        sub = csr_graph[ids][:, ids]
-        n_comp, labels = sp_connected_components(sub, directed=False, return_labels=True)
-        return [ids[labels == i] for i in range(n_comp)]
+    sub = csr_graph[ids][:, ids]
+    n_comp, labels = sp_connected_components(sub, directed=False, return_labels=True)
+    return [ids[labels == i] for i in range(n_comp)]
 
-    return [ids]
-
-def fit_plane_faces(face_ids, cache, use_gpu=False):
+def fit_plane_faces(face_ids, cache):
     face_ids = np.asarray(face_ids, dtype=np.int32)
     centers = cache["tri_centers"][face_ids]
     areas = cache["face_areas"][face_ids]
     normals = cache["face_normals"][face_ids]
 
-    c, n = robust_plane(centers, areas, iters=3, huber_k=1.5, use_gpu=use_gpu)
-
-    xp = xp_module(use_gpu)
-    centers_x = xp.asarray(centers, dtype=xp.float64)
-    c_x = xp.asarray(c, dtype=xp.float64)
-    n_x = xp.asarray(n, dtype=xp.float64)
-    dist = (centers_x - c_x) @ n_x
-
-    _, _, vals = weighted_pca(centers, areas, use_gpu=use_gpu)
-    dots = abs_normal_dot(normals, n, use_gpu=use_gpu)
-    mean_angle = float(np.degrees(np.mean(np.arccos(np.clip(to_cpu(dots), 0.0, 1.0))))) if len(dots) else 0.0
+    c, n = robust_plane(centers, areas, iters=3, huber_k=1.5)
+    dist = np.dot(centers - c, n)
+    _, _, vals = weighted_pca(centers, areas)
+    dots = abs_normal_dot(normals, n)
+    mean_angle = float(np.degrees(np.mean(np.arccos(np.clip(dots, 0.0, 1.0))))) if len(dots) else 0.0
 
     return {
         "face_ids": face_ids,
-        "centroid": np.asarray(c, dtype=np.float64),
-        "normal": np.asarray(n, dtype=np.float64),
-        "sigma": robust_sigma(dist, use_gpu=use_gpu),
+        "centroid": c,
+        "normal": n,
+        "sigma": robust_sigma(dist),
         "area": float(np.sum(areas)),
         "planarity_ratio": float(vals[0] / (np.sum(vals) + 1e-12)),
         "mean_normal_angle": mean_angle,
@@ -1861,13 +1450,12 @@ def initial_patch_labels(cache, angle_thr=22.0):
     if num_faces == 0:
         return np.empty(0, dtype=np.int32), 0
 
-    if not SCIPY_AVAILABLE or face_adj_pairs is None or len(face_adj_pairs) == 0:
+    if face_adj_pairs is None or len(face_adj_pairs) == 0:
         labels = np.arange(num_faces, dtype=np.int32)
         return labels, num_faces
 
     fn = cache["face_normals"]
     cos_thr = np.cos(np.radians(angle_thr))
-
     dots = np.abs(np.sum(fn[face_adj_pairs[:, 0]] * fn[face_adj_pairs[:, 1]], axis=1))
     sel = face_adj_pairs[dots >= cos_thr]
 
@@ -1879,7 +1467,6 @@ def initial_patch_labels(cache, angle_thr=22.0):
     cols = np.concatenate([sel[:, 1], sel[:, 0]])
     data = np.ones(len(rows), dtype=np.uint8)
     g = sp.csr_matrix((data, (rows, cols)), shape=(num_faces, num_faces), dtype=np.uint8)
-
     n_comp, labels = sp_connected_components(g, directed=False, return_labels=True)
     return labels.astype(np.int32), int(n_comp)
 
@@ -1888,17 +1475,11 @@ def split_planes(face_ids, cache, cfg, depth=0):
     if len(face_ids) < cfg["min_plane_faces"]:
         return []
 
-    use_gpu = bool(cfg.get("use_cuda", False) and CUPY_AVAILABLE)
-
-    plane = fit_plane_faces(face_ids, cache, use_gpu=use_gpu)
+    plane = fit_plane_faces(face_ids, cache)
     centers = cache["tri_centers"][face_ids]
     normals = cache["face_normals"][face_ids]
 
-    xp = xp_module(use_gpu)
-    centers_x = xp.asarray(centers, dtype=xp.float64)
-    c_x = xp.asarray(plane["centroid"], dtype=xp.float64)
-    n_x = xp.asarray(plane["normal"], dtype=xp.float64)
-    d = (centers_x - c_x) @ n_x
+    d = np.dot(centers - plane["centroid"], plane["normal"])
 
     dc = dict(stage="none", detect_dist=1.0, detect_ang=1.0)
     if cfg["sensor_origin"] is not None and cfg["use_distance_strategy"]:
@@ -1914,9 +1495,8 @@ def split_planes(face_ids, cache, cfg, depth=0):
         cfg["sigma_dist_mult"] * plane["sigma"] * dc["detect_dist"],
     )
     cos_thr = np.cos(np.radians(cfg["plane_normal_angle_deg"] * dc["detect_ang"]))
-    dots = abs_normal_dot(normals, plane["normal"], use_gpu=use_gpu)
-
-    inlier_mask = (to_cpu(xp.abs(d)) <= dist_thr) & (to_cpu(dots) >= cos_thr)
+    dots = abs_normal_dot(normals, plane["normal"])
+    inlier_mask = (np.abs(d) <= dist_thr) & (dots >= cos_thr)
 
     inlier = face_ids[inlier_mask]
     outlier = face_ids[~inlier_mask]
@@ -1930,7 +1510,7 @@ def split_planes(face_ids, cache, cfg, depth=0):
                 continue
             if float(np.sum(cache["face_areas"][g])) < cfg["min_plane_area"]:
                 continue
-            p = fit_plane_faces(g, cache, use_gpu=use_gpu)
+            p = fit_plane_faces(g, cache)
             if p["area"] >= cfg["min_plane_area"]:
                 res.append(p)
 
@@ -1963,7 +1543,6 @@ def dedup_planes(planes, overlap=0.85, total_faces=None):
     kept = []
     kept_ids = []
     kept_masks = []
-
     BIG_THRESHOLD = 2000
 
     for p in sorted(prepared, key=lambda x: (len(x["face_ids"]), x["area"]), reverse=True):
@@ -1975,14 +1554,11 @@ def dedup_planes(planes, overlap=0.85, total_faces=None):
             min_len = min(n_ids, len(k_ids))
             if min_len == 0:
                 continue
-
             need = int(np.ceil(overlap * min_len))
-
             if k_mask is not None:
                 inter = int(k_mask[ids].sum())
             else:
                 inter = np.intersect1d(ids, k_ids, assume_unique=True).size
-
             if inter >= need:
                 ok = False
                 break
@@ -2016,7 +1592,6 @@ def detect_planes(mesh, cfg, verbose=False):
     t0 = time.perf_counter()
     face_counts = np.bincount(patch_labels, minlength=patch_count)
     area_sums = np.bincount(patch_labels, weights=cache["face_areas"], minlength=patch_count)
-
     valid_patch_mask = (
         (face_counts >= cfg["min_patch_faces"]) &
         (area_sums >= cfg["min_plane_area"])
@@ -2029,10 +1604,7 @@ def detect_planes(mesh, cfg, verbose=False):
     if len(valid_patch_ids) > 0:
         order = np.argsort(patch_labels, kind="mergesort")
         labels_sorted = patch_labels[order]
-
-        starts = np.flatnonzero(
-            np.r_[True, labels_sorted[1:] != labels_sorted[:-1]]
-        )
+        starts = np.flatnonzero(np.r_[True, labels_sorted[1:] != labels_sorted[:-1]])
         ends = np.r_[starts[1:], len(order)]
 
         for s, e in zip(starts, ends):
@@ -2060,7 +1632,7 @@ def detect_planes(mesh, cfg, verbose=False):
 # =============================
 def expand_ring_sparse(ids, vert_adj_csr, rings=1):
     ids = np.asarray(ids, dtype=np.int32)
-    if len(ids) == 0 or rings <= 0 or vert_adj_csr is None or not SCIPY_AVAILABLE:
+    if len(ids) == 0 or rings <= 0 or vert_adj_csr is None:
         return np.unique(ids)
 
     n = vert_adj_csr.shape[0]
@@ -2076,45 +1648,23 @@ def expand_ring_sparse(ids, vert_adj_csr, rings=1):
             break
         starts = indptr[frontier]
         ends = indptr[frontier + 1]
-        if len(frontier) > 0:
-            lengths = ends - starts
-            total = int(lengths.sum())
-            if total == 0:
-                break
-            all_neigh = np.empty(total, dtype=indices.dtype)
-            pos = 0
-            for s, e in zip(starts, ends):
-                all_neigh[pos:pos + (e - s)] = indices[s:e]
-                pos += (e - s)
-            new_neigh = all_neigh[~mask[all_neigh]]
-            if len(new_neigh) == 0:
-                break
-            new_neigh = np.unique(new_neigh)
-            mask[new_neigh] = True
-            frontier = new_neigh
+        lengths = ends - starts
+        total = int(lengths.sum())
+        if total == 0:
+            break
+        all_neigh = np.empty(total, dtype=indices.dtype)
+        pos = 0
+        for s, e in zip(starts, ends):
+            all_neigh[pos:pos + (e - s)] = indices[s:e]
+            pos += (e - s)
+        new_neigh = all_neigh[~mask[all_neigh]]
+        if len(new_neigh) == 0:
+            break
+        new_neigh = np.unique(new_neigh)
+        mask[new_neigh] = True
+        frontier = new_neigh
 
     return np.where(mask)[0].astype(np.int32)
-
-def smooth_values_python(vals, valid, local_adj_csr, iters=8, self_w=0.25):
-    x = vals.copy()
-    nb_w = 1.0 - self_w
-
-    indptr = local_adj_csr.indptr
-    indices = local_adj_csr.indices
-    valid_idx = np.where(valid)[0]
-
-    for _ in range(iters):
-        y = x.copy()
-        for i in valid_idx:
-            s, e = indptr[i], indptr[i + 1]
-            ns = indices[s:e]
-            if len(ns) == 0:
-                continue
-            vv = x[ns][valid[ns]]
-            if vv.size:
-                y[i] = self_w * x[i] + nb_w * float(np.mean(vv))
-        x = y
-    return x
 
 def smooth_values_sparse(vals, valid, A, iters=8, self_w=0.25):
     if A is None or A.nnz == 0:
@@ -2156,7 +1706,6 @@ def refine_one_plane(task):
     vert_adj_csr = state["vert_adj_csr"]
     is_boundary = state["is_boundary"]
     bbox_diag = state["bbox_diag"]
-    use_gpu = bool(state.get("use_cuda", False) and CUPY_AVAILABLE)
 
     face_ids = p["face_ids"]
     base_vids = np.unique(F[face_ids].reshape(-1))
@@ -2177,15 +1726,9 @@ def refine_one_plane(task):
     vids = expand_ring_sparse(base_vids, vert_adj_csr, cfg["expand_rings"] + int(pass_mul.get("expand_rings_add", 0)))
     pts = V[vids]
 
-    c, n = robust_plane(pts, None, 3, 1.4, use_gpu=use_gpu)
-
-    xp = xp_module(use_gpu)
-    pts_x = xp.asarray(pts, dtype=xp.float64)
-    c_x = xp.asarray(c, dtype=xp.float64)
-    n_x = xp.asarray(n, dtype=xp.float64)
-
-    sd_x = (pts_x - c_x) @ n_x
-    sigma_v = robust_sigma(sd_x, use_gpu=use_gpu)
+    c, n = robust_plane(pts, None, 3, 1.4)
+    sd = np.dot(pts - c, n)
+    sigma_v = robust_sigma(sd)
 
     noise_ratio = sigma_v / max(cfg["vertex_inlier_dist"], 1e-12)
     noise_boost = min(1.8, cfg["noise_adapt_gain"] * pass_mul.get("noise", 1.0) * noise_ratio)
@@ -2212,21 +1755,14 @@ def refine_one_plane(task):
     outlier_thr = max(cfg["vertex_outlier_dist"] * pass_mul.get("outlier", 1.0) * dc["outlier"], 3.5 * sigma_v)
     snap_strength = cfg["base_snap_strength"] * pass_mul.get("snap", 1.0) * dc["snap"]
 
-    sd = to_cpu(sd_x)
     valid = np.abs(sd) <= outlier_thr
     vals = np.where(valid, sd, 0.0)
 
-    A_local = None
-    if SCIPY_AVAILABLE and vert_adj_csr is not None and len(vids) > 0:
-        A_local = vert_adj_csr[vids][:, vids]
-
-    if SCIPY_AVAILABLE and A_local is not None:
+    A_local = vert_adj_csr[vids][:, vids] if (vert_adj_csr is not None and len(vids) > 0) else None
+    if A_local is not None:
         sm = smooth_values_sparse(vals, valid, A_local, smooth_iters, 0.25)
     else:
-        if A_local is None:
-            sm = vals.copy()
-        else:
-            sm = smooth_values_python(vals, valid, A_local, smooth_iters, 0.25)
+        sm = vals.copy()
 
     moved_vids = vids[valid]
     if len(moved_vids) == 0:
@@ -2251,35 +1787,17 @@ def refine_one_plane(task):
     ds = sm[valid]
     bmul = np.where(is_boundary[moved_vids], cfg["boundary_scale"], 1.0)
 
-    if use_gpu:
-        moved_vids_x = cp.asarray(moved_vids, dtype=cp.int32)
-        Vx = cp.asarray(V, dtype=cp.float64)
-        target_x = Vx[moved_vids_x].copy()
-        d_x = cp.asarray(d, dtype=cp.float64)
-        ds_x = cp.asarray(ds, dtype=cp.float64)
-        inlier_x = cp.asarray(np.abs(d) <= inlier_thr)
+    target = V[moved_vids].copy()
+    inlier = np.abs(d) <= inlier_thr
+    target[inlier] -= d[inlier, None] * n
+    target[~inlier] -= (d[~inlier] - residual_shrink * ds[~inlier])[:, None] * n
 
-        target_x[inlier_x] -= d_x[inlier_x, None] * n_x
-        target_x[~inlier_x] -= (d_x[~inlier_x] - residual_shrink * ds_x[~inlier_x])[:, None] * n_x
-
-        non_inlier_weight = min(1.0, 0.72 + 0.30 * eff_noise + 0.22 * dist_boost)
-        w_x = cp.where(inlier_x, snap_strength, non_inlier_weight) * cp.asarray(bmul, dtype=cp.float64)
-
-        acc = cp.asnumpy(w_x[:, None] * target_x)
-        w = cp.asnumpy(w_x)
-    else:
-        target = V[moved_vids].copy()
-        inlier = np.abs(d) <= inlier_thr
-        target[inlier] -= d[inlier, None] * n
-        target[~inlier] -= (d[~inlier] - residual_shrink * ds[~inlier])[:, None] * n
-
-        non_inlier_weight = min(1.0, 0.72 + 0.30 * eff_noise + 0.22 * dist_boost)
-        w = np.where(inlier, snap_strength, non_inlier_weight) * bmul
-        acc = w[:, None] * target
+    non_inlier_weight = min(1.0, 0.72 + 0.30 * eff_noise + 0.22 * dist_boost)
+    w = np.where(inlier, snap_strength, non_inlier_weight) * bmul
 
     return {
         "vids": moved_vids.astype(np.int32),
-        "acc": acc,
+        "acc": w[:, None] * target,
         "w": w,
         "report": {
             "plane_id": int(i),
@@ -2291,7 +1809,6 @@ def refine_one_plane(task):
             "outlier_thr": float(outlier_thr),
             "smooth_iters": int(smooth_iters),
             "residual_shrink": float(residual_shrink),
-            "use_cuda": bool(use_gpu),
         }
     }
 
@@ -2308,7 +1825,6 @@ def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pas
         "vert_adj_csr": shared_cache["vert_adj_csr"],
         "is_boundary": shared_cache["is_boundary"] if cfg["boundary_protect"] else np.zeros(len(mesh.vertices), dtype=bool),
         "bbox_diag": shared_cache["bbox_diag"],
-        "use_cuda": bool(cfg.get("use_cuda", False) and CUPY_AVAILABLE),
     }
 
     tasks = [{
@@ -2321,8 +1837,7 @@ def refine_planes_parallel(mesh, planes, cfg, shared_cache, only_stage=None, pas
     } for i, p in enumerate(planes)]
 
     if verbose:
-        backend = "cuda(cupy)" if state["use_cuda"] else ("scipy.sparse" if SCIPY_AVAILABLE else "fallback")
-        print(f"{tag} 平面精修... mode=thread, workers={num_workers}, smooth_backend={backend}")
+        print(f"{tag} 平面精修... mode=thread, workers={num_workers}")
 
     if num_workers is None or num_workers <= 1:
         results = [refine_one_plane(t) for t in tasks]
@@ -2366,7 +1881,6 @@ def select_far_second_pass_planes(planes, reports, min_faces=60, min_sigma=0.003
 def global_smooth(mesh, iters=1, method="taubin"):
     if iters <= 0:
         return mesh.copy()
-
     import open3d as o3d
 
     m = o3d.geometry.TriangleMesh()
@@ -2393,7 +1907,8 @@ def global_smooth(mesh, iters=1, method="taubin"):
 # =============================
 # Save
 # =============================
-def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input_path, num_workers, timings, hole_stats, use_cuda, export_obj=False, export_ply=True):
+def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input_path,
+                 num_workers, timings, hole_stats, export_obj=False, export_ply=True):
     ensure_dir(out_dir)
     base = os.path.splitext(os.path.basename(input_path))[0]
 
@@ -2436,9 +1951,7 @@ def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input
             "before": before,
             "after": after,
             "early_hole_fill": hole_stats,
-            "scipy_sparse_enabled": SCIPY_AVAILABLE,
             "cupy_available": CUPY_AVAILABLE,
-            "cuda_enabled": bool(use_cuda),
             "num_workers": int(num_workers),
             "timings_sec": timings,
         }, f, indent=2, ensure_ascii=False)
@@ -2451,13 +1964,23 @@ def save_outputs(mesh, planes, reports1, reports2, before, after, out_dir, input
 def process_mesh(args):
     total_t0 = time.perf_counter()
 
+    # [STAB-1] 提升进程优先级，减少 OS 抢占抖动
+    try:
+        if sys.platform == "win32":
+            import psutil
+            psutil.Process().nice(psutil.HIGH_PRIORITY_CLASS)
+    except Exception:
+        pass
+
+    # [STAB-2] 预热 BLAS/LAPACK，让第一次和后续运行性能差异变小
+    try:
+        _warm = np.random.rand(512, 512)
+        _ = np.linalg.eigh(_warm @ _warm.T)
+    except Exception:
+        pass
+
     sensor_origin = parse_vec3(args.sensor_origin)
     num_workers = args.num_workers if args.num_workers and args.num_workers > 0 else max(1, cpu_count() - 1)
-    use_cuda = cuda_enabled(args)
-
-    use_cuda_early = use_cuda
-    use_cuda_planes = False
-    use_cuda_chain = False
 
     detect_cfg = {
         "patch_normal_angle_deg": args.patch_normal_angle_deg,
@@ -2472,7 +1995,6 @@ def process_mesh(args):
         "use_distance_strategy": args.use_distance_strategy,
         "near_ratio": args.near_ratio,
         "far_ratio": args.far_ratio,
-        "use_cuda": use_cuda_planes,
     }
 
     refine_cfg = {
@@ -2490,45 +2012,34 @@ def process_mesh(args):
         "use_distance_strategy": args.use_distance_strategy,
         "near_ratio": args.near_ratio,
         "far_ratio": args.far_ratio,
-        "use_cuda": use_cuda_planes,
     }
 
     timings = {}
 
     if args.verbose:
         print("========== PIPELINE START ==========")
-        print(f"scipy sparse available: {SCIPY_AVAILABLE}")
-        print(f"cupy available: {CUPY_AVAILABLE}")
-        print(f"cuda enabled: {use_cuda}")
-        print(f"cuda early-hole: {use_cuda_early}")
-        print(f"cuda planes: {use_cuda_planes}")
-        print(f"cuda chains: {use_cuda_chain}")
+        print(f"cupy available: {CUPY_AVAILABLE} (note: 当前 pipeline 全部走 CPU)")
         print(f"num_workers: {num_workers}")
         print(f"BLAS threads: OMP={os.environ.get('OMP_NUM_THREADS')}, "
               f"OPENBLAS={os.environ.get('OPENBLAS_NUM_THREADS')}, "
               f"MKL={os.environ.get('MKL_NUM_THREADS')}")
         print(f"export_obj: {args.export_obj}, export_ply: {not args.disable_export_ply}")
-        print(f"disable_trimesh_fill_holes: {args.disable_trimesh_fill_holes}")
-        print(f"disable_chain_stitch: {args.disable_chain_stitch}")
-        print(f"skip_final_fix_normals: {args.skip_final_fix_normals}")
         print("[0/8] 读取网格...")
 
     t0 = time.perf_counter()
     mesh0 = load_mesh(args.input)
     timings["load_mesh"] = round(time.perf_counter() - t0, 4)
 
-    before = mesh_report(mesh0, include_components=False)
+    before = mesh_report(mesh0)
 
     if args.verbose:
         print("[1/8] 基础清理...")
-
     t0 = time.perf_counter()
     mesh = clean_mesh_light(mesh0, fix_normals=False)
     timings["clean_mesh_1"] = round(time.perf_counter() - t0, 4)
 
     if args.verbose:
         print("[2/8] 早期空洞修补 / 裂缝桥接...")
-
     t0 = time.perf_counter()
     mesh, hole_stats = run_early_hole_repair(
         mesh,
@@ -2551,15 +2062,12 @@ def process_mesh(args):
         chain_normal_dot_min=args.chain_normal_dot_min,
         max_chain_pairs=args.max_chain_pairs,
         max_chain_neighbor_candidates=args.max_chain_neighbor_candidates,
-        use_gpu_gap_prefilter=use_cuda_early,
-        use_gpu_chain=use_cuda_chain,
         verbose=args.verbose
     )
     timings["early_hole_fill"] = round(time.perf_counter() - t0, 4)
 
     if args.verbose:
         print("[3/8] 连通分量过滤...")
-
     t0 = time.perf_counter()
     mesh = filter_components_fast(
         mesh,
@@ -2581,14 +2089,10 @@ def process_mesh(args):
 
     t0 = time.perf_counter()
     mesh, reports1 = refine_planes_parallel(
-        mesh,
-        planes,
-        refine_cfg,
+        mesh, planes, refine_cfg,
         shared_cache=shared_cache,
-        only_stage=None,
-        pass_mul=None,
-        verbose=False,
-        tag="[5/8]",
+        only_stage=None, pass_mul=None,
+        verbose=False, tag="[5/8]",
         num_workers=num_workers
     )
     timings["refine_pass_1"] = round(time.perf_counter() - t0, 4)
@@ -2597,8 +2101,7 @@ def process_mesh(args):
     timings["refine_pass_2_far"] = 0.0
     if args.enable_far_second_pass:
         selected = select_far_second_pass_planes(
-            planes,
-            reports1,
+            planes, reports1,
             args.far_second_pass_min_faces,
             args.far_second_pass_min_sigma
         )
@@ -2613,14 +2116,10 @@ def process_mesh(args):
             }
             t0 = time.perf_counter()
             mesh, reports2 = refine_planes_parallel(
-                mesh,
-                selected,
-                refine_cfg,
+                mesh, selected, refine_cfg,
                 shared_cache=shared_cache,
-                only_stage=None,
-                pass_mul=pass_mul,
-                verbose=False,
-                tag="[5.5/8]",
+                only_stage=None, pass_mul=pass_mul,
+                verbose=False, tag="[5.5/8]",
                 num_workers=num_workers
             )
             timings["refine_pass_2_far"] = round(time.perf_counter() - t0, 4)
@@ -2653,7 +2152,7 @@ def process_mesh(args):
     timings["clean_mesh_final"] = round(time.perf_counter() - t0, 4)
 
     t0 = time.perf_counter()
-    after = mesh_report(mesh, include_components=False)
+    after = mesh_report(mesh)
     timings["final_report"] = round(time.perf_counter() - t0, 4)
 
     t0 = time.perf_counter()
@@ -2663,7 +2162,7 @@ def process_mesh(args):
     else:
         obj_path, ply_path, planes_path, report_path = save_outputs(
             mesh, planes, reports1, reports2, before, after,
-            args.output_dir, args.input, num_workers, timings, hole_stats, use_cuda,
+            args.output_dir, args.input, num_workers, timings, hole_stats,
             export_obj=args.export_obj,
             export_ply=not args.disable_export_ply,
         )
@@ -2683,7 +2182,6 @@ def process_mesh(args):
 def apply_preset(args):
     preset_name = getattr(args, "preset", DEFAULT_PRESET)
     cfg = PRESET_CONFIGS.get(preset_name, PRESET_CONFIGS[DEFAULT_PRESET])
-
     args.patch_normal_angle_deg = cfg["patch_normal_angle_deg"]
     args.min_patch_faces = cfg["min_patch_faces"]
     args.min_plane_faces = cfg["min_plane_faces"]
@@ -2692,18 +2190,17 @@ def apply_preset(args):
     args.plane_normal_angle_deg = cfg["plane_normal_angle_deg"]
     args.sigma_dist_mult = cfg["sigma_dist_mult"]
     args.max_split_depth = cfg["max_split_depth"]
-
     return args
 
 # =============================
 # CLI
 # =============================
 def build_parser():
-    p = argparse.ArgumentParser(description="Mesh refine pipeline GPU version (optimized for ~520k faces)")
+    p = argparse.ArgumentParser(description="Mesh refine pipeline (CPU optimized)")
 
-    p.add_argument("--input", default=DEFAULT_INPUT, help="输入网格路径，默认使用预设 PLY")
-    p.add_argument("--output_dir", default=DEFAULT_OUTPUT_DIR, help="输出目录")
-    p.add_argument("--preset", choices=["balanced", "fast", "detail"], default=DEFAULT_PRESET, help="参数预设")
+    p.add_argument("--input", default=DEFAULT_INPUT)
+    p.add_argument("--output_dir", default=DEFAULT_OUTPUT_DIR)
+    p.add_argument("--preset", choices=["balanced", "fast", "detail"], default=DEFAULT_PRESET)
 
     p.add_argument("--min_component_faces", type=int, default=80)
     p.add_argument("--min_component_area", type=float, default=0.0015)
@@ -2712,11 +2209,8 @@ def build_parser():
 
     # early hole fill
     p.add_argument("--disable_early_hole_fill", action="store_true")
-
-    p.add_argument("--disable_trimesh_fill_holes", dest="disable_trimesh_fill_holes", action="store_true",
-                   help="关闭 trimesh.repair.fill_holes（默认关闭）")
-    p.add_argument("--enable_trimesh_fill_holes", dest="disable_trimesh_fill_holes", action="store_false",
-                   help="启用 trimesh.repair.fill_holes")
+    p.add_argument("--disable_trimesh_fill_holes", dest="disable_trimesh_fill_holes", action="store_true")
+    p.add_argument("--enable_trimesh_fill_holes", dest="disable_trimesh_fill_holes", action="store_false")
     p.set_defaults(disable_trimesh_fill_holes=True)
 
     p.add_argument("--max_hole_edges", type=int, default=160)
@@ -2731,10 +2225,9 @@ def build_parser():
     p.add_argument("--bridge_normal_dot_min", type=float, default=0.15)
     p.add_argument("--max_bridge_pairs", type=int, default=20000)
 
-    p.add_argument("--disable_chain_stitch", dest="disable_chain_stitch", action="store_true",
-                   help="关闭 chain stitch（默认关闭）")
-    p.add_argument("--enable_chain_stitch", dest="disable_chain_stitch", action="store_false",
-                   help="启用 chain stitch")
+    # chain stitch
+    p.add_argument("--disable_chain_stitch", dest="disable_chain_stitch", action="store_true")
+    p.add_argument("--enable_chain_stitch", dest="disable_chain_stitch", action="store_false")
     p.set_defaults(disable_chain_stitch=True)
 
     p.add_argument("--max_chain_endpoint_dist", type=float, default=0.55)
@@ -2799,29 +2292,18 @@ def build_parser():
     p.set_defaults(skip_final_fix_normals=True)
     p.add_argument("--num_workers", type=int, default=DEFAULT_NUM_WORKERS)
 
-    # GPU
-    p.add_argument("--use_cuda", dest="use_cuda", action="store_true")
-    p.add_argument("--no_use_cuda", dest="use_cuda", action="store_false")
-    p.set_defaults(use_cuda=True)
-
     p.add_argument("--verbose", dest="verbose", action="store_true")
     p.add_argument("--quiet", dest="verbose", action="store_false")
     p.set_defaults(verbose=True)
 
-    p.add_argument("--skip_component_count_in_report", action="store_true",
-                   help="（已默认跳过 components 统计，本参数保留兼容）")
-    p.set_defaults(skip_component_count_in_report=False)
-
     p.add_argument("--profile_fast_mode", action="store_true", help="跳过文件导出，纯计算性能测试")
-
-    p.add_argument("--export_obj", action="store_true", help="导出 OBJ 文件（默认关闭，速度更快）")
+    p.add_argument("--export_obj", action="store_true", help="导出 OBJ 文件（默认关闭）")
     p.add_argument("--disable_export_ply", action="store_true", help="不导出 PLY 文件")
 
     return p
 
 def main():
     parser = build_parser()
-
     if len(sys.argv) == 1:
         print("[INFO] 未提供命令行参数，使用代码内默认 preset 直接运行。")
 
@@ -2836,7 +2318,6 @@ def main():
     print(f"input: {args.input}")
     print(f"output_dir: {args.output_dir}")
     print(f"sensor_origin: {args.sensor_origin}")
-    print(f"use_cuda: {getattr(args, 'use_cuda', False)}")
     print(f"use_distance_strategy: {args.use_distance_strategy}")
     print(f"num_workers: {args.num_workers}")
     print(f"patch_normal_angle_deg: {args.patch_normal_angle_deg}")
