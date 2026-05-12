@@ -26,7 +26,7 @@ def extract_door_geometric(wall_mesh):
     depths = np.dot(face_centers - centroid, dominant_normal)
 
     # ==========================================
-    # 调整点 1：放宽深度容差
+    # 放宽深度容差
     # ==========================================
     MIN_DOOR_DEPTH = 0.015  # 原为 0.02
     MAX_DOOR_DEPTH = 0.30  # 原为 0.25
@@ -40,15 +40,15 @@ def extract_door_geometric(wall_mesh):
     main_wall.remove_unreferenced_vertices()
 
     if door_candidate.is_empty:
-        print(f"❌ 深度判定失败：墙面上没有任何 {MIN_DOOR_DEPTH * 100}cm 到 {MAX_DOOR_DEPTH * 100}cm 之间的起伏。")
+        print(f"深度判定失败：墙面上没有任何 {MIN_DOOR_DEPTH * 100}cm 到 {MAX_DOOR_DEPTH * 100}cm 之间的起伏。")
         return wall_mesh, trimesh.Trimesh()
 
-    print("📏 发现起伏区域，正在进行高度与碎片过滤...")
+    print("发现起伏区域，正在进行高度与碎片过滤...")
     door_parts = door_candidate.split(only_watertight=False)
     true_doors = []
 
     # ==========================================
-    # 调整点 2：碎片化宽容检测
+    # 碎片化宽容检测
     # ==========================================
     MIN_PART_AREA = 0.1  # 过滤墙面微小噪点
 
@@ -73,14 +73,14 @@ def extract_door_geometric(wall_mesh):
 
         return main_wall, final_door
     else:
-        print("❌ 提取失败：起伏区域全都是面积太小的噪点（可能是相框或窗户）。")
+        print("提取失败：起伏区域全都是面积太小的噪点（可能是相框或窗户）。")
         return wall_mesh, trimesh.Trimesh()
 
 # ==========================================
 # 核心主处理管线
 # ==========================================
 def process_scanned_room(obj_path, output_path):
-    print(f"🚀 正在导入模型: {obj_path}")
+    print(f"正在导入模型: {obj_path}")
 
     # 1. 加载模型
     mesh = trimesh.load(obj_path, force='mesh')
@@ -95,7 +95,7 @@ def process_scanned_room(obj_path, output_path):
     # ==========================================
     # 阶段一：法向量初筛 (分离垂直与水平面)
     # ==========================================
-    print("🔪 阶段一：启动法向量初筛算法...")
+    print("阶段一：启动法向量初筛算法...")
     mesh.fix_normals()
     vertical_components = np.abs(mesh.face_normals[:, 1])
 
@@ -196,7 +196,7 @@ def process_scanned_room(obj_path, output_path):
     # ==========================================
     # 阶段五：物理 UV 计算与装配
     # ==========================================
-    print("📏 阶段五：计算绝对物理 UV...")
+    print("阶段五：计算绝对物理 UV...")
     tiling = 1.0
 
     if not final_wall_mesh.is_empty:
@@ -235,4 +235,4 @@ if __name__ == "__main__":
     if os.path.exists(teammate_obj):
         process_scanned_room(teammate_obj, final_output)
     else:
-        print(f"❌ 找不到输入模型: {teammate_obj}")
+        print(f"找不到输入模型: {teammate_obj}")
