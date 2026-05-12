@@ -1575,7 +1575,7 @@ def dedup_planes(planes, overlap=0.85, total_faces=None):
 
     return kept
 
-def detect_planes(mesh, cfg, verbose=False):
+def detect_planes(mesh, cfg, verbose=False, return_timings=False):
     if verbose:
         print("[4/8] 多平面识别...")
 
@@ -1625,7 +1625,9 @@ def detect_planes(mesh, cfg, verbose=False):
         print(f"  识别平面数: {len(planes)}")
         print(f"  detect_planes breakdown: {dp_timings}")
 
-    return planes, cache, dp_timings
+    if return_timings:
+        return planes, cache, dp_timings
+    return planes, cache
 
 # =============================
 # Plane refinement
