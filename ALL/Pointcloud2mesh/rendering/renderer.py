@@ -34,6 +34,7 @@ class Renderer:
 
         self._vis = None
         self._mesh = None
+        self._mesh_added = False
         self._axes = None
         self._initialized = False
         self._view_initialized = False
@@ -86,9 +87,6 @@ class Renderer:
             )
             self._vis.add_geometry(self._axes)
 
-            self._mesh = o3d.geometry.TriangleMesh()
-            self._vis.add_geometry(self._mesh)
-
             self._initialized = True
             self._log("initialized", force=True)
             return True
@@ -105,15 +103,27 @@ class Renderer:
         if vnum == 0:
             return
 
+        tnum = len(new_mesh.triangles)
+        if tnum == 0:
+            return
+
         if not new_mesh.has_vertex_normals():
             new_mesh.compute_vertex_normals()
+
+        if self._mesh is None:
+            self._mesh = o3d.geometry.TriangleMesh()
 
         self._mesh.vertices = new_mesh.vertices
         self._mesh.triangles = new_mesh.triangles
         self._mesh.vertex_colors = new_mesh.vertex_colors
         self._mesh.vertex_normals = new_mesh.vertex_normals
 
-        self._vis.update_geometry(self._mesh)
+        if not self._mesh_added:
+            self._vis.add_geometry(self._mesh, reset_bounding_box=True)
+            self._mesh_added = True
+        else:
+            self._vis.update_geometry(self._mesh)
+
         self._last_mesh_vertex_count = vnum
 
         if not self._view_initialized:
@@ -174,5 +184,8 @@ class Renderer:
             if self._vis is not None:
                 self._vis.destroy_window()
                 self._vis = None
+            self._mesh = None
+            self._mesh_added = False
             self._initialized = False
+            self._view_initialized = False
             self._log("closed", force=True)

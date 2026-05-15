@@ -24,6 +24,7 @@ class RGBDPreprocessor:
         depth_scale=None,
         depth_trunc=2.0,
         min_valid_ratio=0.01,
+        convert_rgb_to_intensity=False,
         logger=None,
     ):
         # 目标输出分辨率
@@ -49,6 +50,7 @@ class RGBDPreprocessor:
         self.depth_scale = depth_scale
         self.depth_trunc = depth_trunc
         self.min_valid_ratio = min_valid_ratio
+        self.convert_rgb_to_intensity = bool(convert_rgb_to_intensity)
         self.logger = logger
 
     def _log(self, msg: str, level: str = "status", force: bool = False):
@@ -200,13 +202,14 @@ class RGBDPreprocessor:
             depth_o3d,
             depth_scale=self.depth_scale,
             depth_trunc=self.depth_trunc,
-            convert_rgb_to_intensity=False,
+            convert_rgb_to_intensity=self.convert_rgb_to_intensity,
         )
 
         info = {
             "valid_ratio": valid_ratio,
             "depth_scale": self.depth_scale,
             "depth_trunc": self.depth_trunc,
+            "convert_rgb_to_intensity": self.convert_rgb_to_intensity,
             "shape": (h, w),
             "target_shape": (self.target_height, self.target_width),
             "resized": resize_info is not None and resize_info.get("resized", False),

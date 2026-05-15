@@ -59,6 +59,7 @@ class Tracker:
             input_color_is_bgr=input_color_is_bgr,
             depth_scale=depth_scale,
             depth_trunc=depth_trunc,
+            convert_rgb_to_intensity=True,
         )
 
         self.option = o3d.pipelines.odometry.OdometryOption()
@@ -83,6 +84,7 @@ class Tracker:
         self.profile_print_interval = max(1, int(profile_print_interval))
 
         self.prev_rgbd = None
+        self.prev_pcd = None
         self.prev_frame = None
         self.prev_cam_ts = None
 
@@ -91,6 +93,11 @@ class Tracker:
         self.imu_world_initializer = imu_world_initializer
 
         self.last_trans = np.zeros(3, dtype=np.float64)
+        self.icp_max_correspondence_distance = 0.07
+        self.icp_max_iteration = 20
+        self.icp_min_fitness = 0.08
+        self.icp_max_rmse = 0.06
+        self.icp_voxel_size = 0.025
         
         # print(
         #     f"[Tracker.__init__] width={width}, height={height}, "
@@ -119,6 +126,7 @@ class Tracker:
 
     def reset(self):
         self.prev_rgbd = None
+        self.prev_pcd = None
         self.prev_frame = None
         self.prev_cam_ts = None
         self.T_c_w = np.eye(4, dtype=np.float64)
@@ -171,6 +179,7 @@ class Tracker:
     def _make_lost_result(self, frame: RGBDFrame, reason: str, extras=None):
         ext = {} if extras is None else dict(extras)
         ext["reason"] = reason
+        ext["tracker_backend"] = "cpu_rgbd"
         return TrackingResult(
             frame_id=frame.frame_id,
             timestamp=frame.device_timestamp,
@@ -199,6 +208,124 @@ class Tracker:
 
     def _need_print(self, frame_id: int) -> bool:
         return frame_id % self.profile_print_interval == 0
+
+    def _make_depth_pcd(self, rgbd, frame_id=None):
+        """
+        CPU fallback tracking uses depth ICP instead of legacy RGBD odometry.
+        PCAC currently provides pseudo-color depth visualization, not a real RGB
+        texture stream, so color-based odometry is not reliable here.
+        """
+        if rgbd is None:
+            return None, {"reason": "rgbd_is_none"}
+
+        depth = np.asarray(rgbd.depth)
+        if depth.size == 0:
+            return None, {"reason": "depth_empty"}
+
+        depth = np.nan_to_num(depth, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+        valid = np.isfinite(depth) & (depth > 0.0) & (depth <= float(self.preprocessor.depth_trunc))
+        valid_count = int(np.count_nonzero(valid))
+
+        if valid_count < self.min_valid_pixels:
+            return None, {
+                "reason": "too_few_valid_depth_for_cpu_icp",
+                "valid_count": valid_count,
+                "min_valid_pixels": self.min_valid_pixels,
+                "depth_min": float(depth[valid].min()) if valid_count > 0 else None,
+                "depth_max": float(depth[valid].max()) if valid_count > 0 else None,
+            }
+
+        depth_img = o3d.geometry.Image(np.ascontiguousarray(depth))
+        try:
+            pcd = o3d.geometry.PointCloud.create_from_depth_image(
+                depth_img,
+                self.preprocessor.get_intrinsic(),
+                depth_scale=1.0,
+                depth_trunc=float(self.preprocessor.depth_trunc),
+                stride=2,
+            )
+        except Exception as e:
+            return None, {"reason": "create_depth_pcd_failed", "error": repr(e)}
+
+        if pcd is None or len(pcd.points) == 0:
+            return None, {
+                "reason": "depth_pcd_empty",
+                "valid_count": valid_count,
+            }
+
+        try:
+            pcd = pcd.voxel_down_sample(self.icp_voxel_size)
+        except Exception:
+            pass
+
+        if pcd is None or len(pcd.points) == 0:
+            return None, {
+                "reason": "depth_pcd_empty_after_downsample",
+                "valid_count": valid_count,
+            }
+
+        try:
+            pcd.estimate_normals(
+                o3d.geometry.KDTreeSearchParamHybrid(radius=0.08, max_nn=20)
+            )
+        except Exception:
+            pass
+
+        return pcd, {
+            "valid_count": valid_count,
+            "pcd_points": len(pcd.points),
+            "icp_voxel_size": self.icp_voxel_size,
+            "frame_id": frame_id,
+        }
+
+    def _run_depth_icp(self, source_pcd, target_pcd):
+        if source_pcd is None or target_pcd is None:
+            return None, "missing_pcd"
+        if len(source_pcd.points) == 0 or len(target_pcd.points) == 0:
+            return None, "empty_pcd"
+
+        used_point_to_plane = False
+        estimation = o3d.pipelines.registration.TransformationEstimationPointToPoint()
+        try:
+            if target_pcd.has_normals():
+                estimation = o3d.pipelines.registration.TransformationEstimationPointToPlane()
+                used_point_to_plane = True
+        except Exception:
+            pass
+
+        try:
+            return (
+                o3d.pipelines.registration.registration_icp(
+                    source_pcd,
+                    target_pcd,
+                    self.icp_max_correspondence_distance,
+                    np.eye(4, dtype=np.float64),
+                    estimation,
+                    o3d.pipelines.registration.ICPConvergenceCriteria(
+                        max_iteration=self.icp_max_iteration
+                    ),
+                ),
+                None,
+            )
+        except Exception as e:
+            if used_point_to_plane:
+                try:
+                    return (
+                        o3d.pipelines.registration.registration_icp(
+                            source_pcd,
+                            target_pcd,
+                            self.icp_max_correspondence_distance,
+                            np.eye(4, dtype=np.float64),
+                            o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+                            o3d.pipelines.registration.ICPConvergenceCriteria(
+                                max_iteration=self.icp_max_iteration
+                            ),
+                        ),
+                        f"point_to_plane_failed:{repr(e)}",
+                    )
+                except Exception as e2:
+                    return None, f"point_to_point_failed:{repr(e2)}"
+            return None, repr(e)
 
     def _maybe_print_profile(
         self,
@@ -315,6 +442,28 @@ class Tracker:
             )
             return self._make_lost_result(frame, "rgbd_preprocess_failed", rgbd_info)
 
+        current_pcd, pcd_info = self._make_depth_pcd(current_rgbd, frame_id=frame.frame_id)
+        if current_pcd is None:
+            t_end = time.perf_counter()
+            self._maybe_print_profile(
+                frame.frame_id,
+                (t1 - t0) * 1000.0,
+                (t2 - t1) * 1000.0,
+                0.0,
+                0.0,
+                0.0,
+                (t_end - t0) * 1000.0,
+            )
+            return self._make_lost_result(
+                frame,
+                "depth_pcd_failed",
+                {
+                    "valid_pixel_count": frame.valid_pixel_count,
+                    "rgbd_info": rgbd_info,
+                    "pcd_info": pcd_info,
+                },
+            )
+
         cam_ts = float(frame.device_timestamp)
 
         # ---------- 第一帧 ----------
@@ -335,6 +484,7 @@ class Tracker:
                 )
 
             self.prev_rgbd = current_rgbd
+            self.prev_pcd = current_pcd
             self.prev_frame = frame
             self.prev_cam_ts = cam_ts
 
@@ -359,6 +509,8 @@ class Tracker:
                 extras={
                     "valid_pixel_count": frame.valid_pixel_count,
                     "rgbd_info": rgbd_info,
+                    "pcd_info": pcd_info,
+                    "tracker_backend": "cpu_rgbd",
                     **imu_init_info,
                 },
             )
@@ -369,19 +521,39 @@ class Tracker:
         )
         t3 = time.perf_counter()
 
-        # ---------- odometry ----------
+        # ---------- depth ICP odometry ----------
         init_delta = np.eye(4, dtype=np.float64)
         if self.imu_as_vo_init_only and imu_delta_available:
             init_delta[:3, :3] = dR_imu_cam
 
-        success, delta_refined, info = o3d.pipelines.odometry.compute_rgbd_odometry(
-            self.prev_rgbd,
-            current_rgbd,
-            self.preprocessor.get_intrinsic(),
-            init_delta,
-            o3d.pipelines.odometry.RGBDOdometryJacobianFromHybridTerm(),
-            self.option,
-        )
+        odom_error = None
+        result, icp_error = self._run_depth_icp(current_pcd, self.prev_pcd)
+        if result is None:
+            success = False
+            delta_refined = np.eye(4, dtype=np.float64)
+            info = None
+            odom_error = icp_error
+            icp_fitness = 0.0
+            icp_rmse = 0.0
+        else:
+            icp_fitness = float(result.fitness)
+            icp_rmse = float(result.inlier_rmse)
+            success = (
+                icp_fitness >= self.icp_min_fitness
+                and icp_rmse <= self.icp_max_rmse
+            )
+            # Open3D ICP returns current_camera -> previous_camera.
+            # Mapper needs world -> current_camera, so use the inverse delta.
+            try:
+                delta_refined = np.linalg.inv(np.asarray(result.transformation, dtype=np.float64))
+            except Exception as e:
+                success = False
+                delta_refined = np.eye(4, dtype=np.float64)
+                odom_error = f"icp_transform_inverse_failed:{repr(e)}"
+            if success:
+                info = np.eye(6, dtype=np.float64) * (self.min_info_trace / 6.0)
+            else:
+                info = np.eye(6, dtype=np.float64) * max(icp_fitness, 0.0)
         t4 = time.perf_counter()
 
         # ---------- post / gating ----------
@@ -427,10 +599,6 @@ class Tracker:
                 bad_frame = True
 
         if bad_frame:
-            self.prev_rgbd = current_rgbd
-            self.prev_frame = frame
-            self.prev_cam_ts = cam_ts
-
             t5 = time.perf_counter()
             self._maybe_print_profile(
                 frame.frame_id,
@@ -462,6 +630,10 @@ class Tracker:
                     "imu_delta_available": imu_delta_available,
                     "info_trace": info_trace,
                     "vo_success": success,
+                    "odom_error": odom_error,
+                    "icp_fitness": icp_fitness,
+                    "icp_rmse": icp_rmse,
+                    "pcd_info": pcd_info,
                 },
             )
 
@@ -476,9 +648,6 @@ class Tracker:
 
             # 明显异常的大平移，直接拒绝
             if odom_t_norm > 0.05:
-                self.prev_rgbd = current_rgbd
-                self.prev_frame = frame
-                self.prev_cam_ts = cam_ts
                 self.last_trans[:] = 0.0
 
                 t5 = time.perf_counter()
@@ -511,6 +680,8 @@ class Tracker:
                         "odom_t_norm": odom_t_norm,
                         "imu_rot_deg": imu_rot_deg,
                         "info_trace": info_trace,
+                        "icp_fitness": icp_fitness,
+                        "icp_rmse": icp_rmse,
                     },
                 )
 
@@ -557,6 +728,7 @@ class Tracker:
         self.T_c_w = fused_delta @ self.T_c_w
 
         self.prev_rgbd = current_rgbd
+        self.prev_pcd = current_pcd
         self.prev_frame = frame
         self.prev_cam_ts = cam_ts
 
@@ -585,10 +757,15 @@ class Tracker:
             extras={
                 "valid_pixel_count": frame.valid_pixel_count,
                 "rgbd_info": rgbd_info,
+                "pcd_info": pcd_info,
                 "imu_rot_deg": imu_rot_deg,
                 "imu_delta_available": imu_delta_available,
                 "vo_rot_deg": vo_rot_deg,
                 "info_trace": info_trace,
                 "translation_norm": float(np.linalg.norm(trans_refined)),
+                "odom_error": odom_error,
+                "icp_fitness": icp_fitness,
+                "icp_rmse": icp_rmse,
+                "tracker_backend": "cpu_rgbd",
             },
         )
