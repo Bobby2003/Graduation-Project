@@ -1,0 +1,95 @@
+{% extends "portal_shell.html" %}
+{% block doc_title %}我的位面 | AR REALM{% endblock %}
+{% block page_title %}PRIVATE REALM // 我的位面{% endblock %}
+{% block doc %}
+<div class="doc-panel">
+    <form style="display:none;">{% csrf_token %}</form>
+    <p style="color:#ccc; margin-bottom:20px;">
+        每位玩家拥有一处<strong>私人位面</strong>：可来自预制房间模板、真实空间扫描或系统生成结构；通过<strong>材质协议</strong>与灯光方案将现实房间重构为游戏化场景。
+    </p>
+    <h2>STATUS</h2>
+    <ul>
+        <li>称号：<strong style="color:#fff;">{{ profile.display_title }}</strong></li>
+        <li>空间等级：Lv.{{ profile.realm_space_level }}</li>
+        <li>访问权限：{{ profile.get_realm_visibility_display }}</li>
+        <li>账户等级 Lv.{{ profile.level }} · 经验 {{ profile.exp }} · 信用点 {{ profile.credits }}</li>
+    </ul>
+    <h2>CURRENT CONFIG // 当前方案</h2>
+    <ul>
+        <li>房间结构：<strong style="color:#fff;">{{ room_label }}</strong>（<code>{{ realm_config.room_template }}</code>）</li>
+        <li>材质协议：<strong style="color:#fff;">{{ material_label }}</strong></li>
+        <li>灯光方案：<strong style="color:#fff;">{{ lighting_label }}</strong></li>
+        <li>已登记装饰节点数：{{ realm_config.decorations|length }}</li>
+    </ul>
+    {% with scan=realm_config.last_reality_scan %}
+    {% if scan %}
+    <h2>LAST REALITY SCAN // 最近扫描</h2>
+    <div class="realm-scan-summary" style="border:1px solid rgba(0,242,255,0.2);padding:16px 18px;margin-bottom:20px;background:rgba(0,242,255,0.04);font-size:14px;color:#bbb;line-height:1.85;">
+        <div style="font-family:'Syncopate',sans-serif;font-size:10px;letter-spacing:2px;color:#00f2ff;margin-bottom:8px;">SCAN SUMMARY</div>
+        <div>MODE: <strong style="color:#fff;">{{ scan.mode|default:"simulated" }}</strong></div>
+        <div>SCAN SOURCE: <strong style="color:#fff;">{{ scan_source_label }}</strong></div>
+        {% if scan.pipeline %}
+        <div>PIPELINE: <strong style="color:#fff;">{{ scan.pipeline }}</strong></div>
+        {% endif %}
+        {% if scan.coordinate_space %}
+        <div>COORD: <strong style="color:#fff;">{{ scan.coordinate_space }}</strong></div>
+        {% endif %}
+        {% if scan.id %}
+        <div>SCAN ID: <strong style="color:#fff;"><code style="font-size:12px;">{{ scan.id }}</code></strong></div>
+        {% endif %}
+        <div>SURFACES: <strong style="color:#fff;">{% if scan.surfaces %}{{ scan.surfaces|length }}{% else %}0{% endif %}</strong></div>
+        <div>MATERIAL (当前协议): <strong style="color:#fff;">{{ material_label }}</strong> (<code>{{ realm_config.material_pack }}</code>)</div>
+        {% if scan.mesh_summary %}
+        <div style="margin-top:8px;font-size:12px;color:#888;">
+            MESH SUMMARY:
+            {% if scan.mesh_summary.vertices %}{{ scan.mesh_summary.vertices }} vertices{% endif %}
+            {% if scan.mesh_summary.faces %} · {{ scan.mesh_summary.faces }} faces{% endif %}
+            {% if scan.mesh_summary.unit %} · unit: {{ scan.mesh_summary.unit }}{% endif %}
+        </div>
+        {% endif %}
+        {% if scan.captured_at %}
+        <div>CAPTURED: <strong style="color:#fff;">{{ scan.captured_at }}</strong></div>
+        {% endif %}
+        <p style="margin:12px 0 0;font-size:12px;color:#666;">两条输入管线（Web 模拟 / 深度相机）通过统一 <code>last_reality_scan</code> 汇合；本页为产品演示 UI，不替代真实传感与重建子系统。</p>
+        <button type="button" id="clear-reality-scan-btn" style="margin-top:14px;padding:8px 16px;font-family:'Syncopate',sans-serif;font-size:9px;letter-spacing:1px;border:1px solid rgba(255,62,62,0.45);background:rgba(255,62,62,0.08);color:#faa;cursor:pointer;">
+            CLEAR SCAN DATA
+        </button>
+    </div>
+    {% endif %}
+    {% endwith %}
+    <p style="margin-top:24px;">
+        <a href="{% url 'realm_editor' %}" style="display:inline-block;padding:10px 22px;border:1px solid #00f2ff;color:#00f2ff;text-decoration:none;font-family:'Syncopate',sans-serif;font-size:10px;letter-spacing:2px;">打开位面编辑器</a>
+        <a href="{% url 'realm' %}" style="margin-left:12px;display:inline-block;padding:10px 22px;border:1px solid #444;color:#888;text-decoration:none;font-family:'Syncopate',sans-serif;font-size:10px;letter-spacing:2px;">进入世界</a>
+    </p>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    var btn = document.getElementById('clear-reality-scan-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        if (!confirm('清除最近一次的 Reality Scan 数据？（不影响房间模板、灯光与装饰）')) return;
+        var inp = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        var csrf = inp ? inp.value : '';
+        fetch('{% url "reality_scan_clear_api" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrf,
+            },
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.ok) {
+                    window.location.reload();
+                } else {
+                    alert((data && data.error) || '清除失败');
+                }
+            })
+            .catch(function () {
+                alert('网络错误');
+            });
+    });
+})();
+</script>
+{% endblock %}

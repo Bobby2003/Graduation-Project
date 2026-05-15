@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MISSIONS | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
     <style>
         :root {
             --neon: #00f2ff;
@@ -375,6 +376,7 @@
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">MISSION CONTROL</div>
         <div class="nav-center">
+            <a href="{% url 'realm' %}">绿洲</a>
             <a href="{% url 'dashboard' %}">终端</a>
             <a href="{% url 'missions' %}" class="active">任务</a>
             <a href="{% url 'achievements' %}">成就</a>
@@ -383,26 +385,33 @@
             <a href="{% url 'ranking' %}">排行</a>
             <a href="{% url 'settings' %}">设置</a>
         </div>
-        <div id="gesture-status-text">CONNECTING...</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
     </div>
 
-    <!-- 任务统计概览 -->
+    <!-- 任务统计概览（UserMission / Mission） -->
     <div class="stats-bar">
         <div class="stat-card">
-            <div class="stat-value">12</div>
-            <div class="stat-label">今日任务</div>
+            <div class="stat-value">{{ stats.daily_total }}</div>
+            <div class="stat-label">日常任务数</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">8</div>
-            <div class="stat-label">已完成</div>
+            <div class="stat-value">{{ stats.completed_total }}</div>
+            <div class="stat-label">已完成任务</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">₮ 4,800</div>
-            <div class="stat-label">待领取奖励</div>
+            <div class="stat-value">₮ {{ stats.pending_credits }}</div>
+            <div class="stat-label">未完成可得信用点</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">67%</div>
-            <div class="stat-label">日任务进度</div>
+            <div class="stat-value">{{ stats.daily_pct }}%</div>
+            <div class="stat-label">日常完成度</div>
         </div>
     </div>
 
@@ -415,228 +424,47 @@
         <button class="filter-tab">支线</button>
     </div>
 
-    <!-- 任务列表 -->
+    <!-- 任务列表（MySQL: Mission + UserMission） -->
     <div class="missions-container">
-        <!-- 主线任务 -->
+        {% for section in mission_sections %}
         <div class="mission-section">
-            <div class="section-title">MAIN QUESTS // 主线任务</div>
-            
-            <div class="mission-card main">
-                <div class="mission-type">MAIN</div>
+            <div class="section-title">{{ section.title }}</div>
+            {% for row in section.rows %}
+            <div class="mission-card {{ row.kind_class }}{% if row.btn_done %} completed{% endif %}">
+                <div class="mission-type">{{ row.mission.kind|upper }}</div>
                 <div class="mission-info">
-                    <div class="mission-name">觉醒：神经链接</div>
-                    <div class="mission-desc">完成首次 AR 扫描，建立与现实战区的神经链接</div>
+                    <div class="mission-name">{{ row.mission.title }}</div>
+                    <div class="mission-desc">{{ row.mission.description }}</div>
                     <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
-                        <div class="progress-text">1/1</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: {{ row.pct }}%;"></div></div>
+                        <div class="progress-text">{{ row.prog_text }}</div>
                     </div>
                 </div>
                 <div class="mission-reward">
                     <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+500 EXP</div>
+                    <div class="reward-value">+{{ row.mission.reward_exp }} EXP</div>
                     <div class="reward-items">
-                        <span class="reward-item">₮ 200</span>
-                        <span class="reward-item">初号核心</span>
+                        {% if row.mission.reward_credits %}
+                        <span class="reward-item">₮ {{ row.mission.reward_credits }}</span>
+                        {% endif %}
+                        {% if row.mission.reward_item_label %}
+                        <span class="reward-item">{{ row.mission.reward_item_label }}</span>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="mission-action">
-                    <button class="btn-mission completed">COMPLETED</button>
+                    <button type="button" class="btn-mission{% if row.btn_done %} completed{% endif %}"{% if row.btn_done %} disabled{% endif %}>{{ row.btn_text }}</button>
                 </div>
             </div>
-
-            <div class="mission-card main">
-                <div class="mission-type">MAIN</div>
-                <div class="mission-info">
-                    <div class="mission-name">深度扫描训练</div>
-                    <div class="mission-desc">使用奥比中光深度相机进行 10 次环境扫描</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 70%;"></div></div>
-                        <div class="progress-text">7/10</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+1,200 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 500</span>
-                        <span class="reward-item">扫描模块II</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission">START</button>
-                </div>
-            </div>
-
-            <div class="mission-card main">
-                <div class="mission-type">MAIN</div>
-                <div class="mission-info">
-                    <div class="mission-name">手势精通</div>
-                    <div class="mission-desc">掌握四种基础手势：捏合、指向、张开、握拳</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 50%;"></div></div>
-                        <div class="progress-text">2/4</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+2,000 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 1,000</span>
-                        <span class="reward-item">神经增幅器</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission">CONTINUE</button>
-                </div>
-            </div>
+            {% endfor %}
         </div>
-
-        <!-- 日常任务 -->
-        <div class="mission-section">
-            <div class="section-title">DAILY OPS // 日常任务</div>
-            
-            <div class="mission-card daily">
-                <div class="mission-type">DAILY</div>
-                <div class="mission-info">
-                    <div class="mission-name">晨间扫描</div>
-                    <div class="mission-desc">每日首次深度扫描现实环境</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
-                        <div class="progress-text">已完成</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+100 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 50</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission completed">COMPLETED</button>
-                </div>
-            </div>
-
-            <div class="mission-card daily">
-                <div class="mission-type">DAILY</div>
-                <div class="mission-info">
-                    <div class="mission-name">黑市访客</div>
-                    <div class="mission-desc">访问黑市交易所并查看至少 5 件商品</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
-                        <div class="progress-text">已完成</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+80 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 30</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission completed">COMPLETED</button>
-                </div>
-            </div>
-
-            <div class="mission-card daily">
-                <div class="mission-type">DAILY</div>
-                <div class="mission-info">
-                    <div class="mission-name">位面探险</div>
-                    <div class="mission-desc">切换并探索至少 2 个不同的位面协议</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 50%;"></div></div>
-                        <div class="progress-text">1/2</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+150 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 80</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission">IN PROGRESS</button>
-                </div>
-            </div>
-
-            <div class="mission-card daily">
-                <div class="mission-type">DAILY</div>
-                <div class="mission-info">
-                    <div class="mission-name">装备强化</div>
-                    <div class="mission-desc">在工坊中对任意装备进行一次强化</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 0%;"></div></div>
-                        <div class="progress-text">0/1</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+200 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 100</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission">AVAILABLE</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 周常任务 -->
-        <div class="mission-section">
-            <div class="section-title">WEEKLY CONTRACTS // 周常契约</div>
-            
-            <div class="mission-card weekly">
-                <div class="mission-type">WEEKLY</div>
-                <div class="mission-info">
-                    <div class="mission-name">位面征服者</div>
-                    <div class="mission-desc">本周累计完成 50 次深度扫描</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 34%;"></div></div>
-                        <div class="progress-text">17/50</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+5,000 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 2,000</span>
-                        <span class="reward-item">传说宝箱</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission">IN PROGRESS</button>
-                </div>
-            </div>
-
-            <div class="mission-card weekly">
-                <div class="mission-type">WEEKLY</div>
-                <div class="mission-info">
-                    <div class="mission-name">战力飙升</div>
-                    <div class="mission-desc">本周将战力提升 5,000 点</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: 0%;"></div></div>
-                        <div class="progress-text">0/5,000</div>
-                    </div>
-                </div>
-                <div class="mission-reward">
-                    <div class="reward-label">REWARDS</div>
-                    <div class="reward-value">+8,000 EXP</div>
-                    <div class="reward-items">
-                        <span class="reward-item">₮ 3,000</span>
-                        <span class="reward-item">强化石×10</span>
-                    </div>
-                </div>
-                <div class="mission-action">
-                    <button class="btn-mission">AVAILABLE</button>
-                </div>
-            </div>
-        </div>
+        {% empty %}
+        <p style="text-align:center; color:#666;">暂无任务配置，请运行 <code>python manage.py seed_realm_data</code>。</p>
+        {% endfor %}
     </div>
 
     <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
     <script>
         // 筛选按钮功能
         document.querySelectorAll('.filter-tab').forEach(function(btn) {

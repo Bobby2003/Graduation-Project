@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EQUIPMENT | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
     <style>
         :root {
             --neon: #00f2ff;
@@ -525,6 +526,7 @@
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">EQUIPMENT WORKSHOP</div>
         <div class="nav-center">
+            <a href="{% url 'realm' %}">绿洲</a>
             <a href="{% url 'dashboard' %}">终端</a>
             <a href="{% url 'missions' %}">任务</a>
             <a href="{% url 'achievements' %}">成就</a>
@@ -533,49 +535,39 @@
             <a href="{% url 'ranking' %}">排行</a>
             <a href="{% url 'settings' %}">设置</a>
         </div>
-        <div id="gesture-status-text">CONNECTING...</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
     </div>
 
-    <!-- 装备概览 -->
+    <!-- 装备概览（UserEquippedItem + EquipmentItem） -->
     <div class="equipment-overview">
         <div class="overview-header">
             <div class="overview-title">ACTIVE LOADOUT // 当前装备</div>
             <div class="power-display">
-                <div class="power-label">TOTAL POWER</div>
-                <div class="power-value">12,450</div>
+                <div class="power-label">LOADOUT POWER</div>
+                <div class="power-value">{{ loadout_power }}</div>
             </div>
         </div>
 
         <div class="equipment-slots">
-            <div class="equip-slot equipped active">
-                <div class="slot-icon">🥽</div>
-                <div class="slot-name">AR眼镜</div>
-                <div class="slot-power">+2,500</div>
-            </div>
-            <div class="equip-slot equipped">
-                <div class="slot-icon">🎧</div>
-                <div class="slot-name">神经耳机</div>
-                <div class="slot-power">+1,800</div>
-            </div>
-            <div class="equip-slot equipped">
-                <div class="slot-icon">🧤</div>
-                <div class="slot-name">手势手套</div>
-                <div class="slot-power">+1,200</div>
-            </div>
-            <div class="equip-slot equipped">
-                <div class="slot-icon">📟</div>
-                <div class="slot-name">扫描器</div>
-                <div class="slot-power">+3,500</div>
-            </div>
-            <div class="equip-slot equipped">
-                <div class="slot-icon">⚡</div>
-                <div class="slot-name">能量核心</div>
-                <div class="slot-power">+2,000</div>
-            </div>
-            <div class="equip-slot">
+            {% for row in slot_rows %}
+            <div class="equip-slot{% if row.equipped %} equipped{% endif %}{% if row.is_active %} active{% endif %}">
+                {% if row.equipped %}
+                <div class="slot-icon">{{ row.icon }}</div>
+                <div class="slot-name">{{ row.label }}</div>
+                <div class="slot-power">+{{ row.power }}</div>
+                {% else %}
                 <div class="slot-icon slot-empty">+</div>
-                <div class="slot-name">空槽位</div>
+                <div class="slot-name">{{ row.label }}</div>
+                {% endif %}
             </div>
+            {% endfor %}
         </div>
     </div>
 
@@ -593,134 +585,85 @@
                 </div>
             </div>
 
-            <!-- 传说装备 -->
-            <div class="item-card legendary">
-                <div class="item-icon">👁️</div>
+            {% for row in catalog_rows %}
+            <div class="item-card {{ row.item.rarity|lower }}">
+                <div class="item-icon">{{ row.icon }}</div>
                 <div class="item-info">
-                    <div class="item-name">全视之眼 Pro</div>
-                    <div class="item-type">AR眼镜 · 传说</div>
-                    <div class="item-desc">融合了最先进的光学扫描技术，可穿透一切伪装</div>
+                    <div class="item-name">{{ row.item.name }}</div>
+                    <div class="item-type">{{ row.item.get_slot_display }} · {{ row.item.get_rarity_display }}</div>
+                    <div class="item-desc">{{ row.item.description }}</div>
                     <div class="item-stats">
-                        <div class="stat-item"><span class="label">战力 </span><span class="value">+3,500</span></div>
-                        <div class="stat-item"><span class="label">扫描范围 </span><span class="value">+50%</span></div>
+                        {% if row.item.stat_label_1 %}
+                        <div class="stat-item"><span class="label">{{ row.item.stat_label_1 }} </span><span class="value">{{ row.item.stat_value_1 }}</span></div>
+                        {% endif %}
+                        {% if row.item.stat_label_2 %}
+                        <div class="stat-item"><span class="label">{{ row.item.stat_label_2 }} </span><span class="value">{{ row.item.stat_value_2 }}</span></div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-equip">EQUIP</button>
+                    {% if row.is_equipped %}
+                    <button type="button" class="btn-equip equipped" disabled>EQUIPPED</button>
+                    {% else %}
+                    <form method="post" action="{% url 'equipment_equip' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="item_id" value="{{ row.item.id }}">
+                        <button type="submit" class="btn-equip">EQUIP</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
-
-            <!-- 史诗装备 -->
-            <div class="item-card epic">
-                <div class="item-icon">🔮</div>
-                <div class="item-info">
-                    <div class="item-name">神经增幅器 v3</div>
-                    <div class="item-type">饰品 · 史诗</div>
-                    <div class="item-desc">增强神经信号传导，大幅提升手势识别精度</div>
-                    <div class="item-stats">
-                        <div class="stat-item"><span class="label">战力 </span><span class="value">+2,200</span></div>
-                        <div class="stat-item"><span class="label">手势精度 </span><span class="value">+35%</span></div>
-                    </div>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-equip equipped">EQUIPPED</button>
-                </div>
-            </div>
-
-            <!-- 稀有装备 -->
-            <div class="item-card rare">
-                <div class="item-icon">⚙️</div>
-                <div class="item-info">
-                    <div class="item-name">微型处理器</div>
-                    <div class="item-type">芯片 · 稀有</div>
-                    <div class="item-desc">高效的数据处理芯片，提升系统响应速度</div>
-                    <div class="item-stats">
-                        <div class="stat-item"><span class="label">战力 </span><span class="value">+1,500</span></div>
-                        <div class="stat-item"><span class="label">延迟 </span><span class="value">-20%</span></div>
-                    </div>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-equip">EQUIP</button>
-                </div>
-            </div>
-
-            <!-- 普通装备 -->
-            <div class="item-card common">
-                <div class="item-icon">🔋</div>
-                <div class="item-info">
-                    <div class="item-name">标准能量电池</div>
-                    <div class="item-type">消耗品 · 普通</div>
-                    <div class="item-desc">为设备提供稳定电力的标准电池组</div>
-                    <div class="item-stats">
-                        <div class="stat-item"><span class="label">续航 </span><span class="value">+4h</span></div>
-                    </div>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-equip">USE</button>
-                </div>
-            </div>
-
-            <div class="item-card common">
-                <div class="item-icon">🛡️</div>
-                <div class="item-info">
-                    <div class="item-name">基础防护模块</div>
-                    <div class="item-type">护甲 · 普通</div>
-                    <div class="item-desc">提供基础防护的入门级模块</div>
-                    <div class="item-stats">
-                        <div class="stat-item"><span class="label">战力 </span><span class="value">+500</span></div>
-                        <div class="stat-item"><span class="label">防御 </span><span class="value">+10%</span></div>
-                    </div>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-equip">EQUIP</button>
-                </div>
-            </div>
+            {% empty %}
+            <p style="color:#666;">暂无装备图鉴，请运行 seed。</p>
+            {% endfor %}
         </div>
 
-        <!-- 装备详情 -->
+        <!-- 装备详情（按槽位顺序首件已装备） -->
         <div class="equipment-detail">
+            {% if detail_item %}
             <div class="detail-header">
-                <div class="detail-icon">🔮</div>
-                <div class="detail-name">神经增幅器 v3</div>
-                <div class="detail-type">EPIC · 饰品</div>
+                <div class="detail-icon">{{ detail_icon }}</div>
+                <div class="detail-name">{{ detail_item.name }}</div>
+                <div class="detail-type">{{ detail_item.rarity }} · {{ detail_item.get_slot_display }}</div>
             </div>
 
             <div class="detail-stats">
                 <div class="stats-title">BASE STATS</div>
                 <div class="stat-row">
                     <div class="stat-name">战力加成</div>
-                    <div class="stat-value">+2,200</div>
+                    <div class="stat-value">+{{ detail_item.power_bonus }}</div>
                 </div>
+                {% if detail_item.stat_label_1 %}
                 <div class="stat-row">
-                    <div class="stat-name">手势识别精度</div>
-                    <div class="stat-value">+35%</div>
+                    <div class="stat-name">{{ detail_item.stat_label_1 }}</div>
+                    <div class="stat-value">{{ detail_item.stat_value_1 }}</div>
                 </div>
+                {% endif %}
+                {% if detail_item.stat_label_2 %}
                 <div class="stat-row">
-                    <div class="stat-name">响应延迟</div>
-                    <div class="stat-value negative">+5ms</div>
+                    <div class="stat-name">{{ detail_item.stat_label_2 }}</div>
+                    <div class="stat-value">{{ detail_item.stat_value_2 }}</div>
                 </div>
-                <div class="stat-row">
-                    <div class="stat-name">耐久度</div>
-                    <div class="stat-value">98%</div>
-                </div>
+                {% endif %}
             </div>
 
             <div class="detail-bonus">
-                <div class="bonus-title">SET BONUS [2/4]</div>
-                <div class="bonus-text">
-                    神经同步：手势识别速度 +15%<br>
-                    虚空增幅：战力额外 +500
-                </div>
+                <div class="bonus-title">SET BONUS</div>
+                <div class="bonus-text">图鉴与装配数据来自 MySQL；套装逻辑可后续接入。</div>
             </div>
 
             <div class="detail-actions">
-                <button class="btn-action btn-upgrade">UPGRADE</button>
-                <button class="btn-action btn-sell">SELL</button>
+                <button type="button" class="btn-action btn-upgrade">UPGRADE</button>
+                <button type="button" class="btn-action btn-sell">SELL</button>
             </div>
+            {% else %}
+            <p style="color:#888; text-align:center;">当前没有已装配装备。</p>
+            {% endif %}
         </div>
     </div>
 
     <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
     <script>
         // 装备卡片点击选择功能
         document.querySelectorAll('.item-card').forEach(function(card) {
@@ -744,42 +687,25 @@
             });
         });
 
-        // 装备按钮功能
-        document.querySelectorAll('.btn-equip').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var text = this.textContent.trim();
-                if (text === 'EQUIPPED') {
-                    this.textContent = 'EQUIP';
-                    this.classList.remove('equipped');
-                } else if (text === 'EQUIP' || text === 'USE') {
-                    // 取消其他装备的选中状态
-                    document.querySelectorAll('.btn-equip').forEach(function(b) {
-                        if (b !== btn) {
-                            b.textContent = 'EQUIP';
-                            b.classList.remove('equipped');
-                        }
-                    });
-                    this.textContent = 'EQUIPPED';
-                    this.classList.add('equipped');
+        // 详情面板按钮（演示用，未写回数据库）
+        var btnUp = document.querySelector('.btn-upgrade');
+        if (btnUp) {
+            btnUp.addEventListener('click', function() {
+                this.textContent = 'UPGRADING...';
+                setTimeout(() => {
+                    this.textContent = 'UPGRADE';
+                    alert('强化成功！战力 +200');
+                }, 1500);
+            });
+        }
+        var btnSell = document.querySelector('.btn-sell');
+        if (btnSell) {
+            btnSell.addEventListener('click', function() {
+                if (confirm('确定要以 1,000 信用点出售此物品吗？')) {
+                    alert('物品已出售，获得 1,000 信用点');
                 }
             });
-        });
-
-        // 详情面板按钮
-        document.querySelector('.btn-upgrade').addEventListener('click', function() {
-            this.textContent = 'UPGRADING...';
-            setTimeout(() => {
-                this.textContent = 'UPGRADE';
-                alert('强化成功！战力 +200');
-            }, 1500);
-        });
-
-        document.querySelector('.btn-sell').addEventListener('click', function() {
-            if (confirm('确定要以 1,000 信用点出售此物品吗？')) {
-                alert('物品已出售，获得 1,000 信用点');
-            }
-        });
+        }
     </script>
 </body>
 </html>

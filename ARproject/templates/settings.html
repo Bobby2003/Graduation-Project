@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SETTINGS | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
     <style>
         :root {
             --neon: #00f2ff;
@@ -378,6 +379,7 @@
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">SYSTEM SETTINGS</div>
         <div class="nav-center">
+            <a href="{% url 'realm' %}">绿洲</a>
             <a href="{% url 'dashboard' %}">终端</a>
             <a href="{% url 'missions' %}">任务</a>
             <a href="{% url 'achievements' %}">成就</a>
@@ -386,10 +388,55 @@
             <a href="{% url 'ranking' %}">排行</a>
             <a href="{% url 'settings' %}" class="active">设置</a>
         </div>
-        <div id="gesture-status-text">LOCAL_MODE</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">LOCAL_MODE</div>
+        </div>
     </div>
 
     <div class="settings-container">
+        <!-- 设备与链路（系统层） -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">🔗</div>
+                <div>
+                    <div class="group-title">DEVICE STATUS · 设备链路</div>
+                    <div class="group-desc">硬件状态与诊断（非玩家装备）；玩家装备见「装备工坊」</div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">深度相机 / 现实重构</div>
+                    <div class="setting-desc">奥比中光等深度设备 · 用于点云与现实材质覆写管线</div>
+                </div>
+                <div class="select-control">
+                    <span style="color:#666;font-size:12px;">见扫描引擎页</span>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">VR 头显</div>
+                    <div class="setting-desc">WebXR / 设备驱动（占位）</div>
+                </div>
+                <div class="select-control">
+                    <span style="color:#888;font-size:12px;">未检测到设备</span>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">控制模式</div>
+                    <div class="setting-desc">桌面键鼠 / AR 手势 / VR 链路 · 与全局导航同步</div>
+                </div>
+                <div class="select-control">
+                    <span style="color:var(--neon);font-size:12px;">顶部切换器 · localStorage</span>
+                </div>
+            </div>
+        </div>
+
         <!-- 用户资料 -->
         <div class="settings-group">
             <div class="group-header">
@@ -409,13 +456,13 @@
             </div>
         </div>
 
-        <!-- AR 设备设置 -->
+        <!-- 现实重构管线（系统层） -->
         <div class="settings-group">
             <div class="group-header">
                 <div class="group-icon">📡</div>
                 <div>
-                    <div class="group-title">AR HARDWARE</div>
-                    <div class="group-desc">Configure depth camera and gesture recognition</div>
+                    <div class="group-title">REALITY PIPELINE · 现实重构</div>
+                    <div class="group-desc">深度流、点云、平面/物体检测与材质覆写（开发者向）</div>
                 </div>
             </div>
             
@@ -660,6 +707,7 @@
     </div>
 
     <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
     <script>
         // 滑块功能 - 同步数值显示
         document.querySelectorAll('input[type="range"]').forEach(function(slider) {

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ACHIEVEMENTS | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
     <style>
         :root {
             --neon: #00f2ff;
@@ -290,6 +291,15 @@
             border: 2px solid rgba(255, 215, 0, 0.2);
             position: relative;
         }
+        .achievement-icon-key {
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            font-size: 8px;
+            font-family: 'Syncopate', sans-serif;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1px;
+        }
 
         .achievement-card.legendary .achievement-icon {
             border-color: var(--gold);
@@ -417,6 +427,7 @@
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">ACHIEVEMENTS ARCHIVE</div>
         <div class="nav-center">
+            <a href="{% url 'realm' %}">绿洲</a>
             <a href="{% url 'dashboard' %}">终端</a>
             <a href="{% url 'missions' %}">任务</a>
             <a href="{% url 'achievements' %}" class="active">成就</a>
@@ -425,22 +436,29 @@
             <a href="{% url 'ranking' %}">排行</a>
             <a href="{% url 'settings' %}">设置</a>
         </div>
-        <div id="gesture-status-text">CONNECTING...</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
     </div>
 
-    <!-- 成就总览 -->
+    <!-- 成就总览（UserAchievement / Achievement） -->
     <div class="achievement-overview">
         <div class="total-stats">
             <div class="total-stat">
-                <div class="value">24</div>
+                <div class="value">{{ unlocked_count }}</div>
                 <div class="label">已解锁</div>
             </div>
             <div class="total-stat">
-                <div class="value">18</div>
+                <div class="value">{{ weekly_new_achievements }}</div>
                 <div class="label">本周新增</div>
             </div>
             <div class="total-stat">
-                <div class="value">156</div>
+                <div class="value">{{ total_achievements }}</div>
                 <div class="label">总成就数</div>
             </div>
         </div>
@@ -449,7 +467,7 @@
             <div class="ring-bg"></div>
             <div class="ring-fill"></div>
             <div class="ring-center">
-                <div class="ring-percent">15%</div>
+                <div class="ring-percent">{{ completion_pct }}%</div>
                 <div class="ring-label">完成度</div>
             </div>
         </div>
@@ -465,297 +483,58 @@
                 <span>「全知者」</span>
             </div>
             <div class="bonus-item">
-                <span>专属装备</span>
-                <span>黄金扫描器</span>
+                <span>限定外观</span>
+                <span>星陨刃 · 限定涂装</span>
             </div>
         </div>
     </div>
 
-    <!-- 成就列表 -->
+    <!-- 成就列表（MySQL 配置 + 玩家解锁状态） -->
     <div class="achievements-container">
-        <!-- 扫描相关成就 -->
+        {% for cat in achievement_categories %}
         <div class="category-section">
             <div class="category-header">
-                <div class="category-icon">📡</div>
+                <div class="category-icon">{{ cat.icon }}</div>
                 <div>
-                    <div class="category-title">SCAN MASTER // 扫描大师</div>
-                    <div class="category-progress">进度: <span>5/20</span> 成就</div>
+                    <div class="category-title">{{ cat.title }}</div>
+                    <div class="category-progress">进度: <span>{{ cat.unlocked }}/{{ cat.total }}</span> 成就</div>
                 </div>
             </div>
             <div class="achievements-grid">
-                <div class="achievement-card legendary unlocked">
+                {% for row in cat.items %}
+                <div class="achievement-card {{ row.a.rarity|lower }} {% if row.unlocked %}unlocked{% else %}locked{% endif %}">
                     <div class="achievement-icon">
-                        👁️
+                        <span class="achievement-icon-key">{{ row.a.icon_key|default:"·" }}</span>
+                        {% if row.unlocked %}★{% else %}◇{% endif %}
+                        {% if row.unlocked %}
                         <div class="unlock-badge">✓</div>
+                        {% endif %}
                     </div>
                     <div class="achievement-info">
-                        <div class="achievement-name">全视之眼</div>
-                        <div class="achievement-desc">累计完成 1000 次深度扫描，洞悉现实与虚拟的边界</div>
+                        <div class="achievement-name">{{ row.a.name }}</div>
+                        <div class="achievement-desc">{{ row.a.description }}</div>
                         <div class="achievement-meta">
-                            <div class="meta-item reward">+2,000 EXP · ₮ 5,000</div>
-                            <div class="meta-item date">2024.03.15 解锁</div>
+                            <div class="meta-item reward">
+                                +{{ row.a.reward_exp }} EXP
+                                {% if row.a.reward_credits %} · ₮ {{ row.a.reward_credits }}{% endif %}
+                                {% if row.a.reward_note %} · {{ row.a.reward_note }}{% endif %}
+                            </div>
+                            <div class="meta-item date">
+                                {% if row.unlocked and row.unlocked_at %}{{ row.unlocked_at|date:"Y.m.d" }} 解锁{% else %}未解锁{% endif %}
+                            </div>
                         </div>
                     </div>
-                    <div class="rarity-badge">LEGENDARY</div>
+                    <div class="rarity-badge">{{ row.a.rarity }}</div>
                 </div>
-
-                <div class="achievement-card epic unlocked">
-                    <div class="achievement-icon">
-                        🔍
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">深度洞察</div>
-                        <div class="achievement-desc">单次扫描时长超过 30 分钟</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+500 EXP · ₮ 1,000</div>
-                            <div class="meta-item date">2024.03.10 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">EPIC</div>
-                </div>
-
-                <div class="achievement-card rare unlocked">
-                    <div class="achievement-icon">
-                        📸
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">快门捕捉</div>
-                        <div class="achievement-desc">在 1 秒内完成 5 次连续扫描</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+200 EXP · ₮ 300</div>
-                            <div class="meta-item date">2024.03.05 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">RARE</div>
-                </div>
-
-                <div class="achievement-card common unlocked">
-                    <div class="achievement-icon">
-                        🎯
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">初次扫描</div>
-                        <div class="achievement-desc">完成你的第一次深度扫描</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+100 EXP · ₮ 100</div>
-                            <div class="meta-item date">2024.02.28 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">COMMON</div>
-                </div>
-
-                <div class="achievement-card rare locked">
-                    <div class="achievement-icon">🏆</div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">扫描王者</div>
-                        <div class="achievement-desc">在排行榜单日扫描次数登顶第一</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+800 EXP · ₮ 2,000</div>
-                            <div class="meta-item date">未解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">RARE</div>
-                </div>
+                {% endfor %}
             </div>
         </div>
-
-        <!-- 手势相关成就 -->
-        <div class="category-section">
-            <div class="category-header">
-                <div class="category-icon">🤚</div>
-                <div>
-                    <div class="category-title">GESTURE MASTER // 手势大师</div>
-                    <div class="category-progress">进度: <span>3/15</span> 成就</div>
-                </div>
-            </div>
-            <div class="achievements-grid">
-                <div class="achievement-card epic unlocked">
-                    <div class="achievement-icon">
-                        ✋
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">神经同步</div>
-                        <div class="achievement-desc">连续 100 次手势识别零误差</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+1,000 EXP · ₮ 2,000</div>
-                            <div class="meta-item date">2024.03.12 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">EPIC</div>
-                </div>
-
-                <div class="achievement-card rare unlocked">
-                    <div class="achievement-icon">
-                        👆
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">精准指向</div>
-                        <div class="achievement-desc">指向手势命中率超过 95%</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+300 EXP · ₮ 500</div>
-                            <div class="meta-item date">2024.03.08 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">RARE</div>
-                </div>
-
-                <div class="achievement-card common unlocked">
-                    <div class="achievement-icon">
-                        🤏
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">指尖艺术</div>
-                        <div class="achievement-desc">首次成功使用捏合手势</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+50 EXP · ₮ 50</div>
-                            <div class="meta-item date">2024.02.28 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">COMMON</div>
-                </div>
-
-                <div class="achievement-card legendary locked">
-                    <div class="achievement-icon">🏅</div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">幻影之手</div>
-                        <div class="achievement-desc">同时控制 4 种不同手势完成复杂操作</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+5,000 EXP · ₮ 10,000</div>
-                            <div class="meta-item date">未解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">LEGENDARY</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 经济系统成就 -->
-        <div class="category-section">
-            <div class="category-header">
-                <div class="category-icon">💰</div>
-                <div>
-                    <div class="category-title">ECONOMY LORD // 经济领主</div>
-                    <div class="category-progress">进度: <span>8/25</span> 成就</div>
-                </div>
-            </div>
-            <div class="achievements-grid">
-                <div class="achievement-card epic unlocked">
-                    <div class="achievement-icon">
-                        💎
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">百万富翁</div>
-                        <div class="achievement-desc">累计获得超过 1,000,000 信用点</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+3,000 EXP · 专属称号</div>
-                            <div class="meta-item date">2024.03.14 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">EPIC</div>
-                </div>
-
-                <div class="achievement-card rare unlocked">
-                    <div class="achievement-icon">
-                        🛒
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">黑市常客</div>
-                        <div class="achievement-desc">在黑市完成 50 次交易</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+500 EXP · ₮ 1,000</div>
-                            <div class="meta-item date">2024.03.11 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">RARE</div>
-                </div>
-
-                <div class="achievement-card common unlocked">
-                    <div class="achievement-icon">
-                        💵
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">第一桶金</div>
-                        <div class="achievement-desc">赚取第一个 1,000 信用点</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+100 EXP · ₮ 200</div>
-                            <div class="meta-item date">2024.03.01 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">COMMON</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 探索成就 -->
-        <div class="category-section">
-            <div class="category-header">
-                <div class="category-icon">🗺️</div>
-                <div>
-                    <div class="category-title">EXPLORER // 位面探索者</div>
-                    <div class="category-progress">进度: <span>6/30</span> 成就</div>
-                </div>
-            </div>
-            <div class="achievements-grid">
-                <div class="achievement-card epic unlocked">
-                    <div class="achievement-icon">
-                        🌍
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">位面收集者</div>
-                        <div class="achievement-desc">解锁并激活全部位面协议</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+2,000 EXP · 稀有位面</div>
-                            <div class="meta-item date">2024.03.13 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">EPIC</div>
-                </div>
-
-                <div class="achievement-card rare unlocked">
-                    <div class="achievement-icon">
-                        🔄
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">位面跳跃者</div>
-                        <div class="achievement-desc">在一天内切换 10 种不同位面</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+400 EXP · ₮ 800</div>
-                            <div class="meta-item date">2024.03.09 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">RARE</div>
-                </div>
-
-                <div class="achievement-card common unlocked">
-                    <div class="achievement-icon">
-                        🚪
-                        <div class="unlock-badge">✓</div>
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-name">位面新手</div>
-                        <div class="achievement-desc">激活你的第一个位面协议</div>
-                        <div class="achievement-meta">
-                            <div class="meta-item reward">+50 EXP · ₮ 100</div>
-                            <div class="meta-item date">2024.02.28 解锁</div>
-                        </div>
-                    </div>
-                    <div class="rarity-badge">COMMON</div>
-                </div>
-            </div>
-        </div>
+        {% empty %}
+        <p style="text-align:center; color:#666;">暂无成就数据，请运行 <code>python manage.py seed_realm_data</code>。</p>
+        {% endfor %}
     </div>
 
     <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
 </body>
 </html>

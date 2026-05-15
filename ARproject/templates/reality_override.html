@@ -1,0 +1,147 @@
+{% extends "portal_shell.html" %}
+{% load static %}
+{% block doc_title %}REALITY OVERRIDE | AR REALM{% endblock %}
+{% block page_title %}REALITY OVERRIDE // 实验模式{% endblock %}
+{% block extra_css %}
+<style>
+    .override-stage-wrap { margin: 0 -24px 24px; }
+    .override-stage { position: relative; width: 100%; min-height: 58vh; background: #000; border: 1px solid rgba(0,242,255,0.2); overflow: hidden; }
+    #override-video { width: 100%; height: 58vh; object-fit: cover; display: block; background: #080808; }
+    #override-overlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+    .override-hud {
+        position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 5;
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+        padding: 12px 14px; background: rgba(5,6,10,0.9); border: 1px solid rgba(0,242,255,0.25);
+        font-family: 'Syncopate', sans-serif; font-size: 9px; letter-spacing: 1px;
+    }
+    .override-title { width: 100%; color: #00f2ff; letter-spacing: 3px; margin-bottom: 2px; }
+    .override-subtitle {
+        width: 100%;
+        font-size: 8px;
+        letter-spacing: 2px;
+        color: rgba(0, 255, 136, 0.85);
+        margin-bottom: 6px;
+    }
+    .override-hud button {
+        font-family: 'Syncopate', sans-serif; font-size: 9px; letter-spacing: 1px;
+        padding: 8px 12px; cursor: pointer; border: 1px solid rgba(0,242,255,0.5);
+        background: rgba(0,242,255,0.08); color: #fff;
+    }
+    .override-hud button:disabled { opacity: 0.35; cursor: not-allowed; }
+    .override-hud select {
+        background: #0a1018; color: #fff; border: 1px solid #333; padding: 8px;
+        font-family: 'Rajdhani', sans-serif; font-size: 13px; min-width: 170px;
+    }
+    .scan-progress { flex: 1 1 160px; height: 6px; background: rgba(255,255,255,0.08); overflow: hidden; border: 1px solid rgba(255,255,255,0.12); }
+    #scan-progress-fill { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #00ff88, #00f2ff); transition: width 0.08s linear; }
+    .override-sim-banner {
+        margin-bottom: 20px; padding: 12px 14px; font-size: 12px; color: #888;
+        border: 1px dashed rgba(188,0,255,0.35); font-family: 'Rajdhani', sans-serif; line-height: 1.6;
+    }
+    .override-doc-links { font-size: 13px; }
+    .override-doc-links a { color: #00f2ff; text-decoration: none; margin-right: 16px; }
+    .override-doc-links a:hover { text-decoration: underline; }
+    #ro-toast-stack { position: fixed; right: 16px; bottom: 16px; z-index: 200; max-width: 320px; display: flex; flex-direction: column; gap: 8px; }
+    .ro-toast {
+        padding: 10px 14px; background: rgba(10,15,25,0.95); border: 1px solid rgba(0,242,255,0.35);
+        font-size: 12px; color: #ccc; font-family: 'Rajdhani', sans-serif;
+    }
+    .ro-toast.err { border-color: rgba(255,62,62,0.5); color: #faa; }
+    #ro-result-panel {
+        display: none;
+        margin-top: 16px;
+        padding: 18px 20px;
+        border: 1px solid rgba(0, 255, 136, 0.35);
+        background: rgba(0, 255, 136, 0.06);
+        max-width: 520px;
+    }
+    #ro-result-panel.visible { display: block; }
+    #ro-result-panel .ro-result-title {
+        font-family: 'Syncopate', sans-serif;
+        font-size: 10px;
+        letter-spacing: 2px;
+        color: #00ff88;
+        margin-bottom: 10px;
+    }
+    #ro-result-panel .ro-result-meta { font-size: 13px; color: #aaa; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; }
+    .override-cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    a.override-cta {
+        display: inline-block;
+        padding: 10px 20px;
+        font-family: 'Syncopate', sans-serif;
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-decoration: none;
+        border: 1px solid #444;
+        color: #888;
+    }
+    a.override-cta.primary {
+        border-color: #00f2ff;
+        color: #00f2ff;
+        background: rgba(0, 242, 255, 0.1);
+    }
+    a.override-cta:hover { color: #fff; border-color: #00f2ff; }
+</style>
+{% endblock %}
+{% block doc %}
+<form style="display:none;">{% csrf_token %}</form>
+<div class="override-stage-wrap">
+    <div class="override-stage">
+        <video id="override-video" autoplay playsinline muted></video>
+        <canvas id="override-overlay"></canvas>
+        <div class="override-hud">
+            <div class="override-title">REALITY OVERRIDE</div>
+            <div class="override-subtitle">WEB SIMULATION MODE · 浏览器演示管线</div>
+            <div id="device-status">DEVICE: STANDBY</div>
+            <div id="scan-status">SCAN: NOT STARTED</div>
+            <button type="button" id="start-camera-btn">ENABLE CAMERA</button>
+            <button type="button" id="start-scan-btn" disabled>START SCAN</button>
+            <select id="override-material-select" aria-label="材质协议">
+                <option value="cyber_neon">CYBER NEON</option>
+                <option value="wasteland_rust">WASTELAND RUST</option>
+                <option value="starship_alloy">STARSHIP ALLOY</option>
+                <option value="magic_stone">MAGIC STONE</option>
+                <option value="forest_temple">FOREST TEMPLE</option>
+                <option value="deep_sea">DEEP SEA</option>
+                <option value="pixel_retro">PIXEL RETRO</option>
+                <option value="hacker_matrix">HACKER MATRIX</option>
+            </select>
+            <button type="button" id="apply-override-btn" disabled>APPLY PROTOCOL</button>
+            <div class="scan-progress"><span id="scan-progress-fill"></span></div>
+        </div>
+    </div>
+</div>
+<p class="override-sim-banner">
+    <strong>双管线说明</strong><br>
+    <strong>中文：</strong>本页当前运行的是 <strong>浏览器内模拟扫描</strong>，用于验证材质协议、保存状态与 Realm 可视化闭环。项目中 <strong>深度相机 / 扫描器</strong> 与重建算法为 <strong>并行真实采集管线</strong>，可将结果写入同一 <code>last_reality_scan</code> 数据结构（见 <code>POST /api/depth-scan/import/</code>），从而在「我的位面」、HUD、Scan Ghosts 与任务成就中复用。<br>
+    <strong>EN:</strong> This page runs a <strong>browser-side simulated scan</strong> for product demonstration. Depth-camera and scanner pipelines can write real reconstruction results into the same <code>last_reality_scan</code> schema (via <code>/api/depth-scan/import/</code>), reusing My Realm, HUD, Scan Ghosts, and progress events.
+</p>
+<div id="ro-result-panel" aria-live="polite">
+    <div class="ro-result-title">PROTOCOL APPLIED</div>
+    <div class="ro-result-meta" id="ro-result-meta"></div>
+    <div class="override-cta-row">
+        <a href="{% url 'realm' %}" class="override-cta primary">ENTER REALM</a>
+        <a href="{% url 'my_realm' %}" class="override-cta">VIEW MY REALM</a>
+    </div>
+</div>
+<div class="override-doc-links">
+    <a href="{% url 'realm' %}">进入世界 →</a>
+    <a href="{% url 'training' %}">训练场 →</a>
+    <a href="{% url 'my_realm' %}">我的位面 →</a>
+    {% if debug_allowed %}
+    <a href="{% url 'depth_scan_tester' %}" style="color:#00ff88;">Depth Import Tester →</a>
+    {% endif %}
+</div>
+<div id="ro-toast-stack" aria-live="polite"></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+window.REALITY_OVERRIDE_BOOTSTRAP = {
+    urls: {
+        save: "{% url 'reality_override_save_api' %}",
+        progressEvent: "{% url 'progress_event_api' %}",
+    },
+};
+</script>
+<script src="{% static 'js/reality-override.js' %}"></script>
+{% endblock %}

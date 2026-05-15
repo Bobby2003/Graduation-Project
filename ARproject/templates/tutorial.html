@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TUTORIAL | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
     <style>
         :root {
             --neon: #00f2ff;
@@ -392,6 +393,8 @@
             letter-spacing: 2px;
         }
 
+        :root { --neon-purple: #b026ff; }
+
         @media (max-width: 768px) {
             .gestures-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -414,6 +417,7 @@
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">NEW OPERATOR TRAINING</div>
         <div class="nav-center">
+            <a href="{% url 'realm' %}">绿洲</a>
             <a href="{% url 'dashboard' %}">终端</a>
             <a href="{% url 'missions' %}">任务</a>
             <a href="{% url 'achievements' %}">成就</a>
@@ -422,7 +426,14 @@
             <a href="{% url 'ranking' %}">排行</a>
             <a href="{% url 'settings' %}">设置</a>
         </div>
-        <div id="gesture-status-text">CONNECTING...</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
     </div>
 
     <!-- 步骤进度 -->
@@ -430,61 +441,61 @@
         <div class="progress-fill" style="width: 0%;"></div>
         <div class="progress-step active">
             <div class="step-number">1</div>
-            <div class="step-label">基础认知</div>
+            <div class="step-label">绿洲与位面</div>
         </div>
         <div class="progress-step">
             <div class="step-number">2</div>
-            <div class="step-label">设备连接</div>
+            <div class="step-label">控制模式</div>
         </div>
         <div class="progress-step">
             <div class="step-number">3</div>
-            <div class="step-label">手势训练</div>
+            <div class="step-label">多模态交互</div>
         </div>
         <div class="progress-step">
             <div class="step-number">4</div>
-            <div class="step-label">首次扫描</div>
+            <div class="step-label">现实重构</div>
         </div>
     </div>
 
     <!-- 教程内容 -->
     <div class="tutorial-container">
         <div class="tutorial-card">
-            <div class="card-step">STEP 01 // 基础认知</div>
+            <div class="card-step">STEP 01 // 绿洲与位面</div>
             <div class="card-title">欢迎，PATHFINDER</div>
             <div class="card-desc">
-                AR REALM 是一个基于深度相机与手势识别的增强现实交互系统。
-                在这里，你将通过手势控制与虚拟位面世界进行沉浸式交互。
-                本教程将引导你完成初始设置并掌握基本操作。
+                AR REALM 是连接现实与虚拟世界的「绿洲」入口：你在网页中扮演探索者，访问不同位面、任务与装备体系。
+                深度相机与点云管线属于底层的<strong>现实重构</strong>能力，用于把真实空间皮肤化、叠加载具与特效，而不是玩家主页上的「扫描次数游戏」。
+                本页将带你理解：绿洲入口 → 控制模式 → 可选 AR 手势 → 现实重构引擎。
             </div>
 
             <div class="step-list">
                 <div class="step-item">
                     <div class="step-icon">🎯</div>
                     <div class="step-content">
-                        <h4>系统目标</h4>
-                        <p>通过深度扫描现实环境，将虚拟内容与真实世界叠加，实现无缝的 AR 体验。</p>
+                        <h4>玩家看到什么</h4>
+                        <p>位面、任务、装备、市场与排行——同一套世界，多种接入方式（桌面 / AR 手势 / VR 占位）。</p>
                     </div>
                 </div>
 
                 <div class="step-item">
                     <div class="step-icon">⚡</div>
                     <div class="step-content">
-                        <h4>核心能力</h4>
-                        <p>深度感知 · 手势识别 · 实时渲染 · 位面切换</p>
+                        <h4>系统背后是什么</h4>
+                        <p>现实重构：深度 / RGB / 点云与材质覆写；网关层：Django + Channels；前端：统一 HUD 与 <code>realm-action</code> 事件。</p>
                     </div>
                 </div>
 
                 <div class="step-item">
                     <div class="step-icon">🏆</div>
                     <div class="step-content">
-                        <h4>成长体系</h4>
-                        <p>完成任务获取经验值与信用点，提升战力等级，解锁更多位面与装备。</p>
+                        <h4>成长与经济</h4>
+                        <p>完成任务获取经验与信用点，提升战力；排行展示的是「绿洲战力」，而非硬件调试指标。</p>
                     </div>
                 </div>
             </div>
 
             <div class="gesture-demo">
-                <div class="demo-title">SUPPORTED GESTURES // 支持的手势</div>
+                <div class="demo-title">AR 模式 · 可选手势（交互层）</div>
                 <div class="gestures-grid">
                     <div class="gesture-item">
                         <div class="gesture-icon">🤏</div>
@@ -513,7 +524,7 @@
                 <div class="tip-icon">💡</div>
                 <div class="tip-content">
                     <h4>提示</h4>
-                    <p>确保在光线充足的环境中使用系统，避免手势被其他物体遮挡以获得最佳识别效果。</p>
+                    <p>使用 AR 手势模式时，请在光线充足环境操作；桌面模式无需摄像头。深度与现实重构请前往<strong>现实重构引擎</strong>页面（系统 / 开发向）。</p>
                 </div>
             </div>
 
@@ -521,17 +532,17 @@
                 <div class="diagram-flow">
                     <div class="diagram-box">
                         <div class="icon">📷</div>
-                        <div class="label">奥比中光相机</div>
+                        <div class="label">深度 / RGB 采集</div>
                     </div>
                     <div class="diagram-arrow">→</div>
                     <div class="diagram-box highlight">
                         <div class="icon">🧠</div>
-                        <div class="label">处理引擎</div>
+                        <div class="label">现实重构管线</div>
                     </div>
                     <div class="diagram-arrow">→</div>
                     <div class="diagram-box">
-                        <div class="icon">🥽</div>
-                        <div class="label">AR 显示</div>
+                        <div class="icon">🌴</div>
+                        <div class="label">绿洲呈现</div>
                     </div>
                 </div>
             </div>
@@ -547,6 +558,7 @@
     </div>
 
     <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
     <script>
         let currentStep = 1;
         const totalSteps = 4;

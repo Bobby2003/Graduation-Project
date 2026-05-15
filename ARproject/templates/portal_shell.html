@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block doc_title %}AR REALM{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root { --neon: #00f2ff; --purple: #bc00ff; --bg: #050608; --panel: rgba(10,15,25,0.9); }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Rajdhani', sans-serif; min-height: 100vh;
+            background-image: radial-gradient(circle at 30% 20%, rgba(0,242,255,0.04), transparent 45%), radial-gradient(circle at 70% 80%, rgba(188,0,255,0.04), transparent 40%); }
+        .top-nav { position: sticky; top: 0; z-index: 100; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 20px;
+            background: rgba(5,6,8,0.95); border-bottom: 1px solid rgba(0,242,255,0.15); backdrop-filter: blur(12px); }
+        .brand { font-family: 'Syncopate', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--neon); text-decoration: none; margin-right: 12px; }
+        .nav-links { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; flex: 1; justify-content: center; }
+        .nav-links a { padding: 6px 10px; font-family: 'Syncopate', sans-serif; font-size: 9px; letter-spacing: 1px; color: rgba(255,255,255,0.45);
+            text-decoration: none; border: 1px solid transparent; transition: 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--neon); border-color: rgba(0,242,255,0.25); background: rgba(0,242,255,0.06); }
+        .page-head { max-width: 960px; margin: 0 auto; padding: 28px 24px 12px; font-family: 'Syncopate', sans-serif; font-size: 13px; letter-spacing: 4px; color: rgba(255,255,255,0.85); }
+        .doc-main { max-width: 960px; margin: 0 auto; padding: 0 24px 48px; }
+        .doc-panel { background: var(--panel); border: 1px solid rgba(255,255,255,0.08); padding: 28px 32px; line-height: 1.75; color: #aaa; font-size: 15px; }
+        .doc-panel h2 { font-family: 'Syncopate', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--neon); margin: 28px 0 12px; }
+        .doc-panel h2:first-child { margin-top: 0; }
+        .doc-panel ul { padding-left: 1.2em; }
+        .site-footer { margin-top: auto; padding: 20px; text-align: center; font-size: 11px; color: #555; border-top: 1px solid rgba(255,255,255,0.06); }
+        .site-footer a { color: #777; margin: 0 10px; text-decoration: none; }
+        .site-footer a:hover { color: var(--neon); }
+        .control-mode-switcher { margin-left: auto; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="top-nav">
+        <a class="brand" href="{% url 'home' %}">AR REALM</a>
+        <nav class="nav-links">
+            <a href="{% url 'dashboard' %}" class="{% if nav_active == 'dashboard' %}active{% endif %}">终端</a>
+            <a href="{% url 'realm' %}" class="{% if nav_active == 'realm' %}active{% endif %}">进入世界</a>
+            <a href="{% url 'training' %}" class="{% if nav_active == 'training' %}active{% endif %}">训练场</a>
+            <a href="{% url 'reality_override' %}" class="{% if nav_active == 'reality_override' %}active{% endif %}">现实覆写</a>
+            <a href="{% url 'my_realm' %}" class="{% if nav_active == 'my_realm' %}active{% endif %}">我的位面</a>
+            <a href="{% url 'realm_editor' %}" class="{% if nav_active == 'realm_editor' %}active{% endif %}">位面编辑</a>
+            <a href="{% url 'missions' %}" class="{% if nav_active == 'missions' %}active{% endif %}">任务</a>
+            <a href="{% url 'achievements' %}" class="{% if nav_active == 'achievements' %}active{% endif %}">成就</a>
+            <a href="{% url 'equipment' %}" class="{% if nav_active == 'equipment' %}active{% endif %}">装备</a>
+            <a href="{% url 'material_library' %}" class="{% if nav_active == 'material_library' %}active{% endif %}">材质库</a>
+            <a href="{% url 'market' %}" class="{% if nav_active == 'market' %}active{% endif %}">市场</a>
+            <a href="{% url 'ranking' %}" class="{% if nav_active == 'ranking' %}active{% endif %}">排行</a>
+            <a href="{% url 'worlds' %}" class="{% if nav_active == 'worlds' %}active{% endif %}">位面广场</a>
+            <a href="{% url 'devices' %}" class="{% if nav_active == 'devices' %}active{% endif %}">设备</a>
+            <a href="{% url 'settings' %}" class="{% if nav_active == 'settings' %}active{% endif %}">设置</a>
+            <a href="{% url 'about' %}" class="{% if nav_active == 'about' %}active{% endif %}">关于</a>
+        </nav>
+        <div class="control-mode-switcher">
+            <button type="button" class="mode-btn" data-mode="desktop" title="DESKTOP REALM">⌨</button>
+            <button type="button" class="mode-btn" data-mode="gesture" title="REALITY OVERRIDE">🖐</button>
+            <button type="button" class="mode-btn" data-mode="vr" title="VR LINK">🥽</button>
+        </div>
+    </header>
+    <div class="page-head">{% block page_title %}DOCUMENT{% endblock %}</div>
+    <div class="doc-main">
+        {% block doc %}{% endblock %}
+    </div>
+    <footer class="site-footer">
+        <a href="{% url 'privacy' %}">隐私政策</a>
+        <a href="{% url 'terms' %}">用户协议</a>
+        <a href="{% url 'security' %}">安全说明</a>
+        <a href="{% url 'disclaimer' %}">免责声明</a>
+    </footer>
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

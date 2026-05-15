@@ -28,9 +28,6 @@ trimesh>=3.21.0,<5
 Pillow>=10.0.0,<12
 scikit-image>=0.21.0,<1
 
-# --- ARproject WebSocket + hand tracking ---
-mediapipe>=0.10.9
-
 # --- Device listing (text.py) ---
 PyCameraList>=1.0.0
 

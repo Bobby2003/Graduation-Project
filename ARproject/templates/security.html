@@ -1,0 +1,17 @@
+{% extends "portal_shell.html" %}
+{% block doc_title %}安全说明{% endblock %}
+{% block page_title %}SECURITY CENTER // 安全说明{% endblock %}
+{% block doc %}
+<div class="doc-panel">
+    <h2>认证与密码</h2>
+    <p>使用 Django 内置认证；密码经单向哈希存储，系统不保存明文。建议开启密码复杂度校验（本项目 settings 已配置常用校验器）。</p>
+    <h2>会话与 CSRF</h2>
+    <p>登录会话使用 HttpOnly Cookie；表单提交使用 CSRF Token。生产部署在 HTTPS 下建议启用 <code>SESSION_COOKIE_SECURE</code> 与 <code>CSRF_COOKIE_SECURE</code>。</p>
+    <h2>输入与注入</h2>
+    <p>业务逻辑使用 Django ORM，避免手写拼接 SQL。模板默认转义输出，请勿对不可信内容使用 <code>|safe</code>。</p>
+    <h2>WebSocket</h2>
+    <p>实时通道在服务端以会话用户为准，不信任客户端伪造的用户 ID 或资产数值；消息应限频与校验格式。</p>
+    <h2>关键操作</h2>
+    <p>经验、货币、成就解锁、购买与任务完成等须由<strong>服务端校验与持久化</strong>，不可仅依赖前端脚本。</p>
+</div>
+{% endblock %}

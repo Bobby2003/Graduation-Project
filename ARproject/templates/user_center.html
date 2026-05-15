@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEURAL LINK | {{ username|upper }} 终端</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/control-modes.css">
     <style>
         :root {
             --neon: #00f2ff;
@@ -47,7 +48,10 @@
         
         .nav-center {
             display: flex;
+            flex-wrap: wrap;
             gap: 5px;
+            max-width: 58%;
+            justify-content: center;
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
@@ -227,6 +231,35 @@
         /* 统一页面里其他的按钮 */
         button { transition: 0.3s; }
         button:hover, button.ar-hover { filter: brightness(1.5); }
+
+        .recent-unlocks {
+            margin-top: 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            background: rgba(10, 12, 18, 0.75);
+            text-align: left;
+        }
+        .recent-unlocks h3 {
+            margin: 0 0 10px 0;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: #ffd700;
+        }
+        .recent-unlocks .unlock-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 12px;
+            color: #ccc;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .recent-unlocks .unlock-row:last-child { border-bottom: none; }
+        .recent-unlocks .unlock-name { color: #fff; font-weight: 600; }
+        .recent-unlocks .unlock-meta { font-size: 10px; color: #666; white-space: nowrap; }
+        .recent-unlocks .empty { font-size: 12px; color: #555; text-align: center; padding: 12px 0; }
     </style>
 </head>
 <body>
@@ -239,17 +272,30 @@
             MAIN
         </a>
         <div class="nav-center">
+            <a href="{% url 'realm' %}">绿洲</a>
+            <a href="{% url 'training' %}">训练场</a>
+            <a href="{% url 'reality_override' %}">现实覆写</a>
             <a href="{% url 'dashboard' %}" class="active">终端</a>
+            <a href="{% url 'my_realm' %}">我的位面</a>
+            <a href="{% url 'material_library' %}">材质库</a>
             <a href="{% url 'missions' %}">任务</a>
             <a href="{% url 'achievements' %}">成就</a>
             <a href="{% url 'equipment' %}">装备</a>
             <a href="{% url 'market' %}">黑市</a>
             <a href="{% url 'ranking' %}">排行</a>
+            <a href="{% url 'devices' %}">设备</a>
             <a href="{% url 'settings' %}">设置</a>
         </div>
-        <div class="network-status" id="gesture-status-text">
-            <div class="status-dot"></div>
-            ONLINE
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div class="network-status" id="gesture-status-text">
+                <div class="status-dot"></div>
+                <span class="status-label">ONLINE</span>
+            </div>
         </div>
     </div>
 
@@ -285,7 +331,7 @@
         <div class="center-hub">
             <div style="text-align: center; margin-bottom: 30px;">
                 <div style="font-family: 'Syncopate'; font-size: 12px; color: var(--neon); letter-spacing: 4px;">USER_ID: {{ username|upper }}</div>
-                <div style="font-size: 12px; color: #555;">RANK: LEVEL {{ profile.level }} PATHFINDER</div>
+                <div style="font-size: 12px; color: #555;">{{ profile.display_title }} · Lv.{{ profile.level }}</div>
             </div>
 
             <div class="combat-circle-outer">
@@ -295,9 +341,49 @@
                 </div>
             </div>
 
-            <button class="btn-action" onclick="location.href='/scanner/'">
-                进入现实战区 (LINK START)
+            <div style="max-width:420px;margin:0 auto 24px;text-align:left;padding:14px 18px;border:1px dashed rgba(0,242,255,0.35);background:rgba(0,242,255,0.04);font-size:12px;color:#888;line-height:1.7;">
+                <div style="font-family:'Syncopate',sans-serif;font-size:10px;letter-spacing:2px;color:#00f2ff;margin-bottom:8px;">推荐体验路径</div>
+                <ol style="margin:0;padding-left:1.2em;color:#aaa;">
+                    <li>接入训练（校准操作）</li>
+                    <li>现实覆写（扫描 + 协议保存）</li>
+                    <li>进入绿洲（查看材质与扫描幽影）</li>
+                    <li>任务 / 成就（查看进度与解锁）</li>
+                </ol>
+            </div>
+
+            <button class="btn-action" onclick="location.href='{% url 'realm' %}'">
+                进入绿洲 (REALM ACCESS)
             </button>
+            <button class="btn-action" style="margin-top:12px; background: rgba(255,215,0,0.06); border-color: rgba(255,215,0,0.45); color: #ffd700;" onclick="location.href='{% url 'training' %}'">
+                接入训练 (TRAINING GROUND)
+            </button>
+            <button class="btn-action" style="margin-top:12px; background: rgba(0,242,255,0.06); border-color: rgba(0,242,255,0.5); color: var(--neon);" onclick="location.href='{% url 'my_realm' %}'">
+                我的位面 (PRIVATE REALM)
+            </button>
+            <button class="btn-action" style="margin-top:12px; background: rgba(0,255,136,0.06); border-color: rgba(0,255,136,0.45); color: #00ff88;" onclick="location.href='{% url 'reality_override' %}'">
+                现实覆写实验 (REALITY OVERRIDE)
+            </button>
+            <button class="btn-action" style="margin-top:12px; background: rgba(255,255,255,0.04); border-color: #444; color: #aaa;" onclick="location.href='{% url 'realm_editor' %}'">
+                位面编辑器 (REALM EDITOR)
+            </button>
+            <button class="btn-action" style="margin-top:12px; background: rgba(188,0,255,0.08); border-color: var(--purple); color: var(--purple);" onclick="location.href='{% url 'scanner' %}'">
+                现实重构引擎 (SCAN)
+            </button>
+
+            <div class="recent-unlocks">
+                <h3>RECENT UNLOCKS // 最近成就</h3>
+                {% for ua in recent_achievements %}
+                <div class="unlock-row">
+                    <span class="unlock-name">[{{ ua.achievement.icon_key|default:"·" }}] {{ ua.achievement.name }}</span>
+                    <span class="unlock-meta">{{ ua.unlocked_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                {% empty %}
+                <div class="empty">暂无解锁记录 · 进入桌面位面并完成操作即可解锁</div>
+                {% endfor %}
+                <div style="text-align:center;margin-top:10px;">
+                    <a href="{% url 'achievements' %}" style="font-size:11px;color:var(--neon);text-decoration:none;">查看全部成就 →</a>
+                </div>
+            </div>
         </div>
 
         <div class="hud-panel">
@@ -332,8 +418,8 @@
         </div>
     </div>
 
-    <!-- 最重要的一步：在页面底部引入手势追踪引擎 -->
     <script src="/static/js/gesture.js"></script>
+    <script src="/static/js/controls.js"></script>
 
 </body>
 </html>
