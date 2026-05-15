@@ -30,41 +30,69 @@
         }
         @keyframes scan { from { top: -10%; } to { top: 110%; } }
 
-        /* 顶部导航控制条 */
+        /* 顶部导航 — 网格避免绝对定位与两侧挤压导致链接触顶/消失 */
         .top-nav {
             position: fixed;
             top: 15px;
-            left: 25px;
-            right: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            left: 16px;
+            right: 16px;
             z-index: 50;
-            background: rgba(5, 6, 8, 0.8);
-            padding: 10px 20px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px 14px;
+            background: rgba(5, 6, 8, 0.92);
+            padding: 10px 14px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(0, 242, 255, 0.2);
+            box-sizing: border-box;
+            max-width: 100vw;
         }
-        
+
+        .top-nav-lead {
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .top-nav-trail {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
         .nav-center {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            max-width: 58%;
+            gap: 4px 6px;
             justify-content: center;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
+            align-content: center;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 80px;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+            padding: 2px 0;
+        }
+        .nav-center::-webkit-scrollbar { height: 4px; width: 4px; }
+        .nav-center::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 255, 0.35);
+            border-radius: 2px;
         }
         .nav-center a {
-            padding: 8px 14px;
+            padding: 6px 10px;
             font-family: 'Syncopate', sans-serif;
-            font-size: 10px;
-            letter-spacing: 1px;
+            font-size: 9px;
+            letter-spacing: 0.5px;
             color: rgba(255, 255, 255, 0.5);
             text-decoration: none;
             border: 1px solid transparent;
             transition: 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .nav-center a:hover, .nav-center a.active {
             color: var(--neon);
@@ -111,7 +139,7 @@
             display: grid;
             grid-template-columns: 350px 1fr 350px;
             height: 100vh;
-            padding: 90px 25px 25px 25px;
+            padding: 92px 22px 22px 22px;
             gap: 25px;
             box-sizing: border-box;
         }
@@ -192,12 +220,42 @@
         .power-label { font-size: 14px; color: var(--neon); letter-spacing: 6px; }
 
         .btn-action {
-            margin-top: 50px; padding: 18px 50px;
+            margin-top: 28px; padding: 16px 44px;
             background: transparent; border: 2px solid var(--neon);
             color: var(--neon); font-family: 'Syncopate', sans-serif;
-            font-size: 16px; font-weight: bold; cursor: pointer;
+            font-size: 15px; font-weight: bold; cursor: pointer;
             clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
             transition: 0.3s;
+        }
+
+        .center-quick-links {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 14px;
+            max-width: 420px;
+        }
+        .center-quick-links a {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.45);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            padding-bottom: 2px;
+        }
+        .center-quick-links a:hover {
+            color: var(--neon);
+            border-bottom-color: rgba(0, 242, 255, 0.4);
+        }
+        .center-nav-hint {
+            margin-top: 14px;
+            font-size: 11px;
+            color: #555;
+            text-align: center;
+            max-width: 360px;
+            line-height: 1.5;
         }
         /* 兼容 AR 悬停高亮 */
         .btn-action:hover, .btn-action.ar-hover {
@@ -267,11 +325,13 @@
 
     <!-- 顶部导航 -->
     <div class="top-nav">
+        <div class="top-nav-lead">
         <a href="/" class="btn-return">
             <span>◄</span>
             MAIN
         </a>
-        <div class="nav-center">
+        </div>
+        <div class="nav-center" role="navigation" aria-label="主导航">
             <a href="{% url 'realm' %}">绿洲</a>
             <a href="{% url 'training' %}">训练场</a>
             <a href="{% url 'reality_override' %}">现实覆写</a>
@@ -286,7 +346,7 @@
             <a href="{% url 'devices' %}">设备</a>
             <a href="{% url 'settings' %}">设置</a>
         </div>
-        <div style="display:flex; align-items:center; gap:12px;">
+        <div class="top-nav-trail">
             <div class="control-mode-switcher">
                 <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
                 <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
@@ -351,24 +411,16 @@
                 </ol>
             </div>
 
-            <button class="btn-action" onclick="location.href='{% url 'realm' %}'">
+            <button class="btn-action" type="button" onclick="location.href='{% url 'realm' %}'">
                 进入绿洲 (REALM ACCESS)
             </button>
-            <button class="btn-action" style="margin-top:12px; background: rgba(255,215,0,0.06); border-color: rgba(255,215,0,0.45); color: #ffd700;" onclick="location.href='{% url 'training' %}'">
-                接入训练 (TRAINING GROUND)
-            </button>
-            <button class="btn-action" style="margin-top:12px; background: rgba(0,242,255,0.06); border-color: rgba(0,242,255,0.5); color: var(--neon);" onclick="location.href='{% url 'my_realm' %}'">
-                我的位面 (PRIVATE REALM)
-            </button>
-            <button class="btn-action" style="margin-top:12px; background: rgba(0,255,136,0.06); border-color: rgba(0,255,136,0.45); color: #00ff88;" onclick="location.href='{% url 'reality_override' %}'">
-                现实覆写实验 (REALITY OVERRIDE)
-            </button>
-            <button class="btn-action" style="margin-top:12px; background: rgba(255,255,255,0.04); border-color: #444; color: #aaa;" onclick="location.href='{% url 'realm_editor' %}'">
-                位面编辑器 (REALM EDITOR)
-            </button>
-            <button class="btn-action" style="margin-top:12px; background: rgba(188,0,255,0.08); border-color: var(--purple); color: var(--purple);" onclick="location.href='{% url 'scanner' %}'">
-                现实重构引擎 (SCAN)
-            </button>
+
+            <nav class="center-quick-links" aria-label="常用入口">
+                <a href="{% url 'training' %}">训练场</a>
+                <a href="{% url 'reality_override' %}">现实覆写</a>
+                <a href="{% url 'my_realm' %}">我的位面</a>
+            </nav>
+            <p class="center-nav-hint">材质库、任务、成就、装备、编辑器、扫描器、黑市等请使用<strong>顶部导航</strong>。</p>
 
             <div class="recent-unlocks">
                 <h3>RECENT UNLOCKS // 最近成就</h3>
