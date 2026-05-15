@@ -1,0 +1,401 @@
+✅ 日志已保存到: H:\School assessment\Design\ALL\pointcloud2mesh\log\log_20260515_152557.txt
+[PIPELINE][STATUS] save_log=True
+[PIPELINE][STATUS] log_dir=H:\School assessment\Design\ALL\pointcloud2mesh\log
+[PIPELINE][STATUS] model_dir=H:\School assessment\Design\ALL\pointcloud2mesh\model
+[PIPELINE][STATUS] input_camera=CameraIntrinsics(width=640, height=480, fx=525.0, fy=525.0, cx=319.5, cy=239.5)
+[PIPELINE][STATUS] tracking_camera=CameraIntrinsics(width=320, height=240, fx=262.5, fy=262.5, cx=159.75, cy=119.75)
+[PIPELINE][STATUS] mapping_camera=CameraIntrinsics(width=640, height=480, fx=525.0, fy=525.0, cx=319.5, cy=239.5)
+[PIPELINE][STATUS] tracking_backend=gpu_icp
+[PIPELINE][STATUS] imu_world_init_enabled=True
+[PIPELINE][STATUS] render_enabled=True
+[PIPELINE][STATUS] log_file=H:\School assessment\Design\ALL\pointcloud2mesh\log\log_20260515_152557.txt
+✅ 已从指定路径加载: H:\School assessment\Design\奥比中光Win64-Release\sdk\libs\OpenNI2.dll
+✅ OpenNI C API函数原型定义完成
+初始化OpenNI SDK...
+✅ OpenNI SDK初始化成功
+  [0] Astra (Orbbec)
+✅ 设备打开成功，句柄: 2795004241776
+创建 深度 传感器流...
+✅ 流创建成功，句柄: 2795004241728
+✅ 流启动成功
+[TRACKER][STATUS] initialized: device=CUDA:0, size=320x240, fx=262.50, fy=262.50, cx=159.75, cy=119.75, depth_scale=None, depth_trunc=3.0, voxel=0.04, max_corr=0.08, iter=8, normal_radius=0.08, normal_max_nn=12, fallback_p2p=True, use_map_tracking=True, map_min_points=3000, map_max_corr=0.15
+[TRACKER][STATUS] started
+[PIPELINE][STATUS] Render is enabled: call run_once() on MAIN thread
+[PIPELINE][STATUS] started
+[PIPELINE][STATUS] Pipeline started. Press Ctrl+C to stop.
+[MAPPER][STATUS] started
+[Open3D WARNING] The number of points is 0 when creating axis-aligned bounding box.
+[RENDER][STATUS] initialized
+[TRACKER][POSE] IMU world init: raw_imu_quaternion_wxyz=[0.9983, 0.0111, 0.0484, -0.0304] convention=imu_to_world initial_alignment_mode=align_initial_camera_to_forward zero_initial_camera_rotation=False
+[TRACKER][POSE] IMU world init matrices: R_cam_imu=[[0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 0.0]]
+[TRACKER][POSE] R_world_imu: rpy_deg=[1.1086, 5.5810, -3.4362]
+[TRACKER][POSE] R_world_cam: rpy_deg=[-95.5821, 1.1033, -93.5440]
+[TRACKER][POSE] R_recon_world/correction: rpy_deg=[-148.4760, -83.4488, -122.8002]
+[TRACKER][POSE] IMU pose imu_to_world: t=[0.0000, 0.0000, 0.0000] rpy_deg=[90.0000, -90.0000, 0.0000] x=[-0.0000, 0.0000, 1.0000] y=[-1.0000, -0.0000, -0.0000] z=[0.0000, -1.0000, 0.0000]
+[TRACKER][POSE] Camera pose camera_to_world: t=[0.0000, 0.0000, 0.0000] rpy_deg=[-0.0000, 0.0000, 0.0000] x=[1.0000, 0.0000, -0.0000] y=[-0.0000, 1.0000, -0.0000] z=[0.0000, 0.0000, 1.0000]
+[TRACKER][POSE] TSDF extrinsic world_to_camera: t=[0.0000, 0.0000, 0.0000] rpy_deg=[0.0000, -0.0000, -0.0000] x=[1.0000, -0.0000, 0.0000] y=[0.0000, 1.0000, 0.0000] z=[-0.0000, -0.0000, 1.0000]
+[TRACKER][POSE] tracker initial pose: frame=16 imu_success=True reason=ok T_wc_r0=[1.0, 2.8628699265235706e-16, -3.189154251924344e-16, 0.0] T_wc_r1=[-2.862869926523571e-16, 1.0, -2.2204460492503126e-16, 0.0] T_wc_r2=[3.1891542519243433e-16, 2.2204460492503136e-16, 1.0, 0.0]
+[RENDER][STATUS] auto focus initialized
+[RENDER][STATUS] tracking={'frame_id': 80, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': True, 'integrated_frames': 8, 'total_packets': 15, 'last_frame_id': 80, 'mesh_vertex_count': 7234, 'mesh_updated': False, 'pose_gate_info': {'reason': 'ok', 'trans': 0.004218915301434549, 'rot_deg': 0.8456978171637313, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.544399998849258, 'gate_ms': 0.01349999729427509, 'integrate_ms': 8.563899998989655, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 13.384199999563862, 'do_integrate': True, 'mesh_updated': False, 'mesh_vertices': 7234, 'extracted_vertices': 0, 'integrated_frames': 8, 'total_packets': 15, 'pose_gate_info': {'reason': 'ok', 'trans': 0.004218915301434549, 'rot_deg': 0.8456978171637313, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][MAPPING] frame=140 integrated=False mesh_vertices=7743 time=5.24ms fps=6.55
+[RENDER][STATUS] tracking={'frame_id': 149, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': True, 'integrated_frames': 12, 'total_packets': 32, 'last_frame_id': 146, 'mesh_vertex_count': 7743, 'mesh_updated': False, 'pose_gate_info': {'reason': 'ok', 'trans': 0.0020207927259641542, 'rot_deg': 0.1697645044151136, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.593099998601247, 'gate_ms': 0.014400000509340316, 'integrate_ms': 12.151799997809576, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 17.062799997802358, 'do_integrate': True, 'mesh_updated': False, 'mesh_vertices': 7743, 'extracted_vertices': 0, 'integrated_frames': 12, 'total_packets': 32, 'pose_gate_info': {'reason': 'ok', 'trans': 0.0020207927259641542, 'rot_deg': 0.1697645044151136, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[RENDER][STATUS] tracking={'frame_id': 226, 'mode': 'tracking', 'success': True, 'score': 0.9964973730297724}, map={'integrated': True, 'integrated_frames': 30, 'total_packets': 50, 'last_frame_id': 226, 'mesh_vertex_count': 16153, 'mesh_updated': True, 'pose_gate_info': {'reason': 'ok', 'trans': 0.005987607911327551, 'rot_deg': 0.6052960098393596, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.458799998246832, 'gate_ms': 0.010799998563015833, 'integrate_ms': 17.80009999856702, 'extract_mesh_ms': 21.722699999372708, 'normal_ms': 1.3584999978775159, 'total_ms': 45.64290000053006, 'do_integrate': True, 'mesh_updated': True, 'mesh_vertices': 16153, 'extracted_vertices': 16153, 'integrated_frames': 30, 'total_packets': 50, 'pose_gate_info': {'reason': 'ok', 'trans': 0.005987607911327551, 'rot_deg': 0.6052960098393596, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[RENDER][STATUS] tracking={'frame_id': 306, 'mode': 'tracking', 'success': True, 'score': 0.9997015816174276}, map={'integrated': True, 'integrated_frames': 47, 'total_packets': 67, 'last_frame_id': 306, 'mesh_vertex_count': 20139, 'mesh_updated': False, 'pose_gate_info': {'reason': 'ok', 'trans': 0.024814445597543786, 'rot_deg': 1.530519024857026, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.761700001836289, 'gate_ms': 0.0121000011858996, 'integrate_ms': 14.81430000058026, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 19.912800002202857, 'do_integrate': True, 'mesh_updated': False, 'mesh_vertices': 20139, 'extracted_vertices': 0, 'integrated_frames': 47, 'total_packets': 67, 'pose_gate_info': {'reason': 'ok', 'trans': 0.024814445597543786, 'rot_deg': 1.530519024857026, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[RENDER][STATUS] tracking={'frame_id': 386, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': True, 'integrated_frames': 65, 'total_packets': 85, 'last_frame_id': 386, 'mesh_vertex_count': 30190, 'mesh_updated': True, 'pose_gate_info': {'reason': 'ok', 'trans': 0.02698871410346318, 'rot_deg': 1.8974765935278666, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.238099998474354, 'gate_ms': 0.009800001862458885, 'integrate_ms': 14.943999998649815, 'extract_mesh_ms': 36.66549999979907, 'normal_ms': 3.0197000014595687, 'total_ms': 59.150400000362424, 'do_integrate': True, 'mesh_updated': True, 'mesh_vertices': 30190, 'extracted_vertices': 30190, 'integrated_frames': 65, 'total_packets': 85, 'pose_gate_info': {'reason': 'ok', 'trans': 0.02698871410346318, 'rot_deg': 1.8974765935278666, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[TRACKER][TRACKING] frame=420 mode=tracking success=True score=1.000 valid=266611 time=32.42ms fps=10.87
+[RENDER][STATUS] tracking={'frame_id': 472, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': True, 'integrated_frames': 86, 'total_packets': 106, 'last_frame_id': 472, 'mesh_vertex_count': 34389, 'mesh_updated': False, 'pose_gate_info': {'reason': 'ok', 'trans': 0.010825748065442285, 'rot_deg': 0.9957016208627671, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.7224000009009615, 'gate_ms': 0.011000000085914508, 'integrate_ms': 16.232800000580028, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 21.237200002360623, 'do_integrate': True, 'mesh_updated': False, 'mesh_vertices': 34389, 'extracted_vertices': 0, 'integrated_frames': 86, 'total_packets': 106, 'pose_gate_info': {'reason': 'ok', 'trans': 0.010825748065442285, 'rot_deg': 0.9957016208627671, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=548 trans=0.0916m>0.0800m rot=3.04deg>12.00deg reject_count=1. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=550 trans=0.1115m>0.0800m rot=3.89deg>12.00deg reject_count=2. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=552 trans=0.1281m>0.0800m rot=4.57deg>12.00deg reject_count=3. Skip TSDF/local_map integration to avoid crossed model.
+[RENDER][STATUS] tracking={'frame_id': 555, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 122, 'last_frame_id': 552, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.12810784725168628, 'rot_deg': 4.566871494929581, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 5.259600002318621, 'gate_ms': 0.015699999494245276, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.902400000195485, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 122, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.12810784725168628, 'rot_deg': 4.566871494929581, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=564 trans=0.2386m>0.0800m rot=8.42deg>12.00deg reject_count=4. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=566 trans=0.2524m>0.0800m rot=9.26deg>12.00deg reject_count=5. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=568 trans=0.2673m>0.0800m rot=10.07deg>12.00deg reject_count=6. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=578 trans=0.3070m>0.0800m rot=13.51deg>12.00deg reject_count=7. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=580 trans=0.3153m>0.0800m rot=14.37deg>12.00deg reject_count=8. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=582 trans=0.3028m>0.0800m rot=15.12deg>12.00deg reject_count=9. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=592 trans=0.2977m>0.0800m rot=17.85deg>12.00deg reject_count=10. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=594 trans=0.2901m>0.0800m rot=18.36deg>12.00deg reject_count=11. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=596 trans=0.2903m>0.0800m rot=18.84deg>12.00deg reject_count=12. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=606 trans=0.2918m>0.0800m rot=20.95deg>12.00deg reject_count=13. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=608 trans=0.3026m>0.0800m rot=21.45deg>12.00deg reject_count=14. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=618 trans=0.3878m>0.0800m rot=24.34deg>12.00deg reject_count=15. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=620 trans=0.3986m>0.0800m rot=24.71deg>12.00deg reject_count=16. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=622 trans=0.4105m>0.0800m rot=24.99deg>12.00deg reject_count=17. Skip TSDF/local_map integration to avoid crossed model.
+[RENDER][STATUS] tracking={'frame_id': 625, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 136, 'last_frame_id': 622, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.4105431951567036, 'rot_deg': 24.993314177560908, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.9193000013474375, 'gate_ms': 0.012800002878066152, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.375599997933023, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 136, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.4105431951567036, 'rot_deg': 24.993314177560908, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=636 trans=0.5008m>0.0800m rot=26.61deg>12.00deg reject_count=18. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=638 trans=0.5108m>0.0800m rot=26.90deg>12.00deg reject_count=19. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=640 trans=0.4954m>0.0800m rot=27.06deg>12.00deg reject_count=20. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=642 trans=0.4854m>0.0800m rot=27.11deg>12.00deg reject_count=21. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=656 trans=0.5173m>0.0800m rot=28.48deg>12.00deg reject_count=22. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=658 trans=0.5106m>0.0800m rot=28.62deg>12.00deg reject_count=23. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=660 trans=0.5023m>0.0800m rot=28.94deg>12.00deg reject_count=24. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=662 trans=0.4921m>0.0800m rot=29.06deg>12.00deg reject_count=25. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=672 trans=0.4821m>0.0800m rot=31.08deg>12.00deg reject_count=26. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=692 trans=0.4654m>0.0800m rot=33.82deg>12.00deg reject_count=27. Skip TSDF/local_map integration to avoid crossed model.
+[RENDER][STATUS] tracking={'frame_id': 692, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 149, 'last_frame_id': 692, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.4653979673415328, 'rot_deg': 33.819967297754076, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 5.02030000279774, 'gate_ms': 0.009700001101009548, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.414600000221981, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 149, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.4653979673415328, 'rot_deg': 33.819967297754076, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=694 trans=0.4627m>0.0800m rot=34.51deg>12.00deg reject_count=28. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=696 trans=0.4634m>0.0800m rot=34.80deg>12.00deg reject_count=29. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=700 trans=0.4628m>0.0800m rot=35.20deg>12.00deg reject_count=30. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=712 trans=0.4580m>0.0800m rot=36.95deg>12.00deg reject_count=31. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=714 trans=0.4568m>0.0800m rot=37.26deg>12.00deg reject_count=32. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=716 trans=0.4553m>0.0800m rot=37.52deg>12.00deg reject_count=33. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=718 trans=0.4538m>0.0800m rot=37.80deg>12.00deg reject_count=34. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=720 trans=0.4526m>0.0800m rot=38.15deg>12.00deg reject_count=35. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=730 trans=0.4472m>0.0800m rot=39.73deg>12.00deg reject_count=36. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=732 trans=0.4465m>0.0800m rot=40.04deg>12.00deg reject_count=37. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=734 trans=0.4460m>0.0800m rot=40.23deg>12.00deg reject_count=38. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=744 trans=0.4432m>0.0800m rot=41.52deg>12.00deg reject_count=39. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=750 trans=0.4426m>0.0800m rot=42.17deg>12.00deg reject_count=40. Skip TSDF/local_map integration to avoid crossed model.
+[RENDER][STATUS] tracking={'frame_id': 759, 'mode': 'tracking', 'success': True, 'score': 0.999754962019113}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 165, 'last_frame_id': 750, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.44259513227678265, 'rot_deg': 42.174961642362625, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.402700000355253, 'gate_ms': 0.010799998563015833, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 4.9739000023691915, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 165, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.44259513227678265, 'rot_deg': 42.174961642362625, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=768 trans=0.4438m>0.0800m rot=43.26deg>12.00deg reject_count=41. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=784 trans=0.4476m>0.0800m rot=42.97deg>12.00deg reject_count=42. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=786 trans=0.4482m>0.0800m rot=42.88deg>12.00deg reject_count=43. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=788 trans=0.4485m>0.0800m rot=42.80deg>12.00deg reject_count=44. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=790 trans=0.4486m>0.0800m rot=42.78deg>12.00deg reject_count=45. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=804 trans=0.4505m>0.0800m rot=43.16deg>12.00deg reject_count=46. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=806 trans=0.4515m>0.0800m rot=43.21deg>12.00deg reject_count=47. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=808 trans=0.4528m>0.0800m rot=43.30deg>12.00deg reject_count=48. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=810 trans=0.4542m>0.0800m rot=43.31deg>12.00deg reject_count=49. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=820 trans=0.4648m>0.0800m rot=43.52deg>12.00deg reject_count=50. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=822 trans=0.4678m>0.0800m rot=43.62deg>12.00deg reject_count=51. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=824 trans=0.4710m>0.0800m rot=43.73deg>12.00deg reject_count=52. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=826 trans=0.4739m>0.0800m rot=43.83deg>12.00deg reject_count=53. Skip TSDF/local_map integration to avoid crossed model.
+[RENDER][STATUS] tracking={'frame_id': 826, 'mode': 'tracking', 'success': True, 'score': 0.9997785160575858}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 181, 'last_frame_id': 826, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.47392123857238466, 'rot_deg': 43.82956301256377, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.352100000687642, 'gate_ms': 0.01219999830937013, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 4.906199999823002, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 181, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.47392123857238466, 'rot_deg': 43.82956301256377, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=838 trans=0.4876m>0.0800m rot=44.48deg>12.00deg reject_count=54. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=840 trans=0.4901m>0.0800m rot=44.59deg>12.00deg reject_count=55. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=842 trans=0.4912m>0.0800m rot=44.67deg>12.00deg reject_count=56. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=844 trans=0.4921m>0.0800m rot=44.75deg>12.00deg reject_count=57. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=854 trans=0.4965m>0.0800m rot=44.92deg>12.00deg reject_count=58. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=856 trans=0.4975m>0.0800m rot=44.98deg>12.00deg reject_count=59. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=858 trans=0.4979m>0.0800m rot=45.05deg>12.00deg reject_count=60. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=864 trans=0.5008m>0.0800m rot=45.24deg>12.00deg reject_count=61. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=866 trans=0.5028m>0.0800m rot=45.36deg>12.00deg reject_count=62. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=868 trans=0.5049m>0.0800m rot=45.56deg>12.00deg reject_count=63. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=870 trans=0.5078m>0.0800m rot=45.79deg>12.00deg reject_count=64. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=882 trans=0.5181m>0.0800m rot=46.79deg>12.00deg reject_count=65. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=896 trans=0.5282m>0.0800m rot=48.66deg>12.00deg reject_count=66. Skip TSDF/local_map integration to avoid crossed model.
+[RENDER][STATUS] tracking={'frame_id': 896, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 194, 'last_frame_id': 896, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.5282318084584936, 'rot_deg': 48.66317037275151, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.289199998311233, 'gate_ms': 0.009499999578110874, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 4.660200000216719, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 194, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.5282318084584936, 'rot_deg': 48.66317037275151, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[MAPPER][WARNING] pose jump reject: frame=898 trans=0.5298m>0.0800m rot=48.92deg>12.00deg reject_count=67. Skip TSDF/local_map integration to avoid crossed model.
+[TRACKER][TRACKING] frame=900 mode=tracking success=True score=0.999 valid=279994 time=32.94ms fps=13.70
+[MAPPER][WARNING] pose jump reject: frame=900 trans=0.5312m>0.0800m rot=49.13deg>12.00deg reject_count=68. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=902 trans=0.5324m>0.0800m rot=49.30deg>12.00deg reject_count=69. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=912 trans=0.5380m>0.0800m rot=50.54deg>12.00deg reject_count=70. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=914 trans=0.5414m>0.0800m rot=50.88deg>12.00deg reject_count=71. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=916 trans=0.5446m>0.0800m rot=51.20deg>12.00deg reject_count=72. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=928 trans=0.5518m>0.0800m rot=52.35deg>12.00deg reject_count=73. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=930 trans=0.5518m>0.0800m rot=52.41deg>12.00deg reject_count=74. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=932 trans=0.5517m>0.0800m rot=52.44deg>12.00deg reject_count=75. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=944 trans=0.5531m>0.0800m rot=52.08deg>12.00deg reject_count=76. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=946 trans=0.5552m>0.0800m rot=52.00deg>12.00deg reject_count=77. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=948 trans=0.5576m>0.0800m rot=52.05deg>12.00deg reject_count=78. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=950 trans=0.5611m>0.0800m rot=52.12deg>12.00deg reject_count=79. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=956 trans=0.5668m>0.0800m rot=52.12deg>12.00deg reject_count=80. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][MAPPING] frame=960 integrated=False mesh_vertices=34477 time=5.57ms fps=7.81
+[RENDER][STATUS] tracking={'frame_id': 965, 'mode': 'tracking', 'success': True, 'score': 1.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 211, 'last_frame_id': 962, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': None, 'profile': {'preprocess_ms': 4.488799997488968, 'gate_ms': 0.010799998563015833, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 4.505700002482627, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 211, 'pose_gate_info': None}}
+[TRACKER][TRACKING] frame=970 mode=tracking success=True score=0.997 valid=277132 time=42.58ms fps=12.84
+[MAPPER][WARNING] pose jump reject: frame=970 trans=0.5634m>0.0800m rot=50.88deg>12.00deg reject_count=81. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=972 trans=0.5663m>0.0800m rot=50.42deg>12.00deg reject_count=82. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=974 trans=0.5641m>0.0800m rot=49.56deg>12.00deg reject_count=83. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=976 trans=0.5650m>0.0800m rot=48.25deg>12.00deg reject_count=84. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=984 trans=0.5503m>0.0800m rot=45.48deg>12.00deg reject_count=85. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=986 trans=0.5356m>0.0800m rot=45.58deg>12.00deg reject_count=86. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=988 trans=0.5229m>0.0800m rot=45.66deg>12.00deg reject_count=87. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=990 trans=0.5093m>0.0800m rot=45.68deg>12.00deg reject_count=88. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=1000 trans=0.4684m>0.0800m rot=41.91deg>12.00deg reject_count=89. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][MAPPING] frame=1000 integrated=False mesh_vertices=34477 time=5.04ms fps=8.86
+[MAPPER][WARNING] pose jump reject: frame=1002 trans=0.4634m>0.0800m rot=38.19deg>12.00deg reject_count=90. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=1004 trans=0.4503m>0.0800m rot=33.93deg>12.00deg reject_count=91. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=1006 trans=0.4995m>0.0800m rot=31.51deg>12.00deg reject_count=92. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=1016 trans=0.6812m>0.0800m rot=20.69deg>12.00deg reject_count=93. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=1018 trans=0.7053m>0.0800m rot=16.56deg>12.00deg reject_count=94. Skip TSDF/local_map integration to avoid crossed model.
+[MAPPER][WARNING] pose jump reject: frame=1020 trans=0.7120m>0.0800m rot=13.80deg>12.00deg reject_count=95. Skip TSDF/local_map integration to avoid crossed model.
+[TRACKER][TRACKING] tracking lost: frame=1022 lost_count=1 reason=map_delta_translation_too_large. Mapping paused. Move camera slowly back to a previously mapped area.
+[TRACKER][TRACKING] frame=1022 mode=lost success=False score=0.000 valid=290927 time=41.24ms fps=12.99
+[TRACKER][TRACKING] frame=1025 mode=lost success=False score=0.000 valid=289605 time=7.74ms fps=12.99
+[TRACKER][RELOCALIZE] attempt: frame=1027 lost_count=2 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1027 lost_count=2 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1027 mode=lost success=False score=0.000 valid=289733 time=107.76ms fps=12.99
+[TRACKER][TRACKING] frame=1029 mode=lost success=False score=0.000 valid=285551 time=6.82ms fps=12.99
+[TRACKER][RELOCALIZE] attempt: frame=1031 lost_count=4 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1031 lost_count=4 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1031 mode=lost success=False score=0.000 valid=254967 time=79.52ms fps=12.99
+[TRACKER][TRACKING] frame=1034 mode=lost success=False score=0.000 valid=221187 time=6.47ms fps=12.99
+[RENDER][STATUS] tracking={'frame_id': 1034, 'mode': 'lost', 'success': False, 'score': 0.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 226, 'last_frame_id': 1020, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.682900002080714, 'gate_ms': 0.012799999240087345, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.198899998504203, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 226, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[TRACKER][RELOCALIZE] attempt: frame=1036 lost_count=6 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1036 lost_count=6 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1036 mode=lost success=False score=0.000 valid=195945 time=68.16ms fps=12.99
+[TRACKER][TRACKING] frame=1038 mode=lost success=False score=0.000 valid=189875 time=6.53ms fps=12.99
+[TRACKER][RELOCALIZE] attempt: frame=1041 lost_count=8 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1041 lost_count=8 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1041 mode=lost success=False score=0.000 valid=186069 time=62.80ms fps=12.77
+[TRACKER][TRACKING] frame=1043 mode=lost success=False score=0.000 valid=182378 time=5.86ms fps=12.77
+[TRACKER][RELOCALIZE] attempt: frame=1045 lost_count=10 status=try target_points=29584 reason=ok
+[TRACKER][TRACKING] frame=1045 mode=lost success=False score=0.000 valid=183351 time=24.23ms fps=12.77
+[TRACKER][TRACKING] frame=1048 mode=lost success=False score=0.000 valid=190253 time=6.61ms fps=12.77
+[TRACKER][RELOCALIZE] attempt: frame=1050 lost_count=12 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1050 lost_count=12 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1050 mode=lost success=False score=0.000 valid=225302 time=62.55ms fps=12.77
+[TRACKER][TRACKING] frame=1053 mode=lost success=False score=0.000 valid=238108 time=6.64ms fps=12.77
+[TRACKER][RELOCALIZE] attempt: frame=1055 lost_count=14 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1055 lost_count=14 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1055 mode=lost success=False score=0.000 valid=247423 time=64.30ms fps=12.77
+[TRACKER][TRACKING] frame=1058 mode=lost success=False score=0.000 valid=247249 time=6.61ms fps=12.77
+[TRACKER][RELOCALIZE] attempt: frame=1060 lost_count=16 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1060 lost_count=16 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1060 mode=lost success=False score=0.000 valid=245500 time=66.52ms fps=12.77
+[TRACKER][TRACKING] frame=1063 mode=lost success=False score=0.000 valid=233319 time=6.61ms fps=12.77
+[TRACKER][RELOCALIZE] attempt: frame=1066 lost_count=18 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1066 lost_count=18 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1066 mode=lost success=False score=0.000 valid=232841 time=68.41ms fps=12.77
+[TRACKER][TRACKING] frame=1068 mode=lost success=False score=0.000 valid=246866 time=6.84ms fps=12.77
+[TRACKER][RELOCALIZE] attempt: frame=1071 lost_count=20 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1071 lost_count=20 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1071 mode=lost success=False score=0.000 valid=245062 time=67.89ms fps=11.61
+[TRACKER][TRACKING] frame=1073 mode=lost success=False score=0.000 valid=241697 time=6.85ms fps=11.61
+[TRACKER][RELOCALIZE] attempt: frame=1076 lost_count=22 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1076 lost_count=22 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1076 mode=lost success=False score=0.000 valid=236156 time=65.83ms fps=11.61
+[TRACKER][TRACKING] frame=1079 mode=lost success=False score=0.000 valid=232313 time=6.61ms fps=11.61
+[TRACKER][RELOCALIZE] attempt: frame=1081 lost_count=24 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1081 lost_count=24 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1081 mode=lost success=False score=0.000 valid=228337 time=65.00ms fps=11.61
+[TRACKER][TRACKING] frame=1084 mode=lost success=False score=0.000 valid=225091 time=6.83ms fps=11.61
+[TRACKER][RELOCALIZE] attempt: frame=1086 lost_count=26 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1086 lost_count=26 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1086 mode=lost success=False score=0.000 valid=228038 time=67.17ms fps=11.61
+[TRACKER][TRACKING] frame=1089 mode=lost success=False score=0.000 valid=225272 time=6.61ms fps=11.61
+[TRACKER][RELOCALIZE] attempt: frame=1091 lost_count=28 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1091 lost_count=28 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1091 mode=lost success=False score=0.000 valid=225890 time=73.98ms fps=11.61
+[TRACKER][TRACKING] frame=1093 mode=lost success=False score=0.000 valid=228426 time=7.21ms fps=11.61
+[TRACKER][RELOCALIZE] attempt: frame=1096 lost_count=30 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1096 lost_count=30 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1096 mode=lost success=False score=0.000 valid=229099 time=70.86ms fps=11.61
+[TRACKER][TRACKING] frame=1098 mode=lost success=False score=0.000 valid=228264 time=6.56ms fps=11.61
+[TRACKER][RELOCALIZE] attempt: frame=1100 lost_count=32 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1100 lost_count=32 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1100 mode=lost success=False score=0.000 valid=228359 time=61.95ms fps=11.61
+[TRACKER][TRACKING] frame=1103 mode=lost success=False score=0.000 valid=230915 time=6.28ms fps=12.86
+[TRACKER][RELOCALIZE] attempt: frame=1105 lost_count=34 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1105 lost_count=34 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1105 mode=lost success=False score=0.000 valid=228546 time=62.56ms fps=12.86
+[TRACKER][TRACKING] frame=1108 mode=lost success=False score=0.000 valid=225790 time=6.74ms fps=12.86
+[RENDER][STATUS] tracking={'frame_id': 1108, 'mode': 'lost', 'success': False, 'score': 0.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 226, 'last_frame_id': 1020, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.682900002080714, 'gate_ms': 0.012799999240087345, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.198899998504203, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 226, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[TRACKER][RELOCALIZE] attempt: frame=1110 lost_count=36 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1110 lost_count=36 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1110 mode=lost success=False score=0.000 valid=229223 time=63.64ms fps=12.86
+[TRACKER][TRACKING] frame=1113 mode=lost success=False score=0.000 valid=225564 time=6.84ms fps=12.86
+[TRACKER][RELOCALIZE] attempt: frame=1115 lost_count=38 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1115 lost_count=38 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1115 mode=lost success=False score=0.000 valid=228477 time=62.20ms fps=12.86
+[TRACKER][TRACKING] frame=1118 mode=lost success=False score=0.000 valid=228634 time=6.68ms fps=12.86
+[TRACKER][RELOCALIZE] attempt: frame=1120 lost_count=40 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1120 lost_count=40 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1120 mode=lost success=False score=0.000 valid=228657 time=61.42ms fps=12.86
+[TRACKER][TRACKING] frame=1122 mode=lost success=False score=0.000 valid=228926 time=6.34ms fps=12.86
+[TRACKER][RELOCALIZE] attempt: frame=1125 lost_count=42 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1125 lost_count=42 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1125 mode=lost success=False score=0.000 valid=241244 time=61.33ms fps=12.86
+[TRACKER][TRACKING] frame=1128 mode=lost success=False score=0.000 valid=237728 time=7.76ms fps=12.86
+[TRACKER][RELOCALIZE] attempt: frame=1130 lost_count=44 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1130 lost_count=44 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1130 mode=lost success=False score=0.000 valid=232927 time=62.10ms fps=12.86
+[TRACKER][TRACKING] frame=1133 mode=lost success=False score=0.000 valid=237551 time=6.43ms fps=11.88
+[TRACKER][RELOCALIZE] attempt: frame=1135 lost_count=46 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1135 lost_count=46 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1135 mode=lost success=False score=0.000 valid=244445 time=60.67ms fps=11.88
+[TRACKER][TRACKING] frame=1138 mode=lost success=False score=0.000 valid=239974 time=7.19ms fps=11.88
+[TRACKER][RELOCALIZE] attempt: frame=1141 lost_count=48 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1141 lost_count=48 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1141 mode=lost success=False score=0.000 valid=229236 time=63.92ms fps=11.88
+[TRACKER][TRACKING] frame=1143 mode=lost success=False score=0.000 valid=235237 time=7.09ms fps=11.88
+[TRACKER][RELOCALIZE] attempt: frame=1146 lost_count=50 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1146 lost_count=50 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1146 mode=lost success=False score=0.000 valid=234438 time=64.78ms fps=11.88
+[TRACKER][TRACKING] frame=1148 mode=lost success=False score=0.000 valid=231835 time=6.42ms fps=11.88
+[TRACKER][RELOCALIZE] attempt: frame=1151 lost_count=52 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1151 lost_count=52 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1151 mode=lost success=False score=0.000 valid=233287 time=73.58ms fps=11.88
+[TRACKER][TRACKING] frame=1153 mode=lost success=False score=0.000 valid=233094 time=6.89ms fps=11.88
+[TRACKER][RELOCALIZE] attempt: frame=1156 lost_count=54 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1156 lost_count=54 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1156 mode=lost success=False score=0.000 valid=239726 time=74.92ms fps=11.88
+[TRACKER][TRACKING] frame=1158 mode=lost success=False score=0.000 valid=234238 time=7.64ms fps=11.88
+[TRACKER][RELOCALIZE] attempt: frame=1161 lost_count=56 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1161 lost_count=56 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1161 mode=lost success=False score=0.000 valid=234770 time=72.96ms fps=10.96
+[TRACKER][TRACKING] frame=1163 mode=lost success=False score=0.000 valid=239075 time=7.31ms fps=10.96
+[TRACKER][RELOCALIZE] attempt: frame=1166 lost_count=58 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1166 lost_count=58 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1166 mode=lost success=False score=0.000 valid=236935 time=65.87ms fps=10.96
+[TRACKER][TRACKING] frame=1168 mode=lost success=False score=0.000 valid=233582 time=6.39ms fps=10.96
+[TRACKER][RELOCALIZE] attempt: frame=1171 lost_count=60 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1171 lost_count=60 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1171 mode=lost success=False score=0.000 valid=233246 time=66.03ms fps=10.96
+[TRACKER][TRACKING] frame=1173 mode=lost success=False score=0.000 valid=233184 time=6.98ms fps=10.96
+[TRACKER][RELOCALIZE] attempt: frame=1176 lost_count=62 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1176 lost_count=62 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1176 mode=lost success=False score=0.000 valid=233429 time=62.58ms fps=10.96
+[TRACKER][TRACKING] frame=1178 mode=lost success=False score=0.000 valid=232263 time=6.59ms fps=10.96
+[TRACKER][RELOCALIZE] attempt: frame=1180 lost_count=64 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1180 lost_count=64 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1180 mode=lost success=False score=0.000 valid=231606 time=62.66ms fps=10.96
+[TRACKER][TRACKING] frame=1183 mode=lost success=False score=0.000 valid=232284 time=6.60ms fps=10.96
+[RENDER][STATUS] tracking={'frame_id': 1183, 'mode': 'lost', 'success': False, 'score': 0.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 226, 'last_frame_id': 1020, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.682900002080714, 'gate_ms': 0.012799999240087345, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.198899998504203, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 226, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[TRACKER][RELOCALIZE] attempt: frame=1185 lost_count=66 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1185 lost_count=66 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1185 mode=lost success=False score=0.000 valid=233905 time=64.50ms fps=10.96
+[TRACKER][TRACKING] frame=1187 mode=lost success=False score=0.000 valid=233440 time=7.03ms fps=10.96
+[TRACKER][RELOCALIZE] attempt: frame=1190 lost_count=68 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1190 lost_count=68 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1190 mode=lost success=False score=0.000 valid=232050 time=63.52ms fps=10.96
+[TRACKER][TRACKING] frame=1192 mode=lost success=False score=0.000 valid=232969 time=7.05ms fps=10.96
+[TRACKER][RELOCALIZE] attempt: frame=1194 lost_count=70 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1194 lost_count=70 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1194 mode=lost success=False score=0.000 valid=231778 time=62.02ms fps=12.49
+[TRACKER][TRACKING] frame=1197 mode=lost success=False score=0.000 valid=231867 time=7.09ms fps=12.49
+[TRACKER][RELOCALIZE] attempt: frame=1199 lost_count=72 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1199 lost_count=72 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1199 mode=lost success=False score=0.000 valid=232453 time=64.35ms fps=12.49
+[TRACKER][TRACKING] frame=1202 mode=lost success=False score=0.000 valid=231681 time=6.77ms fps=12.49
+[TRACKER][RELOCALIZE] attempt: frame=1204 lost_count=74 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1204 lost_count=74 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1204 mode=lost success=False score=0.000 valid=230655 time=81.17ms fps=12.49
+[TRACKER][TRACKING] frame=1206 mode=lost success=False score=0.000 valid=231420 time=7.12ms fps=12.49
+[TRACKER][RELOCALIZE] attempt: frame=1209 lost_count=76 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1209 lost_count=76 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1209 mode=lost success=False score=0.000 valid=232316 time=67.86ms fps=12.49
+[TRACKER][TRACKING] frame=1212 mode=lost success=False score=0.000 valid=232114 time=7.13ms fps=12.49
+[TRACKER][RELOCALIZE] attempt: frame=1214 lost_count=78 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1214 lost_count=78 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1214 mode=lost success=False score=0.000 valid=232561 time=66.78ms fps=12.49
+[TRACKER][TRACKING] frame=1216 mode=lost success=False score=0.000 valid=232840 time=6.77ms fps=12.49
+[TRACKER][RELOCALIZE] attempt: frame=1219 lost_count=80 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1219 lost_count=80 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1219 mode=lost success=False score=0.000 valid=230667 time=62.12ms fps=12.49
+[TRACKER][TRACKING] frame=1221 mode=lost success=False score=0.000 valid=230860 time=6.67ms fps=12.49
+[TRACKER][RELOCALIZE] attempt: frame=1224 lost_count=82 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1224 lost_count=82 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1224 mode=lost success=False score=0.000 valid=231482 time=62.85ms fps=12.49
+[TRACKER][TRACKING] frame=1226 mode=lost success=False score=0.000 valid=231380 time=6.83ms fps=12.76
+[TRACKER][RELOCALIZE] attempt: frame=1229 lost_count=84 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1229 lost_count=84 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1229 mode=lost success=False score=0.000 valid=230746 time=61.62ms fps=12.76
+[TRACKER][TRACKING] frame=1231 mode=lost success=False score=0.000 valid=231247 time=6.86ms fps=12.76
+[TRACKER][RELOCALIZE] attempt: frame=1233 lost_count=86 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1233 lost_count=86 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1233 mode=lost success=False score=0.000 valid=231530 time=64.56ms fps=12.76
+[TRACKER][TRACKING] frame=1236 mode=lost success=False score=0.000 valid=231675 time=6.24ms fps=12.76
+[TRACKER][RELOCALIZE] attempt: frame=1238 lost_count=88 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1238 lost_count=88 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1238 mode=lost success=False score=0.000 valid=231483 time=62.47ms fps=12.76
+[TRACKER][TRACKING] tracking lost: frame=1240 lost_count=90 reason=lost_relocalize_wait:89. Mapping paused. Move camera slowly back to a previously mapped area.
+[TRACKER][TRACKING] frame=1240 mode=lost success=False score=0.000 valid=232800 time=6.86ms fps=12.76
+[TRACKER][RELOCALIZE] attempt: frame=1243 lost_count=90 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1243 lost_count=90 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1243 mode=lost success=False score=0.000 valid=230726 time=62.40ms fps=12.76
+[TRACKER][TRACKING] frame=1245 mode=lost success=False score=0.000 valid=230799 time=6.41ms fps=12.76
+[TRACKER][RELOCALIZE] attempt: frame=1247 lost_count=92 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1247 lost_count=92 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1247 mode=lost success=False score=0.000 valid=230643 time=62.85ms fps=12.76
+[TRACKER][TRACKING] frame=1250 mode=lost success=False score=0.000 valid=231608 time=6.44ms fps=12.76
+[TRACKER][RELOCALIZE] attempt: frame=1252 lost_count=94 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1252 lost_count=94 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1252 mode=lost success=False score=0.000 valid=231149 time=63.45ms fps=12.76
+[TRACKER][TRACKING] frame=1255 mode=lost success=False score=0.000 valid=232932 time=6.61ms fps=12.76
+[RENDER][STATUS] tracking={'frame_id': 1255, 'mode': 'lost', 'success': False, 'score': 0.0}, map={'integrated': False, 'integrated_frames': 99, 'total_packets': 226, 'last_frame_id': 1020, 'mesh_vertex_count': 34477, 'mesh_updated': False, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}, 'profile': {'preprocess_ms': 4.682900002080714, 'gate_ms': 0.012799999240087345, 'integrate_ms': 0.0, 'extract_mesh_ms': 0.0, 'normal_ms': 0.0, 'total_ms': 5.198899998504203, 'do_integrate': False, 'mesh_updated': False, 'mesh_vertices': 34477, 'extracted_vertices': 0, 'integrated_frames': 99, 'total_packets': 226, 'pose_gate_info': {'reason': 'mapping_pose_jump', 'trans': 0.7120491149813493, 'rot_deg': 13.804258429894473, 'max_trans': 0.08, 'max_rot_deg': 12.0}}}
+[TRACKER][RELOCALIZE] attempt: frame=1257 lost_count=96 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1257 lost_count=96 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1257 mode=lost success=False score=0.000 valid=232956 time=69.24ms fps=11.85
+[TRACKER][TRACKING] frame=1259 mode=lost success=False score=0.000 valid=232977 time=6.83ms fps=11.85
+[TRACKER][RELOCALIZE] attempt: frame=1262 lost_count=98 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1262 lost_count=98 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1262 mode=lost success=False score=0.000 valid=232734 time=71.74ms fps=11.85
+[TRACKER][TRACKING] frame=1264 mode=lost success=False score=0.000 valid=231735 time=7.55ms fps=11.85
+[TRACKER][RELOCALIZE] attempt: frame=1267 lost_count=100 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1267 lost_count=100 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1267 mode=lost success=False score=0.000 valid=232153 time=63.02ms fps=11.85
+[TRACKER][TRACKING] frame=1269 mode=lost success=False score=0.000 valid=233268 time=6.86ms fps=11.85
+[TRACKER][RELOCALIZE] attempt: frame=1272 lost_count=102 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1272 lost_count=102 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1272 mode=lost success=False score=0.000 valid=232470 time=64.19ms fps=11.85
+[TRACKER][TRACKING] frame=1274 mode=lost success=False score=0.000 valid=231941 time=7.20ms fps=11.85
+[TRACKER][RELOCALIZE] attempt: frame=1277 lost_count=104 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1277 lost_count=104 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1277 mode=lost success=False score=0.000 valid=232589 time=64.32ms fps=11.85
+[TRACKER][TRACKING] frame=1279 mode=lost success=False score=0.000 valid=232743 time=7.30ms fps=11.85
+[TRACKER][RELOCALIZE] attempt: frame=1281 lost_count=106 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1281 lost_count=106 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1281 mode=lost success=False score=0.000 valid=232723 time=67.29ms fps=11.85
+[TRACKER][TRACKING] frame=1284 mode=lost success=False score=0.000 valid=232888 time=6.98ms fps=11.85
+[TRACKER][RELOCALIZE] attempt: frame=1286 lost_count=108 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1286 lost_count=108 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1286 mode=lost success=False score=0.000 valid=232366 time=66.86ms fps=11.85
+[TRACKER][TRACKING] frame=1289 mode=lost success=False score=0.000 valid=231248 time=6.59ms fps=12.99
+[TRACKER][RELOCALIZE] attempt: frame=1291 lost_count=110 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1291 lost_count=110 status=try_full_map target_points=29621 reason=ok
+[TRACKER][TRACKING] frame=1291 mode=lost success=False score=0.000 valid=232035 time=66.68ms fps=12.99
+[TRACKER][TRACKING] frame=1293 mode=lost success=False score=0.000 valid=233336 time=7.12ms fps=12.99
+[RENDER][STATUS] window closed, stopping pipeline
+[TRACKER][RELOCALIZE] attempt: frame=1296 lost_count=112 status=try target_points=29584 reason=ok
+[TRACKER][RELOCALIZE] attempt: frame=1296 lost_count=112 status=try_full_map target_points=29621 reason=ok
+[MAPPER][STATUS] stopped
+[TRACKER][TRACKING] frame=1296 mode=lost success=False score=0.000 valid=231957 time=67.51ms fps=12.99
+[TRACKER][STATUS] stopped
+[RENDER][STATUS] closed
+
+清理SDK资源...
+✅ 流已停止
+✅ 流已销毁
+✅ 设备已关闭
+✅ OpenNI SDK已关闭
+✅ 所有SDK资源已清理
+[PIPELINE][STATUS] Input timestamp info: {'timestamp_unit': 'us', 'last_raw_ts': 43626505, 'last_norm_ts': 43.626505}
+[PIPELINE][STATUS] Tracking stats: {'processed_frames': 525, 'pushed_to_mapping': 226, 'failed_frames': 113, 'last_frame_id': 1296, 'fps': 12.990130099136312, 'last_error': None, 'last_error_frame_id': None}
+[PIPELINE][STATUS] Mapping stats: {'processed_packets': 226, 'failed_packets': 0, 'last_frame_id': 1020, 'fps': 6.9299198000519455, 'integrated_frames': 99, 'last_error': None, 'last_error_frame_id': None}
+[Open3D WARNING] Write OBJ can not include triangle normals.
+[MAPPER][SAVE] 模型历史版: H:\School assessment\Design\ALL\pointcloud2mesh\model\fusion_model_final_20260515_152641.obj
+[MAPPER][SAVE] 模型最新版: H:\School assessment\Design\ALL\pointcloud2mesh\model\fusion_model_final.obj
+[PIPELINE][STATUS] stopped
+[PIPELINE][STATUS] Log file: H:\School assessment\Design\ALL\pointcloud2mesh\log\log_20260515_152557.txt

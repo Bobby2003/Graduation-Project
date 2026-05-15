@@ -1,0 +1,63 @@
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+*.conda/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials*.json
+
+# IDE / OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs / profiling
+*.log
+logs/
+pointcloud2mesh/logs/
+Pointcloud2mesh/logs/
+*.prof
+
+# Runtime model outputs
+Pointcloud2mesh/model/
+Meshfix/outputs_realtime/
+Material/outputs/
+
+# Center service runtime state
+outputs_online/
+outputs_realtime/
+center_outputs/
+latest_metadata*.json
+service_state*.json
+
+# Local sensor captures / large raw data
+captures/
+recordings/
+local_data/
+datasets/local/
+
+# Keep source dependency files tracked
+!requirements.txt
+!**/requirements.txt

@@ -1,0 +1,10 @@
+numpy
+scipy
+trimesh
+open3d
+pymeshfix
+networkx
+pyvista
+shapely
+rtree
+pyglet
