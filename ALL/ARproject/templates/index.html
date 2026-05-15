@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>主网关 - AR REALM</title>
+    <!-- 引入科幻字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        body {
+            margin: 0;
+            background: #050608;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            padding-bottom: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: radial-gradient(circle at center, #10141d 0%, #050608 100%);
+            overflow-x: hidden;
+        }
+
+        /* 登录网关主控面板 */
+        .gateway-box {
+            text-align: center;
+            max-width: 600px;
+            background: rgba(10, 15, 25, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 60px 80px;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 95% 100%, 0 100%);
+            box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.05);
+            transition: 0.3s;
+        }
+
+        .gateway-box:hover {
+            box-shadow: inset 0 0 50px rgba(0, 242, 255, 0.1);
+            border-color: rgba(0, 242, 255, 0.5);
+        }
+
+        h1 {
+            color: #00f2ff;
+            font-family: 'Syncopate', sans-serif;
+            margin-bottom: 5px;
+            font-size: 3.5rem;
+            letter-spacing: 5px;
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.6);
+        }
+
+        .subtitle {
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            margin-bottom: 50px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .action-btns {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .access-sub {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 28px;
+            width: 100%;
+        }
+
+        .access-sub .control-mode-switcher {
+            justify-content: center;
+        }
+
+        .sub-btn {
+            padding: 10px 22px;
+            font-family: 'Syncopate', sans-serif;
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 2px;
+            border: 1px solid rgba(0, 242, 255, 0.35);
+            color: rgba(0, 242, 255, 0.85);
+            transition: 0.3s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .sub-btn:hover, .sub-btn.ar-hover {
+            background: rgba(0, 242, 255, 0.12);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.25);
+        }
+
+        .btn-link {
+            padding: 15px 40px;
+            font-family: 'Syncopate', sans-serif;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: 0.3s;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        /* 主按钮样式与 AR 悬停高亮 */
+        .btn-primary {
+            background: rgba(0, 242, 255, 0.05);
+            color: #00f2ff;
+            border: 2px solid #00f2ff;
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+        }
+
+        .btn-primary:hover, .btn-primary.ar-hover {
+            background: #00f2ff;
+            color: #000;
+            box-shadow: 0 0 25px #00f2ff;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #444;
+            color: #888;
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+        }
+
+        .btn-secondary:hover, .btn-secondary.ar-hover {
+            border-color: #fff;
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .btn-danger {
+            background: rgba(255, 62, 62, 0.05);
+            border: 2px solid #ff3e3e;
+            color: #ff3e3e;
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+        }
+
+        .btn-danger:hover, .btn-danger.ar-hover {
+            background: #ff3e3e;
+            color: #fff;
+            box-shadow: 0 0 25px #ff3e3e;
+        }
+
+        /* 神经连接状态指示器 */
+        #gesture-status-text {
+            position: fixed;
+            top: 25px;
+            right: 35px;
+            color: #00f2ff;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            letter-spacing: 2px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- AR 状态指示器 -->
+    <div id="gesture-status-text">CONNECTING...</div>
+
+    <!-- 核心面板 -->
+    <div class="gateway-box">
+        <h1>AR REALM</h1>
+        <div class="subtitle">现 实 重 构 · 虚 拟 位 面 · 同 一 绿 洲</div>
+        <p style="max-width:520px;margin:-36px auto 40px;font-size:13px;line-height:1.7;color:#666;">
+            将现实房间重构为可玩场景的 AR/VR 平台原型：桌面位面 / 现实覆写 / VR 神经接入，多模式进入同一世界。
+        </p>
+
+        <div class="action-btns">
+            {% if user.is_authenticated %}
+                <a href="{% url 'realm' %}" class="btn-link btn-primary">进入绿洲 (REALM)</a>
+                <a href="{% url 'dashboard' %}" class="btn-link btn-secondary">个人终端 (HUD)</a>
+                <a href="{% url 'logout' %}" class="btn-link btn-danger">断开连接</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn-link btn-primary">系统登录</a>
+                <a href="{% url 'register' %}" class="btn-link btn-secondary">创建玩家身份</a>
+            {% endif %}
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="access-sub">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨ 桌面</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐 AR 手势</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽 VR</button>
+            </div>
+            <a href="{% url 'realm' %}?mode=desktop" class="sub-btn">DESKTOP REALM · 桌面位面</a>
+            <a href="{% url 'realm' %}?mode=gesture" class="sub-btn">REALITY OVERRIDE · 现实覆写</a>
+            <a href="{% url 'realm' %}?mode=vr" class="sub-btn">VR LINK · 神经接入</a>
+            <a href="{% url 'training' %}" class="sub-btn">TRAINING GROUND · 接入训练</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer style="position:fixed;bottom:0;left:0;right:0;padding:14px;text-align:center;font-size:11px;color:#444;background:rgba(5,6,8,0.85);border-top:1px solid rgba(255,255,255,0.06);">
+        <a href="{% url 'privacy' %}" style="color:#555;text-decoration:none;margin:0 10px;">隐私</a>
+        <a href="{% url 'terms' %}" style="color:#555;text-decoration:none;margin:0 10px;">协议</a>
+        <a href="{% url 'security' %}" style="color:#555;text-decoration:none;margin:0 10px;">安全</a>
+        <a href="{% url 'disclaimer' %}" style="color:#555;text-decoration:none;margin:0 10px;">免责</a>
+    </footer>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+</body>
+</html>

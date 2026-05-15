@@ -108,7 +108,9 @@ class IMUConfig:
     """
 
     enable_world_init: bool = True
-    required: bool = True
+    # False: missing/wrong COM or timeout → identity world pose, tracking can still run.
+    # True: fail startup of world alignment if IMU sample is unavailable (strict rigs).
+    required: bool = False
 
     # 串口通信参数，对应通信协议中的 0x7E 0x23 帧。
     serial_port: str = "COM7"

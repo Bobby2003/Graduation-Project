@@ -1,0 +1,436 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DESKTOP REALM | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --purple: #bc00ff;
+            --green: #00ff88;
+            --red: #ff3e3e;
+            --bg: #050608;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: var(--bg);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        #realm-canvas-root {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+        #realm-canvas-root canvas {
+            display: block;
+            outline: none;
+        }
+        .realm-viewport {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        .world-grid { display: none; }
+        .crosshair {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 28px;
+            height: 28px;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(0, 242, 255, 0.45);
+            border-radius: 50%;
+            z-index: 15;
+            pointer-events: none;
+        }
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: var(--neon);
+        }
+        .crosshair::before {
+            width: 2px;
+            height: 8px;
+            left: 50%;
+            top: -12px;
+            transform: translateX(-50%);
+        }
+        .crosshair::after {
+            width: 8px;
+            height: 2px;
+            left: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 44px 0 0 var(--neon);
+        }
+        .hud-top {
+            position: absolute;
+            top: 16px;
+            left: 24px;
+            right: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+            z-index: 40;
+            pointer-events: none;
+        }
+        .hud-top > * { pointer-events: auto; }
+        .realm-title {
+            font-family: 'Syncopate', sans-serif;
+            color: var(--neon);
+            letter-spacing: 3px;
+            font-size: 16px;
+        }
+        .hud-top-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .mode-indicator {
+            border: 1px solid var(--purple);
+            color: var(--purple);
+            padding: 6px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            background: rgba(188, 0, 255, 0.08);
+        }
+        .link-exit {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            color: #888;
+            text-decoration: none;
+            letter-spacing: 2px;
+            border: 1px solid #444;
+            padding: 6px 12px;
+        }
+        .link-exit:hover { color: var(--neon); border-color: var(--neon); }
+        .realm-3d-hud {
+            position: absolute;
+            top: 72px;
+            left: 24px;
+            z-index: 35;
+            padding: 12px 16px;
+            background: rgba(5, 8, 12, 0.82);
+            border: 1px solid rgba(0, 242, 255, 0.22);
+            backdrop-filter: blur(8px);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.8;
+            pointer-events: none;
+        }
+        .realm-3d-hud span { color: var(--neon); }
+        #realm-debug-hud {
+            display: none;
+            position: absolute;
+            top: 200px;
+            left: 24px;
+            z-index: 36;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.78);
+            border: 1px solid rgba(0, 255, 136, 0.35);
+            font-family: 'Rajdhani', monospace;
+            font-size: 11px;
+            color: #9fdfb0;
+            pointer-events: none;
+            max-width: min(520px, 92vw);
+            white-space: pre-wrap;
+            line-height: 1.45;
+        }
+        #realm-debug-hud.visible { display: block; }
+        .hud-left {
+            position: absolute;
+            left: 24px;
+            bottom: 200px;
+            width: 260px;
+            padding: 16px;
+            background: rgba(5, 8, 12, 0.78);
+            border: 1px solid rgba(0, 242, 255, 0.22);
+            backdrop-filter: blur(8px);
+            z-index: 35;
+        }
+        .player-name {
+            font-family: 'Syncopate', sans-serif;
+            color: var(--neon);
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        .bar {
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .bar span { display: block; height: 100%; }
+        .hp span { width: 86%; background: var(--green); }
+        .energy span { width: 64%; background: var(--purple); }
+        .hud-right {
+            position: absolute;
+            right: 24px;
+            top: 100px;
+            width: 280px;
+            padding: 16px;
+            background: rgba(5, 8, 12, 0.78);
+            border: 1px solid rgba(188, 0, 255, 0.22);
+            backdrop-filter: blur(8px);
+            z-index: 35;
+        }
+        .panel-title {
+            font-family: 'Syncopate', sans-serif;
+            color: var(--purple);
+            font-size: 11px;
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+        }
+        .mission-item {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        .realm-dock {
+            position: absolute;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 45;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            max-width: 98vw;
+            pointer-events: auto;
+        }
+        .dock-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            background: rgba(5, 8, 14, 0.82);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 24px rgba(0, 242, 255, 0.08);
+        }
+        .more-protocols.collapsed {
+            display: none;
+        }
+        .material-btn,
+        .dock-more-btn,
+        .dock-save-btn,
+        .dock-link {
+            padding: 8px 14px;
+            border: 1px solid rgba(0, 242, 255, 0.25);
+            background: rgba(0, 242, 255, 0.04);
+            color: #9eefff;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: 0.25s ease;
+        }
+        .material-btn:hover,
+        .dock-more-btn:hover,
+        .dock-save-btn:hover,
+        .dock-link:hover {
+            border-color: #00f2ff;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(0, 242, 255, 0.35);
+        }
+        .material-btn.active {
+            background: rgba(0, 242, 255, 0.18);
+            border-color: #00f2ff;
+            color: #fff;
+            box-shadow: 0 0 18px rgba(0, 242, 255, 0.45);
+        }
+        .dock-save-btn {
+            border-color: rgba(0, 255, 136, 0.4);
+            color: #00ff88;
+        }
+        .dock-save-btn:hover {
+            border-color: #00ff88;
+            box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+        }
+        .dock-link {
+            color: #666;
+        }
+        .dock-link:hover {
+            color: #00f2ff;
+        }
+        .control-help {
+            position: absolute;
+            left: 50%;
+            bottom: 128px;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.45);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-align: center;
+            z-index: 35;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <form style="display:none;" id="realm-csrf-form">{% csrf_token %}</form>
+    <script type="application/json" id="realm-private-json">{{ private_realm_json }}</script>
+    <script>
+        (function () {
+            var el = document.getElementById('realm-private-json');
+            var realm = {};
+            try { realm = JSON.parse(el.textContent); } catch (e) {}
+            window.REALM_BOOTSTRAP = {
+                mode: "realm",
+                debugAllowed: {{ debug_allowed|yesno:"true,false" }},
+                user: {
+                    username: "{{ user.username|escapejs }}",
+                    title: "{{ profile.display_title|escapejs }}"
+                },
+                realm: realm,
+                urls: {
+                    saveRealm: "{% url 'realm_save_api' %}",
+                    progressEvent: "{% url 'progress_event_api' %}",
+                    centerStart: "{% url 'center_start_api' %}",
+                    centerStop: "{% url 'center_stop_api' %}",
+                    centerStatus: "{% url 'center_status_api' %}",
+                    centerLatestMesh: "{% url 'center_latest_mesh_api' %}",
+                }
+            };
+        })();
+    </script>
+
+    <div class="realm-viewport">
+        <div id="realm-canvas-root" aria-label="Desktop Realm 3D viewport"></div>
+
+        <div class="hud-top">
+            <div class="realm-title">AR REALM // DESKTOP REALM</div>
+            <div class="hud-top-right">
+                <div class="control-mode-switcher">
+                    <button type="button" class="mode-btn" data-mode="desktop" title="DESKTOP REALM · 桌面位面">⌨ 桌面</button>
+                    <button type="button" class="mode-btn" data-mode="gesture" title="REALITY OVERRIDE · 现实覆写">🖐 AR</button>
+                    <button type="button" class="mode-btn" data-mode="vr" title="VR LINK · 神经接入">🥽 VR</button>
+                </div>
+                <div class="mode-indicator" id="mode-indicator">CONTROL: DESKTOP REALM</div>
+                <a href="{% url 'dashboard' %}" class="link-exit">◄ 返回终端</a>
+            </div>
+        </div>
+
+        <div class="realm-3d-hud">
+            <div>PRIVATE REALM // <span>{{ user.username|upper }}</span></div>
+            <div id="realm-hud-room">ROOM: —</div>
+            <div id="realm-hud-material">MATERIAL: —</div>
+            <div id="realm-hud-lighting">LIGHTING: —</div>
+        </div>
+
+        <div class="realm-center-panel" id="center-realtime-panel" style="position:absolute;top:200px;right:24px;z-index:38;padding:10px 14px;background:rgba(5,8,12,0.88);border:1px solid rgba(0,242,255,0.28);backdrop-filter:blur(8px);font-family:Syncopate,sans-serif;font-size:9px;letter-spacing:1px;pointer-events:auto;max-width:min(360px,92vw);">
+            <div style="color:rgba(0,242,255,0.85);margin-bottom:8px;">CENTER PIPELINE · MEMORY MESH</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;">
+                <button type="button" id="center-start-btn" style="cursor:pointer;padding:6px 10px;font-size:10px;background:#002a33;color:#00f2ff;border:1px solid #00f2ff;">START</button>
+                <button type="button" id="center-stop-btn" style="cursor:pointer;padding:6px 10px;font-size:10px;background:#220011;color:#ff88aa;border:1px solid #ff88aa;">STOP</button>
+            </div>
+            <div id="center-realtime-status" style="color:#aaa;font-size:10px;line-height:1.5;font-family:Rajdhani,sans-serif;">CENTER: IDLE</div>
+        </div>
+
+        <div id="realm-debug-hud" aria-hidden="true"></div>
+
+        <div class="crosshair"></div>
+
+        <div class="hud-left">
+            <div class="player-name">{{ user.username }}</div>
+            <div class="bar hp"><span></span></div>
+            <div class="bar energy"><span></span></div>
+            <div style="font-size: 11px; color: #666; margin-top: 4px;">{{ profile.display_title }}</div>
+            <div style="font-size: 12px; color: #666;">LV.{{ profile.level }} // REALM WALKER</div>
+            <div id="realm-hud-scan" style="font-size: 11px; color: #00ff88; margin-top: 10px; letter-spacing: 1px;">SCAN: —</div>
+            <div id="realm-hud-ghost-legend" style="display:none;font-size:10px;color:rgba(0,242,255,0.65);margin-top:6px;letter-spacing:0.5px;line-height:1.45;max-width:260px;"></div>
+        </div>
+
+        <div class="hud-right">
+            <div class="panel-title">ACTIVE QUEST</div>
+            {% for m in realm_quests %}
+            <div class="mission-item">▸ {{ m.title }}</div>
+            {% empty %}
+            <div class="mission-item">▸ 暂无主线任务（请 seed）</div>
+            {% endfor %}
+        </div>
+
+        <div class="control-help">
+            点击画布锁定鼠标 · WASD 移动 · 1–8 快速切换协议 · Esc 解锁
+        </div>
+
+        <div class="realm-dock">
+            <div class="dock-row dock-row-main">
+                <button type="button" class="material-btn" data-material="cyber_neon">赛博</button>
+                <button type="button" class="material-btn" data-material="wasteland_rust">废土</button>
+                <button type="button" class="material-btn" data-material="starship_alloy">星舰</button>
+                <button type="button" class="material-btn" data-material="magic_stone">魔法</button>
+                <button type="button" class="dock-more-btn" id="toggle-more-protocols">MORE PROTOCOLS ▾</button>
+                <button type="button" class="dock-save-btn" id="save-realm-btn">保存位面</button>
+                <a class="dock-link" href="{% url 'material_library' %}">材质库 →</a>
+                <a class="dock-link" href="{% url 'reality_override' %}">现实覆写 →</a>
+                <a class="dock-link" href="{% url 'my_realm' %}">我的位面 →</a>
+            </div>
+            <div id="more-protocols-row" class="dock-row more-protocols collapsed">
+                <button type="button" class="material-btn" data-material="forest_temple">森林</button>
+                <button type="button" class="material-btn" data-material="deep_sea">深海</button>
+                <button type="button" class="material-btn" data-material="pixel_retro">像素</button>
+                <button type="button" class="material-btn" data-material="hacker_matrix">矩阵</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}"></script>
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+    <script>
+        (function () {
+            var ind = document.getElementById('mode-indicator');
+            window.addEventListener('realm-action', function (e) {
+                var d = e.detail;
+                if (!d) return;
+                var MODE_UI = {
+                    desktop: 'DESKTOP REALM',
+                    gesture: 'REALITY OVERRIDE',
+                    vr: 'VR LINK'
+                };
+                if (d.action === 'control-mode-changed' && ind) {
+                    var label = MODE_UI[d.mode] || String(d.mode).toUpperCase();
+                    ind.textContent = 'CONTROL: ' + label;
+                }
+                if (d.action === 'material-protocol-changed') {
+                    console.log('[REALM] material protocol:', d.material);
+                }
+            });
+            function applyQueryMode() {
+                var q = new URLSearchParams(location.search).get('mode');
+                if (q && window.ARRealmControls && ['desktop', 'gesture', 'vr'].indexOf(q) >= 0) {
+                    window.ARRealmControls.setMode(q);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', applyQueryMode);
+            } else {
+                requestAnimationFrame(applyQueryMode);
+            }
+        })();
+    </script>
+</body>
+</html>

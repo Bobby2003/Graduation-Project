@@ -1,0 +1,86 @@
+{% extends "portal_shell.html" %}
+{% load static %}
+{% block doc_title %}DEPTH SCAN IMPORT TESTER | AR REALM{% endblock %}
+{% block page_title %}DEPTH SCAN IMPORT TESTER{% endblock %}
+{% block extra_css %}
+<style>
+    .depth-import-panel { max-width: 720px; }
+    .depth-import-panel textarea {
+        width: 100%;
+        min-height: 280px;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 12px;
+        background: #0a0e14;
+        color: #c8d0d8;
+        border: 1px solid rgba(0, 242, 255, 0.25);
+        padding: 12px;
+        box-sizing: border-box;
+    }
+    .depth-import-panel .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 14px 0;
+    }
+    .depth-import-panel button {
+        font-family: 'Syncopate', sans-serif;
+        font-size: 9px;
+        letter-spacing: 1px;
+        padding: 10px 16px;
+        cursor: pointer;
+        border: 1px solid rgba(0, 242, 255, 0.5);
+        background: rgba(0, 242, 255, 0.1);
+        color: #fff;
+    }
+    .depth-import-panel a.btn-realm {
+        display: inline-block;
+        padding: 10px 16px;
+        font-family: 'Syncopate', sans-serif;
+        font-size: 9px;
+        letter-spacing: 1px;
+        text-decoration: none;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        background: rgba(0, 255, 136, 0.08);
+    }
+    #depth-import-result {
+        margin-top: 16px;
+        padding: 14px;
+        background: #080a0c;
+        border: 1px solid #333;
+        color: #9a0;
+        font-size: 11px;
+        overflow-x: auto;
+        max-height: 360px;
+    }
+</style>
+{% endblock %}
+{% block doc %}
+<form style="display:none;">{% csrf_token %}</form>
+<div class="doc-panel depth-import-panel">
+    <h2 style="margin-top:0;">DEPTH SCAN IMPORT TESTER</h2>
+    <p style="color:#888;font-size:14px;line-height:1.7;">
+        Paste a <code>metric_room</code> payload for <code>POST /api/depth-scan/import/</code>.
+        This page is only available when <strong>DEBUG=True</strong> or for <strong>staff</strong> users.
+        See the repository file <code style="color:#00f2ff;">docs/REALITY_SCAN_SCHEMA.md</code> for the full schema.
+    </p>
+    <textarea id="depth-scan-json" spellcheck="false" aria-label="Depth scan JSON"></textarea>
+    <div class="actions">
+        <button type="button" id="load-sample-depth-scan">LOAD SAMPLE</button>
+        <button type="button" id="import-depth-scan">IMPORT DEPTH SCAN</button>
+        <button type="button" id="clear-reality-scan-tester-btn" style="border-color:rgba(255,100,100,0.5);color:#faa;">CLEAR SCAN DATA</button>
+        <a href="{% url 'realm' %}" class="btn-realm">ENTER REALM</a>
+        <a href="{% url 'my_realm' %}" style="font-size:12px;color:#666;margin-left:8px;align-self:center;">VIEW MY REALM →</a>
+    </div>
+    <pre id="depth-import-result">// Response will appear here</pre>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+window.DEPTH_SCAN_TESTER_BOOTSTRAP = {
+    importUrl: "{% url 'depth_scan_import_api' %}",
+    clearUrl: "{% url 'reality_scan_clear_api' %}",
+};
+</script>
+<script src="{% static 'js/depth-scan-tester.js' %}"></script>
+{% endblock %}

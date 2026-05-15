@@ -1,0 +1,819 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SETTINGS | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --green: #00ff88;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at center, #0a111a 0%, #050608 100%);
+        }
+
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #666;
+            color: #888;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+        .btn-return:hover, .btn-return.ar-hover {
+            border-color: #fff;
+            color: #fff;
+        }
+
+        .page-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            color: #fff;
+            letter-spacing: 4px;
+        }
+
+        /* 设置容器 */
+        .settings-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 30px 60px;
+        }
+
+        /* 设置分组 */
+        .settings-group {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 25px;
+        }
+
+        .group-header {
+            padding: 20px 25px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .group-icon {
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .group-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 13px;
+            letter-spacing: 3px;
+        }
+        .group-desc {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        /* 设置项 */
+        .setting-item {
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .setting-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+        .setting-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+        .setting-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 开关控件 */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: #666;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: rgba(0, 242, 255, 0.3);
+            border: 1px solid var(--neon);
+        }
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(24px);
+            background: var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+        }
+
+        /* 滑块控件 */
+        .slider-control {
+            width: 200px;
+        }
+        .slider-value {
+            font-size: 14px;
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            margin-bottom: 8px;
+            text-align: right;
+        }
+        .slider-track {
+            position: relative;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+        .slider-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--neon);
+            border-radius: 2px;
+            width: 70%;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: transparent;
+            position: relative;
+            z-index: 2;
+            margin-top: -4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--neon);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon);
+        }
+
+        /* 下拉选择 */
+        .select-control {
+            position: relative;
+        }
+        .select-btn {
+            padding: 10px 40px 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 150px;
+            text-align: left;
+            transition: 0.3s;
+        }
+        .select-btn:hover, .select-btn.ar-hover {
+            border-color: var(--neon);
+        }
+        .select-btn::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* 按钮控件 */
+        .btn-control {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #888;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-control:hover, .btn-control.ar-hover {
+            border-color: var(--neon);
+            color: var(--neon);
+        }
+        .btn-control.danger {
+            border-color: rgba(255, 62, 62, 0.3);
+            color: var(--red);
+        }
+        .btn-control.danger:hover, .btn-control.danger.ar-hover {
+            background: rgba(255, 62, 62, 0.1);
+            border-color: var(--red);
+        }
+
+        /* 头像区域 */
+        .avatar-section {
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        .avatar-display {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--neon), var(--purple));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
+        }
+        .avatar-info {
+            flex: 1;
+        }
+        .avatar-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .avatar-id {
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+
+        /* 保存按钮 */
+        .save-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+        .btn-save {
+            padding: 15px 60px;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(188, 0, 255, 0.2));
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 14px;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: 0.3s;
+            clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+        }
+        .btn-save:hover, .btn-save.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 30px var(--neon);
+        }
+
+        #gesture-status-text {
+            color: #666;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .slider-control {
+                width: 100%;
+            }
+            .avatar-section {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">SYSTEM SETTINGS</div>
+        {% include "partials/hud_nav_center.html" %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">LOCAL_MODE</div>
+        </div>
+    </div>
+
+    <div class="settings-container">
+        <!-- 设备与链路（系统层） -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">🔗</div>
+                <div>
+                    <div class="group-title">DEVICE STATUS · 设备链路</div>
+                    <div class="group-desc">硬件状态与诊断（非玩家装备）；玩家装备见「装备工坊」</div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">深度相机 / 现实重构</div>
+                    <div class="setting-desc">奥比中光等深度设备 · 用于点云与现实材质覆写管线</div>
+                </div>
+                <div class="select-control">
+                    <span style="color:#666;font-size:12px;">见扫描引擎页</span>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">VR 头显</div>
+                    <div class="setting-desc">WebXR / 设备驱动（占位）</div>
+                </div>
+                <div class="select-control">
+                    <span style="color:#888;font-size:12px;">未检测到设备</span>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">控制模式</div>
+                    <div class="setting-desc">桌面键鼠 / AR 手势 / VR 链路 · 与全局导航同步</div>
+                </div>
+                <div class="select-control">
+                    <span style="color:var(--neon);font-size:12px;">顶部切换器 · localStorage</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户资料 -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">👤</div>
+                <div>
+                    <div class="group-title">USER PROFILE</div>
+                    <div class="group-desc">Manage your identity and appearance</div>
+                </div>
+            </div>
+            <div class="avatar-section">
+                <div class="avatar-display">🎮</div>
+                <div class="avatar-info">
+                    <div class="avatar-name">{{ user.username|default:"PATHFINDER_001" }}</div>
+                    <div class="avatar-id">ID: #2847-A1F9-7E3C</div>
+                </div>
+                <button class="btn-control">CHANGE_AVATAR</button>
+            </div>
+        </div>
+
+        <!-- 现实重构管线（系统层） -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">📡</div>
+                <div>
+                    <div class="group-title">REALITY PIPELINE · 现实重构</div>
+                    <div class="group-desc">深度流、点云、平面/物体检测与材质覆写（开发者向）</div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">深度相机驱动</div>
+                    <div class="setting-desc">选择奥比中光深度相机的连接模式</div>
+                </div>
+                <div class="select-control">
+                    <select class="select-btn">
+                        <option>OpenNI 2.0 (推荐)</option>
+                        <option>Native SDK</option>
+                        <option>DirectShow</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">手势识别灵敏度</div>
+                    <div class="setting-desc">调整手势检测的敏感程度</div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-value">70%</div>
+                    <div class="slider-track">
+                        <div class="slider-fill" style="width: 70%;"></div>
+                    </div>
+                    <input type="range" value="70" min="0" max="100">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">深度数据范围</div>
+                    <div class="setting-desc">设置有效的深度检测距离（毫米）</div>
+                </div>
+                <div class="select-control">
+                    <select class="select-btn">
+                        <option>100 - 3000mm (默认)</option>
+                        <option>200 - 5000mm (远距离)</option>
+                        <option>50 - 1500mm (近距离)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">帧率限制</div>
+                    <div class="setting-desc">限制相机输出帧率以节省资源</div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-value">30 FPS</div>
+                    <div class="slider-track">
+                        <div class="slider-fill" style="width: 60%;"></div>
+                    </div>
+                    <input type="range" value="30" min="15" max="60">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">手势反馈音效</div>
+                    <div class="setting-desc">识别到手势时播放提示音</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">AR 光标跟随</div>
+                    <div class="setting-desc">启用虚拟光标跟随手势指向</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 显示设置 -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">🖥️</div>
+                <div>
+                    <div class="group-title">DISPLAY</div>
+                    <div class="group-desc">UI rendering and visual effects</div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">UI 主题</div>
+                    <div class="setting-desc">选择系统界面的配色方案</div>
+                </div>
+                <div class="select-control">
+                    <select class="select-btn">
+                        <option>Cyberpunk (默认)</option>
+                        <option>Dark Matrix</option>
+                        <option>Neon Night</option>
+                        <option>Minimal Gray</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">HUD 透明度</div>
+                    <div class="setting-desc">调整界面的整体透明度</div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-value">85%</div>
+                    <div class="slider-track">
+                        <div class="slider-fill" style="width: 85%;"></div>
+                    </div>
+                    <input type="range" value="85" min="30" max="100">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">扫描线效果</div>
+                    <div class="setting-desc">显示复古 CRT 扫描线动画</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">粒子特效</div>
+                    <div class="setting-desc">界面交互时的粒子动画效果</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 音频设置 -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">🔊</div>
+                <div>
+                    <div class="group-title">AUDIO</div>
+                    <div class="group-desc">System sounds and notifications</div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">主音量</div>
+                    <div class="setting-desc">系统音效总音量</div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-value">60%</div>
+                    <div class="slider-track">
+                        <div class="slider-fill" style="width: 60%;"></div>
+                    </div>
+                    <input type="range" value="60" min="0" max="100">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">背景音乐</div>
+                    <div class="setting-desc">界面背景音乐开关</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">通知提示音</div>
+                    <div class="setting-desc">任务完成、消息通知音效</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 账户设置 -->
+        <div class="settings-group">
+            <div class="group-header">
+                <div class="group-icon">🔐</div>
+                <div>
+                    <div class="group-title">ACCOUNT</div>
+                    <div class="group-desc">Security and account management</div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">修改密码</div>
+                    <div class="setting-desc">更新您的账户登录密码</div>
+                </div>
+                <button class="btn-control">CHANGE_PASSWORD</button>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">双因素认证</div>
+                    <div class="setting-desc">启用额外的安全验证层</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">数据导出</div>
+                    <div class="setting-desc">导出您的账户数据和设置</div>
+                </div>
+                <button class="btn-control">EXPORT_DATA</button>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-name">注销账户</div>
+                    <div class="setting-desc">永久删除您的账户和所有数据</div>
+                </div>
+                <button class="btn-control danger">DELETE_ACCOUNT</button>
+            </div>
+        </div>
+
+        <!-- 保存按钮 -->
+        <div class="save-section">
+            <button class="btn-save">SAVE_SETTINGS</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+    <script>
+        // 滑块功能 - 同步数值显示
+        document.querySelectorAll('input[type="range"]').forEach(function(slider) {
+            slider.addEventListener('input', function() {
+                var value = this.value;
+                var container = this.closest('.slider-control');
+                var valueDisplay = container.querySelector('.slider-value');
+                var fill = container.querySelector('.slider-fill');
+
+                // 更新显示
+                if (this.max == 100) {
+                    valueDisplay.textContent = value + '%';
+                } else {
+                    valueDisplay.textContent = value + ' FPS';
+                }
+
+                // 更新进度条
+                var percent = ((value - this.min) / (this.max - this.min)) * 100;
+                fill.style.width = percent + '%';
+            });
+        });
+
+        // 开关功能 - 切换时保存状态到本地存储
+        document.querySelectorAll('.toggle-switch input').forEach(function(toggle) {
+            toggle.addEventListener('change', function() {
+                var settingName = this.closest('.setting-item').querySelector('.setting-name').textContent;
+                localStorage.setItem(settingName, this.checked);
+            });
+        });
+
+        // 加载保存的设置
+        document.querySelectorAll('.toggle-switch input').forEach(function(toggle) {
+            var settingName = toggle.closest('.setting-item').querySelector('.setting-name').textContent;
+            var saved = localStorage.getItem(settingName);
+            if (saved !== null) {
+                toggle.checked = saved === 'true';
+            }
+        });
+
+        // 下拉选择功能
+        document.querySelectorAll('.select-control select').forEach(function(select) {
+            // 创建自定义下拉菜单
+            var wrapper = document.createElement('div');
+            wrapper.className = 'custom-select';
+            select.parentNode.insertBefore(wrapper, select);
+            wrapper.appendChild(select);
+
+            select.style.position = 'absolute';
+            select.style.opacity = '0';
+            select.style.width = '100%';
+            select.style.height = '100%';
+            select.style.cursor = 'pointer';
+            select.style.zIndex = '3';
+        });
+
+        // 按钮功能
+        document.querySelector('.btn-control').addEventListener('click', function() {
+            alert('头像选择功能开发中...');
+        });
+
+        // 密码修改
+        var changePwdBtn = document.querySelectorAll('.btn-control')[1];
+        if (changePwdBtn) {
+            changePwdBtn.addEventListener('click', function() {
+                alert('密码修改功能开发中...\n\n如需修改密码，请联系管理员。');
+            });
+        }
+
+        // 数据导出
+        var exportBtn = document.querySelectorAll('.btn-control')[2];
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function() {
+                var confirmExport = confirm('确定要导出您的数据吗？');
+                if (confirmExport) {
+                    this.textContent = 'EXPORTING...';
+                    setTimeout(() => {
+                        this.textContent = 'EXPORT_DATA';
+                        alert('数据导出成功！\n文件已保存到下载目录。');
+                    }, 2000);
+                }
+            });
+        }
+
+        // 账户注销
+        document.querySelector('.btn-control.danger').addEventListener('click', function() {
+            var confirmDelete = confirm('警告！此操作不可逆！\n\n确定要永久删除您的账户吗？');
+            if (confirmDelete) {
+                var doubleConfirm = confirm('最后确认：所有数据将被永久删除！\n点击确定将立即删除账户。');
+                if (doubleConfirm) {
+                    alert('账户注销功能开发中...\n请联系管理员处理。');
+                }
+            }
+        });
+
+        // 保存设置
+        document.querySelector('.btn-save').addEventListener('click', function() {
+            this.textContent = 'SAVING...';
+            this.style.opacity = '0.7';
+
+            setTimeout(() => {
+                this.textContent = 'SAVED ✓';
+                this.style.background = 'rgba(0, 255, 136, 0.2)';
+                this.style.borderColor = '#00ff88';
+                this.style.color = '#00ff88';
+
+                setTimeout(() => {
+                    this.textContent = 'SAVE_SETTINGS';
+                    this.style.background = '';
+                    this.style.borderColor = '';
+                    this.style.color = '';
+                    this.style.opacity = '1';
+                }, 2000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

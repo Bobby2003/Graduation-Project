@@ -238,7 +238,18 @@ class IMUWorldInitializer:
                 raise RuntimeError(fallback.reason)
             return fallback
 
-        sample = self.provider.read_quaternion_sample(timeout_sec=self.sample_timeout_sec)
+        sample = None
+        try:
+            sample = self.provider.read_quaternion_sample(timeout_sec=self.sample_timeout_sec)
+        except Exception as exc:
+            # Missing/wrong COM (pyserial SerialException), permission, unplugged, etc.
+            self._log_warning(f"IMU serial/read error: {type(exc).__name__}: {exc!r}")
+            fallback.reason = f"imu_serial_or_read_error:{type(exc).__name__}:{exc!r}"
+            self._set_fallback_result(fallback)
+            if self.required:
+                raise RuntimeError(fallback.reason) from exc
+            return fallback
+
         if sample is None:
             fallback.reason = "imu_quaternion_timeout"
             self._set_fallback_result(fallback)

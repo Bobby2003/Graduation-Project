@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEURAL LINK | {{ username|upper }} 终端</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/control-modes.css">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.8);
+        }
+
+        body {
+            margin: 0; background: var(--bg-deep); color: #fff;
+            font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden;
+            background-image: radial-gradient(circle at center, #10141d 0%, #050608 100%);
+        }
+
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 2px;
+            background: rgba(0, 242, 255, 0.1);
+            box-shadow: 0 0 10px var(--neon);
+            animation: scan 6s linear infinite; z-index: 100; pointer-events: none;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 顶部导航 — 网格避免绝对定位与两侧挤压导致链接触顶/消失 */
+        .top-nav {
+            position: fixed;
+            top: 15px;
+            left: 16px;
+            right: 16px;
+            z-index: 50;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px 14px;
+            background: rgba(5, 6, 8, 0.92);
+            padding: 10px 14px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            box-sizing: border-box;
+            max-width: 100vw;
+        }
+
+        .top-nav-lead {
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .top-nav-trail {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .nav-center {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 6px;
+            justify-content: center;
+            align-content: center;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 80px;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+            padding: 2px 0;
+        }
+        .nav-center::-webkit-scrollbar { height: 4px; width: 4px; }
+        .nav-center::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 255, 0.35);
+            border-radius: 2px;
+        }
+        .nav-center a {
+            padding: 6px 10px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--neon);
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+
+        .btn-return:hover, .btn-return.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon);
+        }
+
+        .network-status {
+            font-size: 12px;
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 8px; height: 8px; background: var(--neon);
+            border-radius: 50%; box-shadow: 0 0 8px var(--neon);
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .app-shell {
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            height: 100vh;
+            padding: 92px 22px 22px 22px;
+            gap: 25px;
+            box-sizing: border-box;
+        }
+
+        .hud-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            clip-path: polygon(0 0, 100% 0, 100% 95%, 95% 100%, 0 100%);
+            box-shadow: inset 0 0 20px rgba(0, 242, 255, 0.05);
+        }
+
+        .hud-header {
+            padding: 15px 20px;
+            background: rgba(0, 242, 255, 0.08);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            border-bottom: 2px solid var(--neon);
+            color: var(--neon);
+            display: flex; justify-content: space-between; letter-spacing: 2px;
+        }
+
+        .scroll-area { flex: 1; overflow-y: auto; padding: 10px; }
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: var(--neon); }
+
+        .realm-card {
+            background: rgba(255,255,255,0.03);
+            margin-bottom: 12px;
+            padding: 15px;
+            border-left: 4px solid #333;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+        }
+        /* 兼容 AR 悬停高亮 */
+        .realm-card:hover, .realm-card.ar-hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(8px);
+            border-left-color: #fff;
+        }
+        .realm-card.active {
+            border-left-color: var(--neon);
+            background: rgba(0, 242, 255, 0.1);
+            box-shadow: -10px 0 20px rgba(0, 242, 255, 0.1);
+        }
+        .realm-name { font-weight: 700; font-size: 18px; color: #fff; margin-bottom: 4px; }
+        .realm-meta { font-size: 11px; color: #00ff88; text-transform: uppercase; letter-spacing: 1px; }
+
+        .center-hub {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; position: relative;
+        }
+        .combat-circle-outer {
+            width: 320px; height: 320px;
+            border: 1px dashed rgba(0, 242, 255, 0.3);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            position: relative; animation: spin 20s linear infinite;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .combat-circle-inner {
+            width: 260px; height: 260px;
+            background: radial-gradient(circle, rgba(0,242,255,0.1) 0%, transparent 70%);
+            border: 4px double var(--neon); border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            animation: pulse 4s ease-in-out infinite; transform: rotate(-360deg);
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); }
+            50% { box-shadow: 0 0 50px rgba(0, 242, 255, 0.5); }
+        }
+
+        .power-value { font-size: 72px; font-weight: 700; color: #fff; line-height: 1; }
+        .power-label { font-size: 14px; color: var(--neon); letter-spacing: 6px; }
+
+        .btn-action {
+            margin-top: 28px; padding: 16px 44px;
+            background: transparent; border: 2px solid var(--neon);
+            color: var(--neon); font-family: 'Syncopate', sans-serif;
+            font-size: 15px; font-weight: bold; cursor: pointer;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+            transition: 0.3s;
+        }
+
+        .center-quick-links {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 14px;
+            max-width: 420px;
+        }
+        .center-quick-links a {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.45);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            padding-bottom: 2px;
+        }
+        .center-quick-links a:hover {
+            color: var(--neon);
+            border-bottom-color: rgba(0, 242, 255, 0.4);
+        }
+        .center-nav-hint {
+            margin-top: 14px;
+            font-size: 11px;
+            color: #555;
+            text-align: center;
+            max-width: 360px;
+            line-height: 1.5;
+        }
+        /* 兼容 AR 悬停高亮 */
+        .btn-action:hover, .btn-action.ar-hover {
+            background: var(--neon); color: #000;
+            box-shadow: 0 0 30px var(--neon);
+        }
+
+        .loot-item {
+            display: flex; align-items: center; padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.2s;
+        }
+        /* 兼容 AR 悬停高亮 */
+        .loot-item:hover, .loot-item.ar-hover { background: rgba(255,255,255,0.03); }
+
+        .rarity-pill {
+            font-size: 9px; padding: 2px 8px; border-radius: 2px;
+            margin-right: 12px; font-weight: bold; border: 1px solid;
+            text-transform: uppercase;
+        }
+        .epic { color: var(--purple); border-color: var(--purple); background: rgba(188, 0, 255, 0.1); }
+        .legendary { color: var(--gold); border-color: var(--gold); background: rgba(255, 215, 0, 0.1); }
+        .rare { color: var(--neon); border-color: var(--neon); }
+        .common { color: #888; border-color: #444; }
+
+        .currency-box {
+            padding: 20px; background: rgba(0,0,0,0.4);
+            border-top: 1px solid rgba(0,242,255,0.2);
+        }
+        .credits-val { color: var(--gold); font-size: 24px; font-weight: bold; }
+
+        /* 统一页面里其他的按钮 */
+        button { transition: 0.3s; }
+        button:hover, button.ar-hover { filter: brightness(1.5); }
+
+        .recent-unlocks {
+            margin-top: 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            background: rgba(10, 12, 18, 0.75);
+            text-align: left;
+        }
+        .recent-unlocks h3 {
+            margin: 0 0 10px 0;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: #ffd700;
+        }
+        .recent-unlocks .unlock-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 12px;
+            color: #ccc;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .recent-unlocks .unlock-row:last-child { border-bottom: none; }
+        .recent-unlocks .unlock-name { color: #fff; font-weight: 600; }
+        .recent-unlocks .unlock-meta { font-size: 10px; color: #666; white-space: nowrap; }
+        .recent-unlocks .empty { font-size: 12px; color: #555; text-align: center; padding: 12px 0; }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+
+    <!-- 顶部导航 -->
+    <div class="top-nav">
+        <div class="top-nav-lead">
+        <a href="/" class="btn-return">
+            <span>◄</span>
+            MAIN
+        </a>
+        </div>
+        {% include "partials/hud_nav_center.html" %}
+        <div class="top-nav-trail">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div class="network-status" id="gesture-status-text">
+                <div class="status-dot"></div>
+                <span class="status-label">ONLINE</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <div class="hud-panel">
+            <div class="hud-header">
+                <span>ACTIVE REALMS</span>
+                <span>位面协议</span>
+            </div>
+            <div class="scroll-area">
+                {% for realm in realms %}
+                <div class="realm-card {% if realm == profile.current_realm %}active{% endif %}">
+                    <div class="realm-name">{{ realm.name }}</div>
+                    <div class="realm-meta">
+                        {{ realm.get_rarity_display }} | {{ realm.bonus_effect }}
+                    </div>
+                    {% if realm == profile.current_realm %}
+                    <div style="position: absolute; right: 15px; top: 15px; color: var(--neon); font-size: 10px;">CONNECTED</div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p style="text-align: center; color: #555; margin-top: 50px;">未发现可用位面协议</p>
+                {% endfor %}
+            </div>
+            <div style="padding: 20px;">
+                <div style="font-size: 10px; color: #555; margin-bottom: 5px;">映射稳定性 (STABILITY)</div>
+                <div style="height: 4px; background: #111; border-radius: 2px;">
+                    <div style="width: 92%; height: 100%; background: var(--neon); box-shadow: 0 0 10px var(--neon);"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="center-hub">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="font-family: 'Syncopate'; font-size: 12px; color: var(--neon); letter-spacing: 4px;">USER_ID: {{ username|upper }}</div>
+                <div style="font-size: 12px; color: #555;">{{ profile.display_title }} · Lv.{{ profile.level }}</div>
+            </div>
+
+            <div class="combat-circle-outer">
+                <div class="combat-circle-inner">
+                    <div class="power-value">{{ profile.combat_power }}</div>
+                    <div class="power-label">COMBAT POWER</div>
+                </div>
+            </div>
+
+            <div style="max-width:420px;margin:0 auto 24px;text-align:left;padding:14px 18px;border:1px dashed rgba(0,242,255,0.35);background:rgba(0,242,255,0.04);font-size:12px;color:#888;line-height:1.7;">
+                <div style="font-family:'Syncopate',sans-serif;font-size:10px;letter-spacing:2px;color:#00f2ff;margin-bottom:8px;">推荐体验路径</div>
+                <ol style="margin:0;padding-left:1.2em;color:#aaa;">
+                    <li>接入训练（校准操作）</li>
+                    <li>现实覆写（扫描 + 协议保存）</li>
+                    <li>进入绿洲（查看材质与扫描幽影）</li>
+                    <li>任务 / 成就（查看进度与解锁）</li>
+                </ol>
+            </div>
+
+            <button class="btn-action" type="button" onclick="location.href='{% url 'realm' %}'">
+                进入绿洲 (REALM ACCESS)
+            </button>
+
+            <nav class="center-quick-links" aria-label="常用入口">
+                <a href="{% url 'training' %}">训练场</a>
+                <a href="{% url 'reality_override' %}">现实覆写</a>
+                <a href="{% url 'my_realm' %}">我的位面</a>
+            </nav>
+            <p class="center-nav-hint">材质库、任务、成就、装备、编辑器、扫描器、黑市等请使用<strong>顶部导航</strong>。</p>
+
+            <div class="recent-unlocks">
+                <h3>RECENT UNLOCKS // 最近成就</h3>
+                {% for ua in recent_achievements %}
+                <div class="unlock-row">
+                    <span class="unlock-name">[{{ ua.achievement.icon_key|default:"·" }}] {{ ua.achievement.name }}</span>
+                    <span class="unlock-meta">{{ ua.unlocked_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                {% empty %}
+                <div class="empty">暂无解锁记录 · 进入桌面位面并完成操作即可解锁</div>
+                {% endfor %}
+                <div style="text-align:center;margin-top:10px;">
+                    <a href="{% url 'achievements' %}" style="font-size:11px;color:var(--neon);text-decoration:none;">查看全部成就 →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-panel">
+            <div class="hud-header">
+                <span>INVENTORY</span>
+                <span>战利品库</span>
+            </div>
+            <div class="scroll-area">
+                {% for item in inventory %}
+                <div class="loot-item">
+                    <div class="rarity-pill {{ item.loot.rarity|lower }}">
+                        {{ item.loot.get_rarity_display }}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 15px; font-weight: 600;">{{ item.loot.name }}</div>
+                        <div style="font-size: 11px; color: #666;">数量: {{ item.quantity }} | 估值: {{ item.loot.base_price }}</div>
+                    </div>
+                    <button style="background: none; border: 1px solid var(--gold); color: var(--gold); font-size: 10px; cursor: pointer; padding: 4px 8px;">交易</button>
+                </div>
+                {% empty %}
+                <p style="text-align: center; color: #555; margin-top: 50px;">空仓库 (NO LOOT)</p>
+                {% endfor %}
+            </div>
+
+            <div class="currency-box">
+                <div style="font-size: 11px; color: #888; margin-bottom: 5px; letter-spacing: 2px;">CREDITS (可用信用点)</div>
+                <div class="credits-val">₮ {{ profile.credits }}</div>
+                <button onclick="location.href='/market/'" style="width: 100%; margin-top: 15px; padding: 10px; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--neon); color: var(--neon); font-family: 'Rajdhani'; font-weight: bold; cursor: pointer;">
+                    访问黑市交易所 (BLACK MARKET)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/gesture.js"></script>
+    <script src="/static/js/controls.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+{% extends "portal_shell.html" %}
+{% block doc_title %}设备管理{% endblock %}
+{% block page_title %}HARDWARE LINK // 设备管理{% endblock %}
+{% block doc %}
+<div class="doc-panel">
+    <p>虚拟身份装备与物理硬件解耦；此处用于展示接入状态与「现实覆写」所需外设（概念页，部分状态为占位）。</p>
+    <h2>CONTROL MODES // 接入模式</h2>
+    <ul>
+        <li><strong>DESKTOP REALM</strong>：键鼠 + 预制室内 / 统一空间数据，适合答辩稳定演示。</li>
+        <li><strong>REALITY OVERRIDE</strong>：摄像头 / 深度相机 + 浏览器手势（MediaPipe），用于现实重构管线展示。</li>
+        <li><strong>VR LINK</strong>：VR 头显与 6DoF 为规划能力，当前为占位入口。</li>
+    </ul>
+    <h2>PHYSICAL DEVICES // 物理设备</h2>
+    <ul>
+        <li>深度相机：奥比中光（OpenNI2）— 与扫描引擎页面联动。</li>
+        <li>普通摄像头：用于平面 / 手势实验路径。</li>
+        <li>VR：后续可对接 WebXR 或原生运行时。</li>
+    </ul>
+</div>
+{% endblock %}

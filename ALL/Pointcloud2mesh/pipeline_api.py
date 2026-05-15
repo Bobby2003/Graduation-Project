@@ -487,6 +487,11 @@ class RealtimeMappingPipeline:
 
             if not self.scanner.init():
                 self.app_logger.warning("scanner init failed", force=True)
+                try:
+                    self.scanner.close()
+                except Exception:
+                    pass
+                self.scanner = None
                 self._cleanup_log_if_needed()
                 return False
 

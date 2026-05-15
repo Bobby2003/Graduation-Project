@@ -1,0 +1,532 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACHIEVEMENTS | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --green: #00ff88;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 90% 70%, rgba(188, 0, 255, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at center, #0a111a 0%, #050608 100%);
+        }
+
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--gold);
+            border-color: rgba(255, 215, 0, 0.3);
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+        .btn-return:hover, .btn-return.ar-hover {
+            background: var(--gold);
+            color: #000;
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        .page-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            color: var(--gold);
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* 成就进度总览 */
+        .achievement-overview {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 40px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .total-stats {
+            display: flex;
+            justify-content: space-around;
+        }
+        .total-stat {
+            text-align: center;
+        }
+        .total-stat .value {
+            font-size: 48px;
+            font-weight: 700;
+            font-family: 'Syncopate', sans-serif;
+        }
+        .total-stat:nth-child(1) .value { color: var(--gold); }
+        .total-stat:nth-child(2) .value { color: var(--neon); }
+        .total-stat:nth-child(3) .value { color: #666; }
+        .total-stat .label {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        .completion-ring {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+        .ring-bg, .ring-fill {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+        }
+        .ring-bg {
+            border: 8px solid rgba(255, 255, 255, 0.05);
+        }
+        .ring-fill {
+            border: 8px solid transparent;
+            border-top-color: var(--gold);
+            border-right-color: var(--gold);
+            animation: rotate 3s linear infinite;
+        }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .ring-center {
+            position: absolute;
+            inset: 15px;
+            background: var(--panel-bg);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .ring-percent {
+            font-size: 36px;
+            font-weight: 700;
+            font-family: 'Syncopate', sans-serif;
+            color: var(--gold);
+        }
+        .ring-label {
+            font-size: 10px;
+            color: #666;
+            letter-spacing: 2px;
+        }
+
+        .bonus-info {
+            text-align: right;
+        }
+        .bonus-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            color: var(--gold);
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+        .bonus-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            justify-content: flex-end;
+        }
+        .bonus-item span:first-child {
+            font-size: 13px;
+            color: #888;
+        }
+        .bonus-item span:last-child {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        /* 成就分类 */
+        .achievements-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 30px 60px;
+        }
+
+        .category-section {
+            margin-bottom: 50px;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .category-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .category-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 14px;
+            color: #fff;
+            letter-spacing: 3px;
+        }
+        .category-progress {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .category-progress span {
+            color: var(--neon);
+        }
+
+        /* 成就卡片 */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 15px;
+        }
+
+        .achievement-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .achievement-card:hover, .achievement-card.ar-hover {
+            border-color: rgba(255, 215, 0, 0.3);
+            transform: translateY(-3px);
+            background: rgba(15, 20, 30, 0.9);
+        }
+
+        .achievement-card.locked {
+            opacity: 0.4;
+        }
+        .achievement-card.locked .achievement-icon {
+            filter: grayscale(1);
+        }
+
+        .achievement-card.unlocked::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        .achievement-icon {
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            background: rgba(255, 215, 0, 0.05);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            position: relative;
+        }
+        .achievement-icon-key {
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            font-size: 8px;
+            font-family: 'Syncopate', sans-serif;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1px;
+        }
+
+        .achievement-card.legendary .achievement-icon {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            animation: glow 2s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.4); }
+        }
+
+        .achievement-card.epic .achievement-icon {
+            border-color: var(--purple);
+            background: rgba(188, 0, 255, 0.1);
+        }
+
+        .achievement-card.rare .achievement-icon {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .unlock-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .achievement-info {
+            flex: 1;
+        }
+        .achievement-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .achievement-desc {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .achievement-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .meta-item.reward {
+            color: var(--gold);
+        }
+        .meta-item.date {
+            color: #555;
+        }
+
+        .rarity-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            padding: 3px 8px;
+            border-radius: 2px;
+        }
+        .legendary .rarity-badge {
+            background: rgba(255, 215, 0, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        .epic .rarity-badge {
+            background: rgba(188, 0, 255, 0.15);
+            color: var(--purple);
+            border: 1px solid rgba(188, 0, 255, 0.3);
+        }
+        .rare .rarity-badge {
+            background: rgba(0, 242, 255, 0.15);
+            color: var(--neon);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+        }
+        .common .rarity-badge {
+            background: rgba(100, 100, 100, 0.15);
+            color: #888;
+            border: 1px solid rgba(100, 100, 100, 0.3);
+        }
+
+        #gesture-status-text {
+            color: var(--gold);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .achievement-overview {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .bonus-info {
+                text-align: center;
+            }
+            .bonus-item {
+                justify-content: center;
+            }
+            .achievements-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">ACHIEVEMENTS ARCHIVE</div>
+        {% include "partials/hud_nav_center.html" %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
+    </div>
+
+    <!-- 成就总览（UserAchievement / Achievement） -->
+    <div class="achievement-overview">
+        <div class="total-stats">
+            <div class="total-stat">
+                <div class="value">{{ unlocked_count }}</div>
+                <div class="label">已解锁</div>
+            </div>
+            <div class="total-stat">
+                <div class="value">{{ weekly_new_achievements }}</div>
+                <div class="label">本周新增</div>
+            </div>
+            <div class="total-stat">
+                <div class="value">{{ total_achievements }}</div>
+                <div class="label">总成就数</div>
+            </div>
+        </div>
+
+        <div class="completion-ring">
+            <div class="ring-bg"></div>
+            <div class="ring-fill"></div>
+            <div class="ring-center">
+                <div class="ring-percent">{{ completion_pct }}%</div>
+                <div class="ring-label">完成度</div>
+            </div>
+        </div>
+
+        <div class="bonus-info">
+            <div class="bonus-title">COMPLETION BONUS</div>
+            <div class="bonus-item">
+                <span>全成就奖励</span>
+                <span>+50% 信用点</span>
+            </div>
+            <div class="bonus-item">
+                <span>称号解锁</span>
+                <span>「全知者」</span>
+            </div>
+            <div class="bonus-item">
+                <span>限定外观</span>
+                <span>星陨刃 · 限定涂装</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成就列表（MySQL 配置 + 玩家解锁状态） -->
+    <div class="achievements-container">
+        {% for cat in achievement_categories %}
+        <div class="category-section">
+            <div class="category-header">
+                <div class="category-icon">{{ cat.icon }}</div>
+                <div>
+                    <div class="category-title">{{ cat.title }}</div>
+                    <div class="category-progress">进度: <span>{{ cat.unlocked }}/{{ cat.total }}</span> 成就</div>
+                </div>
+            </div>
+            <div class="achievements-grid">
+                {% for row in cat.items %}
+                <div class="achievement-card {{ row.a.rarity|lower }} {% if row.unlocked %}unlocked{% else %}locked{% endif %}">
+                    <div class="achievement-icon">
+                        <span class="achievement-icon-key">{{ row.a.icon_key|default:"·" }}</span>
+                        {% if row.unlocked %}★{% else %}◇{% endif %}
+                        {% if row.unlocked %}
+                        <div class="unlock-badge">✓</div>
+                        {% endif %}
+                    </div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">{{ row.a.name }}</div>
+                        <div class="achievement-desc">{{ row.a.description }}</div>
+                        <div class="achievement-meta">
+                            <div class="meta-item reward">
+                                +{{ row.a.reward_exp }} EXP
+                                {% if row.a.reward_credits %} · ₮ {{ row.a.reward_credits }}{% endif %}
+                                {% if row.a.reward_note %} · {{ row.a.reward_note }}{% endif %}
+                            </div>
+                            <div class="meta-item date">
+                                {% if row.unlocked and row.unlocked_at %}{{ row.unlocked_at|date:"Y.m.d" }} 解锁{% else %}未解锁{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rarity-badge">{{ row.a.rarity }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <p style="text-align:center; color:#666;">暂无成就数据，请运行 <code>python manage.py seed_realm_data</code>。</p>
+        {% endfor %}
+    </div>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+</body>
+</html>

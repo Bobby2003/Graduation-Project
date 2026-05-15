@@ -4,6 +4,7 @@ import asyncio
 import copy
 import importlib
 import json
+import os
 import queue
 import shutil
 import sys
@@ -224,6 +225,11 @@ class CenterPipelineService:
         self.last_stop_result: dict[str, Any] | None = None
         self._event_queues: list[queue.Queue] = []
 
+        # HTTP /api/center/latest-mesh/：内存网格版本（几何变化时递增）
+        self._api_mesh_lock = threading.Lock()
+        self._api_mesh_version = 0
+        self._api_mesh_signature: str | None = None
+
         for directory in (POINTCLOUD_MODEL_DIR, MESHFIX_OUTPUT_DIR, MATERIAL_OUTPUT_DIR):
             directory.mkdir(parents=True, exist_ok=True)
 
@@ -231,6 +237,11 @@ class CenterPipelineService:
         cfg = PipelineConfig()
         cfg.render.enabled = False
         cfg.mapping.model_dir = str(POINTCLOUD_MODEL_DIR)
+        # Django /realm 实时预览：默认 cpu_rgbd，避免无 CUDA 或 ICP 质量未过门控时 pushed_to_mapping 恒为 0、TSDF 永远空。
+        # 需要 GPU ICP 时设置环境变量 CENTER_TRACKING_BACKEND=gpu_icp
+        backend = os.environ.get("CENTER_TRACKING_BACKEND", "cpu_rgbd").strip().lower()
+        if hasattr(cfg.tracking, "tracking_backend"):
+            cfg.tracking.tracking_backend = backend
         return RealtimeMappingPipeline(cfg=cfg, base_dir=POINTCLOUD_DIR)
 
     def is_running(self) -> bool:
@@ -255,6 +266,9 @@ class CenterPipelineService:
             self.worker = ModelProcessingWorker(self)
             self.worker.start()
             self.worker_error = None
+
+        # 后台 _background_loop 首帧 run_once 若抛错会立刻 set stop_event；不稍等则 status() 常误报「仍在运行」。
+        time.sleep(0.12)
 
         self.emit_event({"type": "pipeline_started", "updated_at": utc_now_iso()})
         return self.status()
@@ -317,20 +331,195 @@ class CenterPipelineService:
             self.worker_error = repr(exc)
         self.emit_event({"type": "worker_error", "error": repr(exc), "updated_at": utc_now_iso()})
 
-    def get_reconstruction_mesh_snapshot(self) -> o3d.geometry.TriangleMesh | None:
+    def _extract_tsdf_triangle_mesh_once(self) -> tuple[o3d.geometry.TriangleMesh | None, int, int]:
+        """
+        单次 TSDF mesh 抽取（持 mapper 锁）。HTTP 轮询必须避免对同一请求做两次 extract。
+        """
         with self.lock:
             pipeline = self.pipeline
         if pipeline is None or pipeline.mapper is None:
-            return None
-
+            return None, 0, 0
+        if not getattr(pipeline, "_setup_done", False) or not pipeline.is_running():
+            return None, 0, 0
         mapper = pipeline.mapper
-        with mapper._lock:
-            mesh = mapper.volume.extract_triangle_mesh()
+        try:
+            with mapper._lock:
+                # 尚未写入 TSDF 时 extract_triangle_mesh 在部分 Open3D/驱动组合下与首帧 integrate 并发易触发原生崩溃；
+                # 轮询 latest-mesh 仅在有融合帧后再抽取。
+                if int(getattr(mapper, "integrated_frames", 0) or 0) <= 0:
+                    return None, 0, 0
+                raw = mapper.volume.extract_triangle_mesh()
+        except Exception:
+            return None, 0, 0
+        nv = int(len(raw.vertices))
+        nt = int(len(raw.triangles))
+        return raw, nv, nt
 
-        if len(mesh.vertices) == 0 or len(mesh.triangles) == 0:
+    def get_reconstruction_mesh_snapshot(self) -> o3d.geometry.TriangleMesh | None:
+        mesh, nv, nt = self._extract_tsdf_triangle_mesh_once()
+        if mesh is None or nv == 0 or nt == 0:
             return None
         mesh.compute_vertex_normals()
         return mesh
+
+    def _collect_no_mesh_diagnostics(
+        self,
+        *,
+        tsdf_vertices: int,
+        tsdf_triangles: int,
+    ) -> dict[str, Any]:
+        """
+        mesh 尚为空时，把「相机→tracking→TSDF」各环节快照塞进 API，便于在浏览器里直接看原因。
+        TSDF 顶点/面数由调用方在一次 extract 后传入，避免本函数再次 extract_triangle_mesh。
+        """
+        with self.lock:
+            pipeline = self.pipeline
+        if pipeline is None:
+            return {"reason": "no_pipeline_object"}
+
+        out: dict[str, Any] = {
+            "tsdf_extract_vertices": int(tsdf_vertices),
+            "tsdf_extract_triangles": int(tsdf_triangles),
+        }
+
+        try:
+            st = pipeline.get_status()
+            out["pipeline_last_error"] = st.get("last_error")
+            tr = st.get("tracking")
+            if isinstance(tr, dict):
+                out["tracking_success"] = tr.get("success")
+                out["tracking_mode"] = tr.get("mode")
+                out["tracking_frame_id"] = tr.get("frame_id")
+                ex = tr.get("extras")
+                if isinstance(ex, dict):
+                    tb = ex.get("tracker_backend")
+                    if tb is not None:
+                        out["tracker_backend"] = tb
+            out["mapping_queue_size"] = st.get("mapping_queue_size")
+            out["mapping_stats"] = st.get("mapping_stats")
+            out["tracking_stats"] = st.get("tracking_stats")
+        except Exception as exc:
+            out["get_status_error"] = repr(exc)
+
+        return out
+
+    def get_latest_mesh_api_payload(self, max_vertices: int = 60_000) -> dict[str, Any]:
+        """
+        供 Django GET /api/center/latest-mesh/ 使用：从 TSDF 内存抽取 mesh，转 JSON 列表，不写 obj/glb。
+        顶点数超过 max_vertices 时返回 too_large，避免浏览器卡死。
+        """
+        max_vertices = int(max_vertices)
+        with self.lock:
+            running = bool(self.pipeline is not None and self.pipeline.is_running())
+
+        raw_mesh, nv0, nt0 = self._extract_tsdf_triangle_mesh_once()
+        if raw_mesh is None or nv0 == 0 or nt0 == 0:
+            with self._api_mesh_lock:
+                ver = self._api_mesh_version
+            msg = "NO_MESH_YET" if running else "PIPELINE_NOT_RUNNING"
+            diag = self._collect_no_mesh_diagnostics(
+                tsdf_vertices=nv0,
+                tsdf_triangles=nt0,
+            )
+            payload: dict[str, Any] = {
+                "ok": True,
+                "running": running,
+                "version": ver,
+                "mesh": None,
+                "message": msg,
+                "coordinate_space": "reconstruction_world",
+                "summary": {"vertices": 0, "faces": 0},
+                "diagnostics": json_safe(diag),
+            }
+            if running and isinstance(diag, dict):
+                ms = diag.get("mapping_stats") if isinstance(diag.get("mapping_stats"), dict) else {}
+                ts = diag.get("tracking_stats") if isinstance(diag.get("tracking_stats"), dict) else {}
+                payload["progress"] = {
+                    "integrated_frames": ms.get("integrated_frames"),
+                    "pushed_to_mapping": ts.get("pushed_to_mapping"),
+                    "processed_frames": ts.get("processed_frames"),
+                    "failed_frames": ts.get("failed_frames"),
+                    "tracking_success": diag.get("tracking_success"),
+                    "tracking_mode": diag.get("tracking_mode"),
+                    "tracker_backend": diag.get("tracker_backend"),
+                }
+                pm = payload["progress"].get("pushed_to_mapping")
+                if diag.get("tsdf_extract_vertices") == 0 and pm == 0 and diag.get("tracking_success") is True:
+                    payload["hint"] = (
+                        "跟踪已成功但 pushed_to_mapping=0：若使用 gpu_icp，多为 fitness/rmse 未过建图门控。"
+                        "Center 默认已用 cpu_rgbd；仍异常请看点云有效像素与缓慢移动相机。"
+                    )
+                elif diag.get("tsdf_extract_vertices") == 0 and diag.get("tracking_success") is False:
+                    payload["hint"] = (
+                        "TSDF 仍为 0 且 tracking_success=false：多为跟踪丢失/未初始化。"
+                        "请缓慢平移相机、对准有纹理区域；确认深度图有足够有效像素。"
+                    )
+                elif diag.get("tsdf_extract_vertices") == 0 and diag.get("pipeline_last_error"):
+                    payload["hint"] = "见 diagnostics.pipeline_last_error（后台采集线程可能已报错）。"
+                elif diag.get("tsdf_extract_vertices") == 0:
+                    payload["hint"] = (
+                        "TSDF 体素里还没有有效表面：继续扫描几秒，或检查深度图是否有有效像素、"
+                        "mapping 是否因「运动门控」未写入（需缓慢移动相机）。"
+                    )
+            return payload
+
+        raw_mesh.compute_vertex_normals()
+        work = raw_mesh.clone()
+        nv = int(len(work.vertices))
+        nf = int(len(work.triangles))
+        if nv > max_vertices:
+            with self._api_mesh_lock:
+                ver = self._api_mesh_version
+            return {
+                "ok": True,
+                "too_large": True,
+                "running": running,
+                "version": ver,
+                "mesh": None,
+                "message": "MESH_TOO_LARGE",
+                "coordinate_space": "reconstruction_world",
+                "summary": {"vertices": nv, "faces": nf, "max_vertices": max_vertices},
+            }
+
+        v_np = np.asarray(work.vertices, dtype=np.float32)
+        t_np = np.asarray(work.triangles, dtype=np.int32)
+        tail_n = min(20, nv)
+        coord_sum = float(v_np[-tail_n:].sum()) if nv > 0 else 0.0
+        sig = f"{nv}:{nf}:{coord_sum:.6f}"
+
+        normals_list: list[float] | None = None
+        if work.has_vertex_normals():
+            nn = np.asarray(work.vertex_normals, dtype=np.float32)
+            if len(nn) == nv:
+                normals_list = nn.reshape(-1).tolist()
+
+        colors_list: list[float] | None = None
+        if work.has_vertex_colors():
+            cc = np.asarray(work.vertex_colors, dtype=np.float32)
+            if len(cc) == nv:
+                colors_list = cc.reshape(-1).tolist()
+
+        mesh_payload = {
+            "vertices": v_np.reshape(-1).tolist(),
+            "indices": t_np.reshape(-1).tolist(),
+            "normals": normals_list,
+            "colors": colors_list,
+        }
+
+        with self._api_mesh_lock:
+            if sig != self._api_mesh_signature:
+                self._api_mesh_signature = sig
+                self._api_mesh_version += 1
+            ver = self._api_mesh_version
+
+        return {
+            "ok": True,
+            "running": running,
+            "version": ver,
+            "mesh": mesh_payload,
+            "coordinate_space": "reconstruction_world",
+            "summary": {"vertices": nv, "faces": nf},
+        }
 
     def export_white_mesh(self, mesh: o3d.geometry.TriangleMesh) -> dict[str, Any]:
         with self.lock:
@@ -610,6 +799,11 @@ def get_white_model_file(version: int | None = None) -> Path:
 
 def get_pose_latest() -> dict[str, Any]:
     return service.latest_pose()
+
+
+def get_latest_mesh_api_payload(max_vertices: int = 60_000) -> dict[str, Any]:
+    """JSON 可序列化的内存 mesh 快照（无文件 IO）。"""
+    return service.get_latest_mesh_api_payload(max_vertices=max_vertices)
 
 
 def get_material_targets() -> dict[str, Any]:

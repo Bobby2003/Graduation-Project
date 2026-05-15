@@ -1,4 +1,7 @@
 import time
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
 import open3d as o3d
@@ -6,7 +9,12 @@ import open3d as o3d
 from scipy.spatial import cKDTree
 from scipy.ndimage import distance_transform_edt
 
-from .orbbec_sdk import OrbbecCameraSDK, get_default_sdk_path
+_all_root = Path(__file__).resolve().parents[2]
+_all_root_str = str(_all_root)
+if _all_root_str not in sys.path:
+    sys.path.insert(0, _all_root_str)
+
+from PCAC.orbbec_sdk import OrbbecCameraSDK, get_default_sdk_path
 
 # ─────────────────────────────────────────────
 # 引导滤波
@@ -246,12 +254,6 @@ class UnifiedDepthScanner:
             self.sdk.start_stream()
         )
         self.initialized = ok
-        if not ok:
-            # 避免 initialize 已成功但后续步骤失败时泄漏 OpenNI 引用计数 / 半开设备，进而拖垮进程。
-            try:
-                self.sdk.cleanup()
-            except Exception:
-                pass
         return ok
 
     def close(self):
@@ -553,8 +555,6 @@ class UnifiedDepthScanner:
         - color_rgb
         - depth
         - final_mask
-        - raw_depth
-        - frame_info
 
         说明：
         - color_rgb 为伪彩深度图，不是真实RGB相机图
@@ -569,9 +569,7 @@ class UnifiedDepthScanner:
             "timestamp": frame["timestamp"],
             "color_rgb": frame["color_rgb"],
             "depth": frame["depth"],
-            "final_mask": frame["final_mask"],
-            "raw_depth": frame["raw_depth"],
-            "frame_info": frame["frame_info"],
+            "final_mask": frame["final_mask"]
         }
 
     # ─────────────────────────────────────────

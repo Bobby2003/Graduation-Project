@@ -8,7 +8,15 @@ import ctypes
 import numpy as np
 import os
 import sys
+from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
+
+_ALL_ROOT = Path(__file__).resolve().parents[1]
+_all_root_str = str(_ALL_ROOT)
+if _all_root_str not in sys.path:
+    sys.path.insert(0, _all_root_str)
+
+import openni_process_runtime as _oni_proc  # noqa: E402
 
 
 class OrbbecCameraSDK:
@@ -47,6 +55,7 @@ class OrbbecCameraSDK:
         self.color_stream_handle = None
         self.ir_stream_handle = None
         self.is_initialized = False
+        self._holds_openni_runtime = False
 
         # 定义结构体
         self._define_structures()
@@ -134,7 +143,7 @@ class OrbbecCameraSDK:
 
         # 添加默认路径
         dll_search_paths.extend([
-            r"H:\School assessment\Design\奥比中光Win64-Release\sdk\libs\OpenNI2.dll",
+            r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs\OpenNI2.dll",
             "OpenNI2.dll",  # 从系统PATH加载
         ])
 
@@ -221,19 +230,16 @@ class OrbbecCameraSDK:
     # ========== 公共接口方法 ==========
 
     def initialize(self) -> bool:
-        """初始化OpenNI SDK"""
+        """初始化 OpenNI 运行时（与 ARproject 等共享进程级引用计数，见 openni_process_runtime）。"""
         if not self.lib:
             return False
-
-        print("初始化OpenNI SDK...")
-        status = self.lib.oniInitialize(self.ONI_API_VERSION)
-
-        if status != self.ONI_STATUS_OK:
-            print(f"❌ 初始化失败，错误码: {status}")
+        if self._holds_openni_runtime:
+            self.is_initialized = True
+            return True
+        if not _oni_proc.openni_runtime_attach(self.lib, self.ONI_API_VERSION, self.ONI_STATUS_OK):
             return False
-
+        self._holds_openni_runtime = True
         self.is_initialized = True
-        print("✅ OpenNI SDK初始化成功")
         return True
 
     def get_device_list(self) -> Optional[Dict[int, Dict[str, Any]]]:
@@ -519,11 +525,12 @@ class OrbbecCameraSDK:
             print("✅ 设备已关闭")
 
     def shutdown(self) -> None:
-        """关闭SDK"""
-        if self.lib and self.is_initialized:
-            self.lib.oniShutdown()
-            self.is_initialized = False
-            print("✅ OpenNI SDK已关闭")
+        """释放本对象对 OpenNI 运行时的引用（见 openni_process_runtime）。"""
+        if not self.lib or not self._holds_openni_runtime:
+            return
+        self._holds_openni_runtime = False
+        self.is_initialized = False
+        _oni_proc.openni_runtime_detach(self.lib)
 
     def cleanup(self) -> None:
         """完整清理所有资源"""

@@ -1,0 +1,20 @@
+{# 主导航锚点列表。父模板须传入 active_key（url_name 或与 urlpatterns 一致的字符串）。 #}
+{% with v=active_key|default:"" %}
+    <a href="{% url 'realm' %}"{% if v == "realm" %} class="active"{% endif %}>绿洲</a>
+    <a href="{% url 'training' %}"{% if v == "training" %} class="active"{% endif %}>训练场</a>
+    <a href="{% url 'reality_override' %}"{% if v == "reality_override" %} class="active"{% endif %}>现实覆写</a>
+    <a href="{% url 'dashboard' %}"{% if v == "dashboard" %} class="active"{% endif %}>终端</a>
+    <a href="{% url 'my_realm' %}"{% if v == "my_realm" %} class="active"{% endif %}>我的位面</a>
+    <a href="{% url 'realm_editor' %}"{% if v == "realm_editor" %} class="active"{% endif %}>位面编辑</a>
+    <a href="{% url 'worlds' %}"{% if v == "worlds" %} class="active"{% endif %}>位面广场</a>
+    <a href="{% url 'material_library' %}"{% if v == "material_library" %} class="active"{% endif %}>材质库</a>
+    <a href="{% url 'missions' %}"{% if v == "missions" %} class="active"{% endif %}>任务</a>
+    <a href="{% url 'achievements' %}"{% if v == "achievements" %} class="active"{% endif %}>成就</a>
+    <a href="{% url 'equipment' %}"{% if v == "equipment" or v == "equipment_equip" %} class="active"{% endif %}>装备</a>
+    <a href="{% url 'market' %}"{% if v == "market" %} class="active"{% endif %}>黑市</a>
+    <a href="{% url 'ranking' %}"{% if v == "ranking" %} class="active"{% endif %}>排行</a>
+    <a href="{% url 'devices' %}"{% if v == "devices" %} class="active"{% endif %}>设备</a>
+    <a href="{% url 'tutorial' %}"{% if v == "tutorial" %} class="active"{% endif %}>教程</a>
+    <a href="{% url 'settings' %}"{% if v == "settings" %} class="active"{% endif %}>设置</a>
+    <a href="{% url 'about' %}"{% if v == "about" %} class="active"{% endif %}>关于</a>
+{% endwith %}
