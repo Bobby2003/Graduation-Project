@@ -1,8 +1,8 @@
 """
 内存级 mesh refine 适配器（slim 版本）
 - 直接接收 Open3D mesh
-- 复用 mesh_refine_slim.py 的所有处理函数
-- 不修改任何上游代码
+- 内部委托给 MeshRefinePipeline
+- 保持原有函数签名 100% 兼容
 """
 import os
 import time
@@ -11,12 +11,11 @@ import numpy as np
 import trimesh
 import open3d as o3d
 from datetime import datetime
-from multiprocessing import cpu_count
 
-import mesh_refine_slim as mrs
+from mesh_refine_api import MeshRefinePipeline
 
 # =============================
-# 类型转换
+# 类型转换（保留给外部调用者用）
 # =============================
 def o3d_to_trimesh(o3d_mesh: o3d.geometry.TriangleMesh) -> trimesh.Trimesh:
     V = np.asarray(o3d_mesh.vertices, dtype=np.float64)
@@ -33,152 +32,19 @@ def trimesh_to_o3d(tm: trimesh.Trimesh) -> o3d.geometry.TriangleMesh:
     return out
 
 # =============================
-# 参数构造
+# Pipeline 实例缓存（避免每次重建 args）
 # =============================
-def make_default_args(output_dir: str, **overrides):
-    """复用 mesh_refine_slim 的 argparse 默认值 + preset"""
-    parser = mrs.build_parser()
-    args = parser.parse_args(["--input", "__memory__", "--output_dir", output_dir])
-    # 应用 preset（slim 版 main() 里是自动调用的，这里手动调用一次）
-    args = mrs.apply_preset_to_args(args)
-    # 覆盖外部传入的参数
-    for k, v in overrides.items():
-        if hasattr(args, k):
-            setattr(args, k, v)
-        else:
-            print(f"⚠️  unknown arg ignored: {k}={v}")
-    return args
+_PIPELINE_CACHE = {}
+
+def _get_pipeline(preset: str = "balanced", verbose: bool = True) -> MeshRefinePipeline:
+    """按 preset 缓存 pipeline 实例（args 复用，节省 ~10ms / 次）"""
+    key = preset
+    if key not in _PIPELINE_CACHE:
+        _PIPELINE_CACHE[key] = MeshRefinePipeline(preset=preset, verbose=verbose)
+    return _PIPELINE_CACHE[key]
 
 # =============================
-# 内存版 pipeline（去掉文件 IO）
-# =============================
-def _run_pipeline_core(mesh: trimesh.Trimesh, args, verbose=True):
-    """改自 mrs.process_mesh，去掉文件 IO，返回结果 mesh + meta"""
-    timings = {}
-    total_t0 = time.perf_counter()
-
-    # 控制 slim 内部 log() 是否打印
-    mrs.enable_log(bool(verbose))
-
-    sensor_origin = mrs.parse_vec3(args.sensor_origin)
-    num_workers = args.num_workers if args.num_workers > 0 else max(1, cpu_count() - 1)
-
-    detect_cfg = {
-        "patch_normal_angle_deg": args.patch_normal_angle_deg,
-        "min_patch_faces": args.min_patch_faces,
-        "min_plane_faces": args.min_plane_faces,
-        "min_plane_area": args.min_plane_area,
-        "base_face_plane_dist": args.base_face_plane_dist,
-        "plane_normal_angle_deg": args.plane_normal_angle_deg,
-        "sigma_dist_mult": args.sigma_dist_mult,
-        "max_split_depth": args.max_split_depth,
-        "sensor_origin": sensor_origin,
-        "use_distance_strategy": args.use_distance_strategy,
-        "near_ratio": args.near_ratio,
-        "far_ratio": args.far_ratio,
-    }
-    refine_cfg = {
-        "vertex_inlier_dist": args.vertex_inlier_dist,
-        "vertex_outlier_dist": args.vertex_outlier_dist,
-        "base_snap_strength": args.base_snap_strength,
-        "base_residual_shrink": args.base_residual_shrink,
-        "base_normal_smooth_iterations": args.base_normal_smooth_iterations,
-        "noise_adapt_gain": args.noise_adapt_gain,
-        "boundary_protect": not args.no_boundary_protect,
-        "boundary_scale": args.boundary_scale,
-        "expand_rings": args.expand_rings,
-        "sensor_origin": sensor_origin,
-        "distance_gain": args.distance_gain,
-        "use_distance_strategy": args.use_distance_strategy,
-        "near_ratio": args.near_ratio,
-        "far_ratio": args.far_ratio,
-    }
-
-    before = mrs.mesh_report(mesh)
-
-    # [1/7] 基础清理
-    if verbose: print("[1/7] 基础清理...")
-    t0 = time.perf_counter()
-    m = mrs.clean_mesh_light(mesh, fix_normals=False)
-    timings["clean_1"] = round(time.perf_counter() - t0, 4)
-
-    # [2/7] 早期空洞修补 / 裂缝桥接
-    if verbose: print("[2/7] 早期空洞修补...")
-    t0 = time.perf_counter()
-    m, hole_stats = mrs.run_early_hole_repair(
-        m,
-        enable=not args.disable_early_hole_fill,
-        max_hole_edges=args.max_hole_edges,
-        max_hole_diameter=args.max_hole_diameter,
-        max_hole_area=args.max_hole_area,
-        max_hole_plane_residual=args.max_hole_plane_residual,
-        max_hole_candidate_loops=args.max_hole_candidate_loops,
-        enable_gap_stitch=not args.disable_gap_stitch,
-        max_bridge_dist=args.max_bridge_dist,
-        bridge_normal_dot_min=args.bridge_normal_dot_min,
-        max_bridge_pairs=args.max_bridge_pairs,
-        verbose=verbose,
-    )
-    timings["hole_repair"] = round(time.perf_counter() - t0, 4)
-
-    # [3/7] 连通分量过滤
-    if verbose: print("[3/7] 连通分量过滤...")
-    t0 = time.perf_counter()
-    m = mrs.filter_components_fast(
-        m,
-        args.min_component_faces,
-        args.min_component_area,
-        args.min_component_max_extent,
-        args.keep_top_k_faces,
-    )
-    timings["filter_components"] = round(time.perf_counter() - t0, 4)
-
-    # [4/7] 平面识别
-    t0 = time.perf_counter()
-    planes, shared_cache = mrs.detect_planes(m, detect_cfg, verbose)
-    timings["detect_planes"] = round(time.perf_counter() - t0, 4)
-
-    # [5/7] 平面精修
-    t0 = time.perf_counter()
-    m, reports1 = mrs.refine_planes_parallel(
-        m, planes, refine_cfg,
-        shared_cache=shared_cache,
-        verbose=verbose, tag="[5/7]",
-        num_workers=num_workers,
-    )
-    timings["refine_planes"] = round(time.perf_counter() - t0, 4)
-
-    # [6/7] 去游离碎片
-    if verbose: print("[6/7] 去游离噪点...")
-    t0 = time.perf_counter()
-    m = mrs.remove_floating_noise_fast(
-        m,
-        min_faces=args.noise_min_faces,
-        min_area=args.noise_min_area,
-        min_extent=args.noise_min_extent,
-        keep_top_k=args.noise_keep_top_k,
-    )
-    timings["remove_noise"] = round(time.perf_counter() - t0, 4)
-
-    # [7/7] 最终清理
-    if verbose: print("[7/7] 最终清理...")
-    t0 = time.perf_counter()
-    m = mrs.clean_mesh_light(m, fix_normals=not args.skip_final_fix_normals)
-    timings["clean_final"] = round(time.perf_counter() - t0, 4)
-
-    after = mrs.mesh_report(m)
-    timings["total"] = round(time.perf_counter() - total_t0, 4)
-
-    return m, {
-        "before": before,
-        "after": after,
-        "timings": timings,
-        "planes_count": len(planes),
-        "hole_stats": hole_stats,
-    }
-
-# =============================
-# 主入口
+# 主入口（签名 100% 兼容旧版）
 # =============================
 def refine_mesh_in_memory(
     o3d_mesh: o3d.geometry.TriangleMesh,
@@ -187,38 +53,52 @@ def refine_mesh_in_memory(
     save_files: bool = True,
     save_raw: bool = True,
     verbose: bool = True,
+    preset: str = "balanced",          # 新增（旧调用不传也兼容）
     **refine_overrides,
 ):
     """
-    主入口：内存级 mesh 优化（slim 版）
-
-    Args:
-        o3d_mesh: 来自 mapper.volume.extract_triangle_mesh() 的 mesh
-        output_dir: 优化结果输出目录
-        prefix: 文件名前缀
-        save_files: 是否保存优化结果
-        save_raw: 是否保存优化前的对比版
-        refine_overrides: 覆盖默认参数
+    主入口：内存级 mesh 优化（slim API 版）
 
     Returns:
         (refined_o3d_mesh, meta_dict)
+
+    meta_dict 字段（保持与旧版兼容）：
+        before / after / timings / planes_count / hole_stats
+        raw_path (可选) / refined_path / refined_latest_path / total_elapsed_sec
     """
     t_start = time.perf_counter()
 
     if verbose:
         print("\n" + "=" * 60)
-        print("🔧 ONLINE MESH REFINE (slim) START")
+        print("🔧 ONLINE MESH REFINE (slim API) START")
         print(f"   Input: {len(o3d_mesh.vertices)} verts / {len(o3d_mesh.triangles)} faces")
         print("=" * 60)
 
+    # 太小跳过
     if len(o3d_mesh.vertices) < 50:
-        print(f"⚠️  Mesh 太小，跳过优化")
+        print("⚠️  Mesh 太小，跳过优化")
         return o3d_mesh, {"skipped": True, "reason": "too_few_vertices"}
 
-    tm = o3d_to_trimesh(o3d_mesh)
-    args = make_default_args(output_dir, **refine_overrides)
-    refined_tm, meta = _run_pipeline_core(tm, args, verbose=verbose)
-    refined_o3d = trimesh_to_o3d(refined_tm)
+    # 调用新 API（return_details=True 拿全部数据）
+    pipe = _get_pipeline(preset=preset, verbose=verbose)
+    result = pipe.process(
+        o3d_mesh,                    # 自动识别 o3d → trimesh
+        return_details=True,
+        verbose=verbose,
+        **refine_overrides,
+    )
+
+    # trimesh → open3d
+    refined_o3d = trimesh_to_o3d(result.mesh)
+
+    # 构造旧版 meta 格式（保证向后兼容）
+    meta = {
+        "before": result.before,
+        "after": result.after,
+        "timings": result.timings,
+        "planes_count": result.num_planes,
+        "hole_stats": result.hole_stats,
+    }
 
     # 文件保存
     if save_files:
@@ -256,3 +136,35 @@ def refine_mesh_in_memory(
         print("=" * 60 + "\n")
 
     return refined_o3d, meta
+
+# =============================
+# 新增：直接拿 PipelineResult 的接口（给愿意用新 API 的调用方）
+# =============================
+def refine_mesh_with_details(
+    o3d_mesh: o3d.geometry.TriangleMesh,
+    preset: str = "balanced",
+    save_intermediate: bool = False,
+    verbose: bool = True,
+    **refine_overrides,
+):
+    """
+    新接口：直接返回 PipelineResult（含 trimesh mesh 和全部工作流数据）
+
+    注意：返回的 result.mesh 是 trimesh.Trimesh，不是 open3d。
+    如果需要 open3d，自己用 trimesh_to_o3d() 转换。
+
+    Examples:
+        result = refine_mesh_with_details(o3d_mesh, save_intermediate=True)
+        print(result.num_planes, result.timings)
+        for p in result.planes_summary():
+            print(p)
+        result.save_all("./out_dir", name_prefix="online")
+    """
+    pipe = _get_pipeline(preset=preset, verbose=verbose)
+    return pipe.process(
+        o3d_mesh,
+        return_details=True,
+        save_intermediate=save_intermediate,
+        verbose=verbose,
+        **refine_overrides,
+    )

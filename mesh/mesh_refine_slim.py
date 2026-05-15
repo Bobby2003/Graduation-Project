@@ -1,7 +1,10 @@
 # mesh_refine_slim.py
-# 瘦身版：删除 chain stitch / far second pass / global smooth /
-#         trimesh fill_holes 分支 / profile_fast_mode
-# 默认 verbose=True，PLY 导出，OBJ/JSON 不导出
+# 瘦身版 + 性能补丁
+# 补丁清单：
+#   [OPT-1] 去除多余的 mesh.copy()
+#   [OPT-2] get_boundary_edges 改用纯 numpy
+#   [OPT-3] robust_plane 加 early-stop, fit_plane_faces 用 iters=2
+#   [OPT-5] make_cache 用纯 numpy 算 face_normals/areas/centers
 
 # ----- [0] BLAS 线程数（必须最先调用）-----
 from config_slim import apply_env_threads
@@ -126,15 +129,21 @@ def weighted_pca(points, weights=None):
     n = n / (np.linalg.norm(n) + 1e-12)
     return c, n, vals
 
-def robust_plane(points, weights=None, iters=3, huber_k=1.5):
+# [OPT-3] 加 early-stop（tol），不影响默认调用，但 IRLS 收敛后能提前退出
+def robust_plane(points, weights=None, iters=3, huber_k=1.5, tol=1e-4):
     p = np.asarray(points, dtype=np.float64)
     if len(p) == 0:
         return np.zeros(3), np.array([0.0, 0.0, 1.0], dtype=np.float64)
     w = np.ones(len(p), dtype=np.float64) if weights is None else np.asarray(weights, dtype=np.float64).copy()
     c = p.mean(axis=0)
     n = np.array([0.0, 0.0, 1.0], dtype=np.float64)
-    for _ in range(iters):
+    prev_n = n
+    for it in range(iters):
         c, n, _ = weighted_pca(p, w)
+        # 法线几乎不变就提前退出
+        if it > 0 and abs(np.dot(prev_n, n)) > 1.0 - tol:
+            break
+        prev_n = n
         d = np.dot(p - c, n)
         s = robust_sigma(d) + 1e-12
         r = np.abs(d) / (huber_k * s + 1e-12)
@@ -174,16 +183,34 @@ def build_vertex_adjacency_sparse(num_vertices, faces):
     g.data[:] = 1
     return g
 
+# [OPT-2] 纯 numpy 实现，不依赖 trimesh.edges_unique
 def get_boundary_edges(mesh):
-    try:
-        edges_u = np.asarray(mesh.edges_unique, dtype=np.int32)
-        if len(edges_u) == 0:
-            return np.empty((0, 2), dtype=np.int32)
-        inv = np.asarray(mesh.edges_unique_inverse, dtype=np.int64).reshape(-1)
-        counts = np.bincount(inv, minlength=len(edges_u))
-        return edges_u[counts == 1]
-    except Exception:
+    """直接从 faces 算 boundary edges，比 trimesh.edges_unique 快 3-4x"""
+    F = np.asarray(mesh.faces, dtype=np.int64)
+    if len(F) == 0:
         return np.empty((0, 2), dtype=np.int32)
+
+    # 把每个三角形的 3 条边都列出（共 3*F 条）
+    edges = np.vstack([F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]])
+    # 排序使 (a,b) 与 (b,a) 等价
+    edges = np.sort(edges, axis=1)
+    # 编码成单 int64（顶点 id < 2^31 时安全，几十万顶点远远在范围内）
+    keys = (edges[:, 0] << 32) | edges[:, 1]
+    keys.sort(kind="stable")
+
+    n = len(keys)
+    if n == 0:
+        return np.empty((0, 2), dtype=np.int32)
+
+    # 仅出现 1 次的键 = 边界边
+    is_first = np.r_[True, keys[1:] != keys[:-1]]
+    is_last = np.r_[keys[:-1] != keys[1:], True]
+    is_unique = is_first & is_last
+
+    uk = keys[is_unique]
+    a = (uk >> 32).astype(np.int32)
+    b = (uk & 0xFFFFFFFF).astype(np.int32)
+    return np.column_stack([a, b])
 
 def boundary_vertices(mesh):
     be = get_boundary_edges(mesh)
@@ -502,7 +529,7 @@ def fill_small_holes_from_loops(
     )
     stats["candidate_loops"] = int(len(loops))
     if len(loops) == 0:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1] 不再 .copy()
 
     V = np.asarray(mesh.vertices, dtype=np.float64)
     F = np.asarray(mesh.faces, dtype=np.int32)
@@ -535,7 +562,7 @@ def fill_small_holes_from_loops(
             new_faces.append([ia, ib, ic])
 
     if len(new_faces) == 0:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1] 不再 .copy()
 
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
     out = trimesh.Trimesh(vertices=V.copy(), faces=F2, process=False)
@@ -630,11 +657,11 @@ def stitch_boundary_gaps(
     boundary_vs = boundary_cache["boundary_vs"]
 
     if len(boundary) == 0:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1]
 
     stats["boundary_vertices"] = int(len(boundary_vs))
     if len(boundary_vs) < 4:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1]
 
     V = np.asarray(mesh.vertices, dtype=np.float64)
     VN = estimate_vertex_normals_fast(mesh)
@@ -647,7 +674,7 @@ def stitch_boundary_gaps(
 
     stats["candidate_pairs"] = int(len(best_match))
     if not best_match:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1]
 
     mutual_pairs = []
     seen = set()
@@ -660,7 +687,7 @@ def stitch_boundary_gaps(
 
     stats["mutual_pairs"] = int(len(mutual_pairs))
     if len(mutual_pairs) < 2:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1]
 
     partner = {}
     for a, b in mutual_pairs[:max_bridge_pairs]:
@@ -704,7 +731,7 @@ def stitch_boundary_gaps(
 
     stats["bridge_quads"] = int(len(used_quads))
     if len(new_faces) == 0:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1]
 
     F = np.asarray(mesh.faces, dtype=np.int32)
     F2 = np.vstack([F, np.asarray(new_faces, dtype=np.int32)])
@@ -732,9 +759,9 @@ def run_early_hole_repair(
     stats = {"enabled": bool(enable), "loop_fill": {}, "gap_stitch": {}}
 
     if not enable:
-        return mesh.copy(), stats
+        return mesh, stats   # [OPT-1]
 
-    out = mesh.copy()
+    out = mesh   # [OPT-1] 原本是 mesh.copy()，但 clean_mesh_light 已经 copy 过，下游 fill 会自己造新 mesh
 
     boundary_cache = build_boundary_cache(out)
     out, loop_stats = fill_small_holes_from_loops(
@@ -774,14 +801,22 @@ def run_early_hole_repair(
 # =============================
 # Cache
 # =============================
+# [OPT-5] 用 numpy 直接算 face_normals/areas/centers，绕开 trimesh 的 lazy property
 def make_cache(mesh):
     V = np.asarray(mesh.vertices, dtype=np.float64)
     F = np.asarray(mesh.faces, dtype=np.int32)
-    FN = np.asarray(mesh.face_normals, dtype=np.float64)
-    TC = np.asarray(mesh.triangles_center, dtype=np.float64)
-    FA = np.asarray(mesh.area_faces, dtype=np.float64)
-    bbox_diag = float(np.linalg.norm(mesh.bounding_box.extents)) + 1e-12
 
+    # 一次性算 face_normals + face_areas + triangles_center
+    v0 = V[F[:, 0]]; v1 = V[F[:, 1]]; v2 = V[F[:, 2]]
+    cross = np.cross(v1 - v0, v2 - v0)
+    area_x2 = np.linalg.norm(cross, axis=1)
+    FA = 0.5 * area_x2
+    FN = cross / np.maximum(area_x2[:, None], 1e-30)
+    TC = (v0 + v1 + v2) * (1.0 / 3.0)
+
+    bbox_diag = float(np.linalg.norm(V.max(axis=0) - V.min(axis=0))) + 1e-12
+
+    # face_adjacency 仍然走 trimesh（自己写不划算）
     face_adj_pairs = np.asarray(mesh.face_adjacency, dtype=np.int32) if mesh.face_adjacency is not None else np.empty((0, 2), dtype=np.int32)
     face_adj_csr = make_sparse_graph_from_pairs(len(F), face_adj_pairs)
     vert_adj_csr = build_vertex_adjacency_sparse(len(V), F)
@@ -840,12 +875,13 @@ def connected_groups_sparse(ids, csr_graph, face_adj_pairs=None):
     n_comp, labels = sp_connected_components(sub, directed=False, return_labels=True)
     return [ids[labels == i] for i in range(n_comp)]
 
+# [OPT-3] iters 从 3 改为 2（顶层 patch 拟合，2 轮已收敛）
 def fit_plane_faces(face_ids, cache):
     face_ids = np.asarray(face_ids, dtype=np.int32)
     centers = cache["tri_centers"][face_ids]
     areas = cache["face_areas"][face_ids]
     normals = cache["face_normals"][face_ids]
-    c, n = robust_plane(centers, areas, iters=3, huber_k=1.5)
+    c, n = robust_plane(centers, areas, iters=2, huber_k=1.5)
     dist = np.dot(centers - c, n)
     _, _, vals = weighted_pca(centers, areas)
     dots = abs_normal_dot(normals, n)
@@ -1091,6 +1127,7 @@ def refine_one_plane(task):
     vids = expand_ring_sparse(base_vids, vert_adj_csr, cfg["expand_rings"])
     pts = V[vids]
 
+    # 顶点级精修保持 iters=3（精度需要）
     c, n = robust_plane(pts, None, 3, 1.4)
     sd = np.dot(pts - c, n)
     sigma_v = robust_sigma(sd)

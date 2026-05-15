@@ -1,2 +1,0 @@
-运行简化版slim还是老方法，main_pipeline_slim是main_pipeline适用于简化版的
-需要adapter，config
