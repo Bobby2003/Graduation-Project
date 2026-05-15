@@ -30,28 +30,14 @@
         .site-footer a:hover { color: var(--neon); }
         .control-mode-switcher { margin-left: auto; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header class="top-nav">
         <a class="brand" href="{% url 'home' %}">AR REALM</a>
         <nav class="nav-links">
-            <a href="{% url 'dashboard' %}" class="{% if nav_active == 'dashboard' %}active{% endif %}">终端</a>
-            <a href="{% url 'realm' %}" class="{% if nav_active == 'realm' %}active{% endif %}">进入世界</a>
-            <a href="{% url 'training' %}" class="{% if nav_active == 'training' %}active{% endif %}">训练场</a>
-            <a href="{% url 'reality_override' %}" class="{% if nav_active == 'reality_override' %}active{% endif %}">现实覆写</a>
-            <a href="{% url 'my_realm' %}" class="{% if nav_active == 'my_realm' %}active{% endif %}">我的位面</a>
-            <a href="{% url 'realm_editor' %}" class="{% if nav_active == 'realm_editor' %}active{% endif %}">位面编辑</a>
-            <a href="{% url 'missions' %}" class="{% if nav_active == 'missions' %}active{% endif %}">任务</a>
-            <a href="{% url 'achievements' %}" class="{% if nav_active == 'achievements' %}active{% endif %}">成就</a>
-            <a href="{% url 'equipment' %}" class="{% if nav_active == 'equipment' %}active{% endif %}">装备</a>
-            <a href="{% url 'material_library' %}" class="{% if nav_active == 'material_library' %}active{% endif %}">材质库</a>
-            <a href="{% url 'market' %}" class="{% if nav_active == 'market' %}active{% endif %}">市场</a>
-            <a href="{% url 'ranking' %}" class="{% if nav_active == 'ranking' %}active{% endif %}">排行</a>
-            <a href="{% url 'worlds' %}" class="{% if nav_active == 'worlds' %}active{% endif %}">位面广场</a>
-            <a href="{% url 'devices' %}" class="{% if nav_active == 'devices' %}active{% endif %}">设备</a>
-            <a href="{% url 'settings' %}" class="{% if nav_active == 'settings' %}active{% endif %}">设置</a>
-            <a href="{% url 'about' %}" class="{% if nav_active == 'about' %}active{% endif %}">关于</a>
+            {% include "partials/hud_nav_links_snippet.html" with active_key=nav_active|default:"" %}
         </nav>
         <div class="control-mode-switcher">
             <button type="button" class="mode-btn" data-mode="desktop" title="DESKTOP REALM">⌨</button>

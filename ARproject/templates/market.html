@@ -101,21 +101,13 @@
         #gesture-status-text { color: #bc00ff; font-family: 'Syncopate'; font-size: 12px; }
         :root { --neon-purple: #bc00ff; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
 </head>
 <body>
     <div class="top-nav">
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">BLACK MARKET</div>
-        <div class="nav-center">
-            <a href="{% url 'realm' %}">绿洲</a>
-            <a href="{% url 'dashboard' %}">终端</a>
-            <a href="{% url 'missions' %}">任务</a>
-            <a href="{% url 'achievements' %}">成就</a>
-            <a href="{% url 'equipment' %}">装备</a>
-            <a href="{% url 'market' %}" class="active">黑市</a>
-            <a href="{% url 'ranking' %}">排行</a>
-            <a href="{% url 'settings' %}">设置</a>
-        </div>
+        {% include "partials/hud_nav_center.html" %}
         <div style="display:flex; align-items:center; gap:10px;">
             <div class="control-mode-switcher">
                 <button type="button" class="mode-btn" data-mode="desktop">⌨</button>

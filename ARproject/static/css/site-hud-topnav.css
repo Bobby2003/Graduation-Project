@@ -1,0 +1,123 @@
+/**
+ * HUD 风格顶栏修复：装备 / 黑市 / 任务 / 成就 / 排行榜 / 设置 / 教程 / 关于 等页面
+ *
+ * 原布局把「返回按钮 + 长标题 + 一堆链接 + 右侧控件」塞在同一行 flex 里，
+ * 中间链接会因 flex-shrink 被挤没。改为两行网格：首行 HUD+标题+控件，次行全长导航。
+ */
+
+.top-nav:has(> .btn-return):has(> .nav-center) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 8px 12px;
+    align-items: center;
+    justify-content: initial;
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.top-nav:has(> .btn-return):has(> .nav-center) > .btn-return {
+    grid-column: 1;
+    grid-row: 1;
+    flex-shrink: 0;
+}
+
+.top-nav:has(> .btn-return):has(> .nav-center) > .page-title {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    align-self: center;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 8px;
+}
+
+.top-nav:has(> .btn-return):has(> .nav-center) > .nav-center {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 6px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding: 2px 0 4px;
+}
+
+.top-nav:has(> .btn-return):has(> .nav-center) > .nav-center::-webkit-scrollbar {
+    height: 4px;
+}
+
+.top-nav:has(> .btn-return):has(> .nav-center) > .nav-center::-webkit-scrollbar-thumb {
+    background: rgba(0, 242, 255, 0.35);
+    border-radius: 2px;
+}
+
+.top-nav:has(> .btn-return):has(> .nav-center) > .nav-center a {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 9px;
+}
+
+/* 右侧控件区块（最后一个 div 子节点） */
+.top-nav:has(> .btn-return):has(> .nav-center) > div:last-child {
+    grid-column: 3;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+/* portal_shell.html：AR REALM + 长 nav-links + 模式切换 */
+.top-nav:has(> a.brand):has(> nav.nav-links) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.top-nav:has(> a.brand):has(> nav.nav-links) > a.brand {
+    margin-right: 0;
+}
+
+.top-nav:has(> a.brand):has(> nav.nav-links) > nav.nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 6px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.top-nav:has(> a.brand):has(> nav.nav-links) > nav.nav-links a {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.top-nav:has(> a.brand):has(> nav.nav-links) .control-mode-switcher {
+    margin-left: 0;
+    flex-shrink: 0;
+}

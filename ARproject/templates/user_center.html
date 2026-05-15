@@ -331,21 +331,7 @@
             MAIN
         </a>
         </div>
-        <div class="nav-center" role="navigation" aria-label="主导航">
-            <a href="{% url 'realm' %}">绿洲</a>
-            <a href="{% url 'training' %}">训练场</a>
-            <a href="{% url 'reality_override' %}">现实覆写</a>
-            <a href="{% url 'dashboard' %}" class="active">终端</a>
-            <a href="{% url 'my_realm' %}">我的位面</a>
-            <a href="{% url 'material_library' %}">材质库</a>
-            <a href="{% url 'missions' %}">任务</a>
-            <a href="{% url 'achievements' %}">成就</a>
-            <a href="{% url 'equipment' %}">装备</a>
-            <a href="{% url 'market' %}">黑市</a>
-            <a href="{% url 'ranking' %}">排行</a>
-            <a href="{% url 'devices' %}">设备</a>
-            <a href="{% url 'settings' %}">设置</a>
-        </div>
+        {% include "partials/hud_nav_center.html" %}
         <div class="top-nav-trail">
             <div class="control-mode-switcher">
                 <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
