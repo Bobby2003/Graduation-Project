@@ -306,6 +306,16 @@
      *   IMU Z(yaw)   → euler.y
      * （与 interactive_imu_camera_calibration.py ROTVEC_EXPECTED_ACTION_AXES 一致）
      */
+    function isValidQuaternion(q) {
+        if (!q) return false;
+        return (
+            Number.isFinite(q.x) &&
+            Number.isFinite(q.y) &&
+            Number.isFinite(q.z) &&
+            Number.isFinite(q.w)
+        );
+    }
+
     function remapImuDeltaForThree(deltaMat4, refMat4) {
         var refRot = new THREE.Matrix4().copy(refMat4);
         refRot.setPosition(0, 0, 0);
@@ -396,8 +406,14 @@
         lerpVec3(smoothedPos, smoothedPos, targetPos, SMOOTH);
         smoothedQuat.slerp(targetQuat, SMOOTH);
 
+        if (!isValidQuaternion(smoothedQuat)) {
+            console.warn('[REALM IMU] invalid quaternion, skip frame');
+            return;
+        }
+
+        cam.quaternion.copy(smoothedQuat);
         cam.rotation.order = 'YXZ';
-        cam.rotation.setFromQuaternion(smoothedQuat);
+        cam.rotation.setFromQuaternion(cam.quaternion);
         cam.updateMatrixWorld(true);
     }
 

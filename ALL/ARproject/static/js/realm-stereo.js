@@ -87,8 +87,37 @@
         return true;
     }
 
+    function cameraPoseIsFinite(camera) {
+        if (!camera) return false;
+        var p = camera.position;
+        var q = camera.quaternion;
+        return (
+            Number.isFinite(p.x) &&
+            Number.isFinite(p.y) &&
+            Number.isFinite(p.z) &&
+            Number.isFinite(q.x) &&
+            Number.isFinite(q.y) &&
+            Number.isFinite(q.z) &&
+            Number.isFinite(q.w)
+        );
+    }
+
+    /** 每帧结束恢复 WebGL 视口/裁剪，避免 AR/VR 切模式后单眼路径黑屏 */
+    function resetRendererFrame(renderer) {
+        if (!renderer) return;
+        var buf = getBufferSize(renderer);
+        renderer.setScissorTest(false);
+        if (buf.w > 0 && buf.h > 0) {
+            renderer.setViewport(0, 0, buf.w, buf.h);
+        }
+        renderer.autoClear = true;
+    }
+
     function renderStereo(renderer, scene, camera) {
         if (!isStereoMode() || !renderer || !scene || !camera) {
+            return false;
+        }
+        if (!cameraPoseIsFinite(camera)) {
             return false;
         }
         if (!syncStereoCameras(camera, renderer)) {
@@ -96,13 +125,23 @@
         }
 
         var buf2 = getBufferSize(renderer);
-        var w = buf2.w;
-        var h = buf2.h;
+        var w = Math.floor(buf2.w);
+        var h = Math.floor(buf2.h);
+        if (w < 8 || h < 8) {
+            return false;
+        }
+
         var halfW = Math.floor(w / 2);
-        if (halfW < 2) return false;
+        if (halfW < 4) {
+            return false;
+        }
+
+        if (scene.background && scene.background.isColor) {
+            renderer.setClearColor(scene.background, 1);
+        }
 
         var prevAutoClear = renderer.autoClear;
-        renderer.autoClear = false;
+        renderer.autoClear = true;
         renderer.setScissorTest(false);
         renderer.setViewport(0, 0, w, h);
         renderer.clear(true, true, true);
@@ -150,8 +189,16 @@
 
         if (active) {
             lockLandscape();
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    window.dispatchEvent(new Event('resize'));
+                });
+            });
         } else {
             unlockOrientation();
+            requestAnimationFrame(function () {
+                window.dispatchEvent(new Event('resize'));
+            });
         }
     }
 
@@ -180,6 +227,8 @@
         isStereoMode: isStereoMode,
         isMobileViewport: isMobileViewport,
         renderStereo: renderStereo,
+        resetRendererFrame: resetRendererFrame,
+        cameraPoseIsFinite: cameraPoseIsFinite,
         applyStereoLayout: applyStereoLayout,
         getBufferSize: getBufferSize,
         EYE_SEPARATION: EYE_SEPARATION,

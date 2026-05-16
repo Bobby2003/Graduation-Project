@@ -1294,6 +1294,16 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         if (realmDebugEnabled) {
             updateDebugHud(now);
         }
+        if (
+            window.RealmStereo &&
+            typeof window.RealmStereo.cameraPoseIsFinite === 'function' &&
+            !window.RealmStereo.cameraPoseIsFinite(camera)
+        ) {
+            camera.position.set(0, 1.7, 4.2);
+            camera.rotation.set(0, 0, 0, 'YXZ');
+            camera.updateMatrixWorld(true);
+        }
+
         var didStereo = false;
         if (window.RealmStereo && typeof window.RealmStereo.renderStereo === 'function') {
             try {
@@ -1313,8 +1323,23 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
                           w: renderer.domElement ? renderer.domElement.width : 0,
                           h: renderer.domElement ? renderer.domElement.height : 0,
                       };
-            renderer.setViewport(0, 0, buf.w, buf.h);
-            renderer.render(scene, camera);
+            if (buf.w < 8 || buf.h < 8) {
+                onResize();
+                buf =
+                    window.RealmStereo && typeof window.RealmStereo.getBufferSize === 'function'
+                        ? window.RealmStereo.getBufferSize(renderer)
+                        : {
+                              w: renderer.domElement ? renderer.domElement.width : 0,
+                              h: renderer.domElement ? renderer.domElement.height : 0,
+                          };
+            }
+            if (buf.w > 0 && buf.h > 0) {
+                renderer.setViewport(0, 0, buf.w, buf.h);
+                renderer.render(scene, camera);
+            }
+        }
+        if (window.RealmStereo && typeof window.RealmStereo.resetRendererFrame === 'function') {
+            window.RealmStereo.resetRendererFrame(renderer);
         }
     }
 

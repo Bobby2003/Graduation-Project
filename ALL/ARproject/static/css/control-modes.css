@@ -109,8 +109,12 @@ body.ar-immersive-3d.realm-stereo-mobile .realm-viewport {
         font-size: 16px;
         line-height: 1.5;
         color: #bff;
-        background: rgba(2, 6, 12, 0.92);
+        background: rgba(2, 6, 12, 0.72);
         pointer-events: none;
+    }
+    /* 竖屏仍保留底层 WebGL，避免整屏纯黑 */
+    body.ar-immersive-3d.realm-stereo-mobile #realm-canvas-root {
+        z-index: 1;
     }
 }
 
