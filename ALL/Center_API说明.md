@@ -70,6 +70,8 @@ HTTP（Django，`login_required`，POST 需 CSRF token，与 `/api/center/start/
 - `POST /api/center/resume/`：从 `hard_paused_lost` 进入 `recovering`，清零 CLF / GpuICP lost 计数，恢复跟踪与建图写入。
 - `POST /api/center/reset-reconstruction/`：调用管线 `reset_reconstruction` 清空体积并重启 worker；必要时自动 `start_background`；成功后恢复状态为 `normal` 并清零 CLF。
 
+`GET /api/center/pose-latest/`：对应 `center.get_pose_latest()`，返回 `imu_to_world` / `camera_to_world`（`reconstruction_world`）。AR/VR 沉浸页 `realm-imu-tracker.js` 轮询此接口驱动 Three 相机。
+
 `GET /api/center/status/` 扩展字段（不影响原有字段）：
 - `center_recovery_state`: `normal` | `hard_paused_lost` | `recovering` | `recovery_failed`
 - `consecutive_lost_frames`, `consecutive_success_frames`
