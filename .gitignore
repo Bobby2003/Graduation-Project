@@ -36,14 +36,14 @@ desktop.ini
 # Logs / profiling
 *.log
 logs/
-pointcloud2mesh/logs/
-Pointcloud2mesh/logs/
+ALL/pointcloud2mesh/logs/
+ALL/Pointcloud2mesh/logs/
 *.prof
 
 # Runtime model outputs
 Pointcloud2mesh/model/
-Meshfix/outputs_realtime/
-Material/outputs/
+ALL/Meshfix/outputs_realtime/
+ALL/Material/outputs/
 
 # Center service runtime state
 outputs_online/
@@ -57,7 +57,3 @@ captures/
 recordings/
 local_data/
 datasets/local/
-
-# Keep source dependency files tracked
-!requirements.txt
-!**/requirements.txt

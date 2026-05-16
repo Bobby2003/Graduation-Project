@@ -143,7 +143,7 @@ class OrbbecCameraSDK:
 
         # 添加默认路径
         dll_search_paths.extend([
-            r"C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs\OpenNI2.dll",
+            r"H:\School assessment\Design\奥比中光Win64-Release\sdk\libs\OpenNI2.dll",
             "OpenNI2.dll",  # 从系统PATH加载
         ])
 

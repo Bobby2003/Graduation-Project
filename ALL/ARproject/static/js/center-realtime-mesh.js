@@ -196,6 +196,11 @@
         centerRealtimeMesh = null;
     }
 
+    /** 与 realm-main.js 中地板平面一致（addFloor 使用 y=0；网格在 0.01） */
+    var REALM_FLOOR_Y = 0;
+    /** 略抬高避免与地板 z-fight，同时保持 min.y >= REALM_FLOOR_Y */
+    var REALM_MESH_FLOOR_EPS = 0.008;
+
     function normalizeCenterMeshToRealm(object3d) {
         object3d.updateMatrixWorld(true);
         var box = new THREE.Box3().setFromObject(object3d);
@@ -208,7 +213,16 @@
         var targetSize = 4.2;
         var scale = targetSize / maxDim;
         object3d.scale.setScalar(scale);
-        object3d.position.set(-center.x * scale, -center.y * scale + 0.05, -center.z * scale);
+        object3d.position.set(0, 0, 0);
+        object3d.updateMatrixWorld(true);
+        box.setFromObject(object3d);
+        var minY = box.min.y;
+        if (!Number.isFinite(minY)) return;
+        object3d.position.set(
+            -center.x * scale,
+            REALM_FLOOR_Y + REALM_MESH_FLOOR_EPS - minY,
+            -center.z * scale
+        );
     }
 
     function renderCenterMemoryMesh(meshPayload, meta) {

@@ -42,7 +42,7 @@ PipelineConfig = importlib.import_module(f"{POINTCLOUD_PACKAGE}.config").Pipelin
 RealtimeMappingPipeline = importlib.import_module(
     f"{POINTCLOUD_PACKAGE}.pipeline_api"
 ).RealtimeMappingPipeline
-from mesh_refine_adapter_slim import o3d_to_trimesh, refine_mesh_in_memory
+from Meshfix.mesh_refine_adapter_slim import o3d_to_trimesh, refine_mesh_in_memory
 from Material.material_engine_adapter import MaterialEngineAdapter
 
 
@@ -210,7 +210,7 @@ class ModelProcessingWorker:
 class CenterPipelineService:
     def __init__(self):
         self.lock = threading.RLock()
-        self.pipeline: RealtimeMappingPipeline | None = None
+        self.pipeline: Any | None = None
         self.worker: ModelProcessingWorker | None = None
         self.material_engine: MaterialEngineAdapter | None = None
 
@@ -233,7 +233,7 @@ class CenterPipelineService:
         for directory in (POINTCLOUD_MODEL_DIR, MESHFIX_OUTPUT_DIR, MATERIAL_OUTPUT_DIR):
             directory.mkdir(parents=True, exist_ok=True)
 
-    def _build_pipeline(self) -> RealtimeMappingPipeline:
+    def _build_pipeline(self) -> Any:
         cfg = PipelineConfig()
         cfg.render.enabled = False
         cfg.mapping.model_dir = str(POINTCLOUD_MODEL_DIR)
@@ -349,11 +349,17 @@ class CenterPipelineService:
                 if int(getattr(mapper, "integrated_frames", 0) or 0) <= 0:
                     return None, 0, 0
                 raw = mapper.volume.extract_triangle_mesh()
+                nv = int(len(raw.vertices))
+                nt = int(len(raw.triangles))
+                if nv == 0 or nt == 0:
+                    return None, 0, 0
+                # 与 Mapper.extract_output_mesh / 落盘导出一致：Y-up 输出轴修正 + 可选 yaw/平移
+                out = mapper._apply_output_axis_transform(raw)
+            nv = int(len(out.vertices))
+            nt = int(len(out.triangles))
+            return out, nv, nt
         except Exception:
             return None, 0, 0
-        nv = int(len(raw.vertices))
-        nt = int(len(raw.triangles))
-        return raw, nv, nt
 
     def get_reconstruction_mesh_snapshot(self) -> o3d.geometry.TriangleMesh | None:
         mesh, nv, nt = self._extract_tsdf_triangle_mesh_once()
@@ -464,7 +470,7 @@ class CenterPipelineService:
             return payload
 
         raw_mesh.compute_vertex_normals()
-        work = raw_mesh.clone()
+        work = copy.deepcopy(raw_mesh)
         nv = int(len(work.vertices))
         nf = int(len(work.triangles))
         if nv > max_vertices:
