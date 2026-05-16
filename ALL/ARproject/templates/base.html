@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AR REALM · 现实重构与虚拟位面{% endblock %}</title>
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
 
     <!-- 1. 引入全局赛博朋克配色系统 (必须确保在 static/css/theme.css 位置) -->
     <link rel="stylesheet" href="{% static 'css/theme.css' %}">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516k">
 
     <!-- 预留给子页面的额外 CSS 样式块 -->
     {% block extra_css %}{% endblock %}
@@ -125,8 +126,8 @@
 
     <!-- ==================== 2. 引入手势核心脚本 ==================== -->
     <!-- (必须确保在 static/js/gesture.js 位置) -->
-    <script src="{% static 'js/controls.js' %}?v=20260516j"></script>
-    <script src="{% static 'js/gesture.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
+    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
     {% include "partials/ar_stereo_scripts.html" %}
 
     <!-- 统一输入层：realm-action（键鼠 / 模式切换）；ar-gesture（捏合等手势语义） -->

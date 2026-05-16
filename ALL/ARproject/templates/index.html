@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>主网关 - AR REALM</title>
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <script>
         (function () {
             var p = (location.pathname || '/').replace(/\/+$/, '') || '/';
@@ -16,7 +17,7 @@
     </script>
     <!-- 引入科幻字体 -->
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516k">
     <style>
         body {
             margin: 0;
@@ -214,8 +215,8 @@
         <a href="{% url 'disclaimer' %}" style="color:#555;text-decoration:none;margin:0 10px;">免责</a>
     </footer>
 
-    <script src="{% static 'js/controls.js' %}?v=20260516j"></script>
-    <script src="{% static 'js/gesture.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
+    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
     {% include "partials/ar_stereo_scripts.html" %}
 </body>
 </html>

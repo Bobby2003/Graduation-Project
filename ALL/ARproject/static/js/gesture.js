@@ -11,7 +11,8 @@ const HAND_MODEL_URL =
     'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
 const cursorStyles = `
-    #ar-cursor {
+    #ar-cursor,
+    #ar-cursor-right {
         position: fixed;
         left: 0;
         top: 0;
@@ -30,7 +31,8 @@ const cursorStyles = `
         border: 2px solid transparent;
         display: none;
     }
-    #ar-cursor.cursor-locked {
+    #ar-cursor.cursor-locked,
+    #ar-cursor-right.cursor-locked {
         width: 48px !important;
         height: 48px !important;
         background-color: transparent !important;
@@ -136,6 +138,81 @@ class ARGestureController {
         this.cursor = document.createElement('div');
         this.cursor.id = 'ar-cursor';
         document.body.appendChild(this.cursor);
+
+        this.cursorRight = document.createElement('div');
+        this.cursorRight.id = 'ar-cursor-right';
+        document.body.appendChild(this.cursorRight);
+    }
+
+    isPortalStereoActive() {
+        return (
+            !this.isImmersive3DPage() &&
+            window.PortalStereo &&
+            typeof window.PortalStereo.isActive === 'function' &&
+            window.PortalStereo.isActive()
+        );
+    }
+
+    mapPointerForInteraction(screenX, screenY) {
+        if (
+            this.isPortalStereoActive() &&
+            window.PortalStereo.mapScreenToContentPoint
+        ) {
+            const m = window.PortalStereo.mapScreenToContentPoint(screenX, screenY);
+            return { x: m.x, y: m.y, relX: m.relX, relY: m.relY };
+        }
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        return { x: screenX, y: screenY, relX: screenX / vw, relY: screenY / vh };
+    }
+
+    placeCursors(screenX, screenY, relX, relY) {
+        if (this.isPortalStereoActive() && window.PortalStereo.mapRelToStereoScreens) {
+            const pts = window.PortalStereo.mapRelToStereoScreens(relX, relY);
+            this.cursor.style.display = 'block';
+            this.cursor.style.left = Math.round(pts.left.x) + 'px';
+            this.cursor.style.top = Math.round(pts.left.y) + 'px';
+            this.cursorRight.style.display = 'block';
+            this.cursorRight.style.left = Math.round(pts.right.x) + 'px';
+            this.cursorRight.style.top = Math.round(pts.right.y) + 'px';
+            return;
+        }
+        this.cursor.style.display = 'block';
+        this.cursor.style.left = screenX + 'px';
+        this.cursor.style.top = screenY + 'px';
+        if (this.cursorRight) {
+            this.cursorRight.style.display = 'none';
+        }
+    }
+
+    hideCursors() {
+        if (!this.cursor) return;
+        this.cursor.style.display = 'none';
+        this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+        this.cursor.style.backgroundColor = '#00f2ff';
+        if (this.cursorRight) {
+            this.cursorRight.style.display = 'none';
+            this.cursorRight.style.transform = 'translate(-50%, -50%) scale(1)';
+            this.cursorRight.style.backgroundColor = '#00f2ff';
+        }
+    }
+
+    applyCursorPinchStyle(active) {
+        const scale = active ? 'translate(-50%, -50%) scale(0.6)' : 'translate(-50%, -50%) scale(1)';
+        const bg = active ? '#ff3e3e' : '#00f2ff';
+        this.cursor.style.transform = scale;
+        this.cursor.style.backgroundColor = bg;
+        if (this.cursorRight) {
+            this.cursorRight.style.transform = scale;
+            this.cursorRight.style.backgroundColor = bg;
+        }
+    }
+
+    syncCursorLockedState(locked) {
+        [this.cursor, this.cursorRight].forEach((el) => {
+            if (!el) return;
+            el.classList.toggle('cursor-locked', !!locked);
+        });
     }
 
     isHomePage() {
@@ -349,8 +426,7 @@ class ARGestureController {
         this.prevPalmY = null;
 
         if (this.cursor && this.cursor.style.display !== 'none') {
-            this.cursor.style.display = 'none';
-            this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+            this.hideCursors();
             this.clearHover();
         }
 
@@ -589,30 +665,26 @@ class ARGestureController {
 
     handleData(data) {
         if (data.right === 'point' && data.pointer) {
-            const x = Math.round(data.pointer.x * window.innerWidth);
-            const y = Math.round(data.pointer.y * window.innerHeight);
+            const screenX = Math.round(data.pointer.x * window.innerWidth);
+            const screenY = Math.round(data.pointer.y * window.innerHeight);
+            const mapped = this.mapPointerForInteraction(screenX, screenY);
 
-            this.cursor.style.display = 'block';
-            this.cursor.style.left = x + 'px';
-            this.cursor.style.top = y + 'px';
+            this.placeCursors(screenX, screenY, mapped.relX, mapped.relY);
 
-            this.lastX = x;
-            this.lastY = y;
+            this.lastX = Math.round(mapped.x);
+            this.lastY = Math.round(mapped.y);
 
-            this.updateHover(x, y);
+            this.updateHover(this.lastX, this.lastY);
         } else if (data.right === 'pinch' && this.lastX) {
-            this.cursor.style.transform = 'translate(-50%, -50%) scale(0.6)';
-            this.cursor.style.backgroundColor = '#ff3e3e';
+            this.applyCursorPinchStyle(true);
             this.doClick(this.lastX, this.lastY);
 
             window.dispatchEvent(
                 new CustomEvent('ar-gesture', { detail: { action: 'grab', message: 'pinch' } })
             );
         } else {
-            if (this.cursor.style.display !== 'none') {
-                this.cursor.style.display = 'none';
-                this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
-                this.cursor.style.backgroundColor = '#00f2ff';
+            if (this.cursor && this.cursor.style.display !== 'none') {
+                this.hideCursors();
                 this.clearHover();
             }
         }
@@ -676,7 +748,7 @@ class ARGestureController {
             this.clearHover();
             if (interactive) {
                 interactive.classList.add('ar-hover');
-                this.cursor.classList.add('cursor-locked');
+                this.syncCursorLockedState(true);
                 this.lastHoveredElement = interactive;
             }
         }
@@ -687,7 +759,7 @@ class ARGestureController {
             this.lastHoveredElement.classList.remove('ar-hover');
             this.lastHoveredElement = null;
         }
-        this.cursor.classList.remove('cursor-locked');
+        this.syncCursorLockedState(false);
     }
 
     doClick(x, y) {

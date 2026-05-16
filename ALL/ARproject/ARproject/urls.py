@@ -19,13 +19,19 @@ from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
+from django.views.generic import RedirectView
 from ARapp import views
 
 from django.conf.urls import handler404
 handler404 = 'ARapp.views.error_404'
 
 urlpatterns = [
-path('login/', views.user_login, name='login'),
+    path(
+        'favicon.ico',
+        RedirectView.as_view(url=settings.STATIC_URL + 'favicon.svg', permanent=False),
+        name='favicon',
+    ),
+    path('login/', views.user_login, name='login'),
     path('register/', views.user_register, name='register'),
     path('logout/', views.user_logout, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),

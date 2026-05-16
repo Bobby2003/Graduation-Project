@@ -311,57 +311,83 @@ body.realm-stereo-active:not(.ar-immersive-3d) header.top-nav {
     pointer-events: auto !important;
 }
 
+/* 左栏真实 DOM + 右栏同步镜像（兼容 Edge，不用 drop-shadow） */
 .ar-portal-stereo-host {
     position: fixed;
     inset: 0;
     z-index: 8;
-    display: flex;
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
     background: #050608;
     pointer-events: none;
 }
 
-.ar-portal-stereo-pane {
-    flex: 0 0 50%;
-    width: 50%;
-    height: 100%;
+.ar-portal-stereo-host::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    margin-left: -1px;
+    z-index: 12;
+    pointer-events: none;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(0, 242, 255, 0.35) 12%,
+        rgba(0, 242, 255, 0.35) 88%,
+        transparent
+    );
+}
+
+.ar-portal-stereo-stage {
+    position: absolute;
+    inset: 0;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    pointer-events: none;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+.ar-portal-stereo-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    width: 100%;
+    min-height: 100%;
     box-sizing: border-box;
 }
 
-.ar-portal-stereo-pane--left {
+.ar-portal-stereo-eye {
+    flex: 0 0 50%;
+    width: 50%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    box-sizing: border-box;
+}
+
+.ar-portal-stereo-eye--left {
     border-right: 1px solid rgba(0, 242, 255, 0.22);
 }
 
-.ar-portal-stereo-inner {
-    min-height: 100%;
-    padding-bottom: 24px;
-    transform-origin: center top;
+.ar-portal-stereo-scaler {
+    --portal-eye-scale: 0.5;
+    flex: 0 0 auto;
+    width: 100vw;
+    transform: scale(var(--portal-eye-scale));
+    transform-origin: top center;
+    pointer-events: auto;
+    box-sizing: border-box;
+    padding-bottom: 32px;
 }
 
-.ar-portal-stereo-parallax--left .ar-portal-stereo-inner {
-    transform: perspective(900px) rotateY(1.4deg);
-}
-
-.ar-portal-stereo-parallax--right .ar-portal-stereo-inner {
-    transform: perspective(900px) rotateY(-1.4deg);
-}
-
-.ar-portal-stereo-source-active {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    opacity: 0 !important;
-    z-index: 200 !important;
-    overflow: auto !important;
-    pointer-events: auto !important;
-    background: transparent !important;
+.ar-portal-stereo-scaler--mirror {
+    pointer-events: none;
+    user-select: none;
 }
 
 @media (max-width: 896px) and (orientation: portrait) {
