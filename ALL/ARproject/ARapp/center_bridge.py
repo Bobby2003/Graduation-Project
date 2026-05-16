@@ -128,5 +128,16 @@ class CenterBridge:
         except Exception as exc:
             return {"ok": False, "error": repr(exc), "running": False}
 
+    def get_pose_latest(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            data = _center_mod.get_pose_latest()
+            if isinstance(data, dict):
+                return {"ok": True, **data}
+            return {"ok": True, "detail": data}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
 
 center_bridge = CenterBridge()

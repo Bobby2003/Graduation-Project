@@ -324,6 +324,7 @@
                     centerStatus: "{% url 'center_status_api' %}",
                     centerResume: "{% url 'center_resume_api' %}",
                     centerLatestMesh: "{% url 'center_latest_mesh_api' %}",
+                    centerPoseLatest: "{% url 'center_pose_latest_api' %}",
                 }
             };
         })();
@@ -439,12 +440,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
-    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
-    <script src="{% static 'js/realm-immersive.js' %}?v=20260516j"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/realm-immersive.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260516n"></script>
     {% include "partials/ar_stereo_scripts.html" %}
-    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260516n"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {
@@ -455,7 +457,7 @@
             function syncControlHelp(mode) {
                 if (!helpEl) return;
                 if (mode === 'desktop') helpEl.textContent = HELP_DESKTOP;
-                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · 手机横屏 · 张开左手掌打开菜单';
+                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · START 扫描后 IMU 驱动漫游 · 张开手掌打开菜单';
                 else helpEl.textContent = 'VR 立体模式：左右分屏 · 手机横屏放入眼镜 · 点「菜单」或切换桌面';
             }
             window.syncControlHelp = syncControlHelp;

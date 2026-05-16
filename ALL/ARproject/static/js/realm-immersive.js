@@ -44,10 +44,10 @@
         var m = getMode();
         if (m === 'gesture') {
             hint.textContent =
-                '立体分屏（左/右眼）· 手机请横置放入 VR 眼镜 · 张开手掌打开菜单 · M 键备用';
+                '立体分屏 · 手机横屏 · 张开手掌打开菜单 · START 扫描后 IMU/相机驱动漫游（移动设备即可走动观察）';
         } else if (m === 'vr') {
             hint.textContent =
-                '立体分屏（左/右眼）· 电脑/手机均可 SBS 预览 · 横屏放入 VR 眼镜 · 点「菜单」或切回桌面';
+                '立体分屏 · 横屏放入 VR 眼镜 · START 扫描后 IMU 漫游 · 点「菜单」或切回桌面';
         }
     }
 
@@ -172,11 +172,17 @@
                 break;
             case 'scan-start':
                 clickCenterButton('center-start-btn');
+                window.dispatchEvent(
+                    new CustomEvent('realm-action', { detail: { action: 'scan-start' } })
+                );
                 showToast('已开始扫描（Center 管线）');
                 setMenuOpen(false);
                 break;
             case 'scan-stop':
                 clickCenterButton('center-stop-btn');
+                window.dispatchEvent(
+                    new CustomEvent('realm-action', { detail: { action: 'scan-stop' } })
+                );
                 showToast('已停止扫描');
                 setMenuOpen(false);
                 break;
