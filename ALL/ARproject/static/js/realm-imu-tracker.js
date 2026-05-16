@@ -279,9 +279,25 @@
 
     function pickPoseMatrix(data) {
         if (!data) return null;
-        if (data.imu_to_world) return mat4FromRows(data.imu_to_world);
+        // 漫游用相机位姿；与 reconstruction_world / 桌面 YXZ 一致
         if (data.camera_to_world) return mat4FromRows(data.camera_to_world);
+        if (data.imu_to_world) return mat4FromRows(data.imu_to_world);
         return null;
+    }
+
+    /**
+     * 当前 R_cam_imu 下 IMU 偏航会落在 YXZ 的 pitch(x) 上；与桌面视角一致需交换 yaw/pitch。
+     * （见 Pointcloud2mesh/tools/interactive_imu_camera_calibration.py ROTVEC_EXPECTED_ACTION_AXES）
+     */
+    function remapImuDeltaQuaternionForThree(quat) {
+        var e = new THREE.Euler(0, 0, 0, 'YXZ');
+        e.setFromQuaternion(quat);
+        var tmp = e.x;
+        e.x = e.y;
+        e.y = tmp;
+        var out = new THREE.Quaternion();
+        out.setFromEuler(e);
+        return out;
     }
 
     function resetTracking() {
@@ -332,6 +348,7 @@
         var scl = new THREE.Vector3();
         delta.decompose(pos, quat, scl);
         pos.multiplyScalar(POSITION_GAIN);
+        quat = remapImuDeltaQuaternionForThree(quat);
 
         var deltaPure = new THREE.Matrix4().compose(pos, quat, new THREE.Vector3(1, 1, 1));
         var target = new THREE.Matrix4().copy(refCameraMatrix).multiply(deltaPure);
@@ -347,8 +364,8 @@
         lerpVec3(smoothedPos, smoothedPos, targetPos, SMOOTH);
         smoothedQuat.slerp(targetQuat, SMOOTH);
 
-        cam.position.copy(smoothedPos);
-        cam.quaternion.copy(smoothedQuat);
+        cam.rotation.order = 'YXZ';
+        cam.rotation.setFromQuaternion(smoothedQuat);
         cam.updateMatrixWorld(true);
     }
 
