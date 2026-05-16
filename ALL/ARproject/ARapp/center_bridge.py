@@ -88,8 +88,20 @@ class CenterBridge:
         try:
             st = _center_mod.get_pipeline_status()
             if isinstance(st, dict):
-                return _enrich_status_with_pipeline_debug({"ok": True, **st})
-            return {"ok": True, "detail": st}
+                out = _enrich_status_with_pipeline_debug({"ok": True, **st})
+            else:
+                out = {"ok": True, "detail": st}
+            try:
+                pose = _center_mod.get_pose_latest()
+                if isinstance(pose, dict):
+                    out["pose_latest"] = pose
+            except Exception as exc:
+                out["pose_latest"] = {
+                    "status": "error",
+                    "tracking_success": False,
+                    "error": repr(exc),
+                }
+            return out
         except Exception as exc:
             return {"ok": False, "running": False, "error": repr(exc)}
 
@@ -105,21 +117,6 @@ class CenterBridge:
             return _center_mod.get_latest_mesh_api_payload(max_vertices=max_vertices)
         except Exception as exc:
             return {"ok": False, "error": repr(exc), "mesh": None}
-
-    def get_latest_pose(self) -> dict[str, Any]:
-        if not _ensure_center():
-            return {
-                "ok": False,
-                "tracking_success": False,
-                "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED",
-            }
-        try:
-            pose = _center_mod.get_pose_latest()
-            if isinstance(pose, dict):
-                return {"ok": True, **pose}
-            return {"ok": True, "detail": pose}
-        except Exception as exc:
-            return {"ok": False, "error": repr(exc), "tracking_success": False}
 
     def reset_center_reconstruction(self, **kwargs: Any) -> dict[str, Any]:
         if not _ensure_center():
