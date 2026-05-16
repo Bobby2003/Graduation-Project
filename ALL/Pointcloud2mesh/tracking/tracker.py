@@ -132,6 +132,9 @@ class Tracker:
         self.T_c_w = np.eye(4, dtype=np.float64)
         self.last_trans = np.zeros(3, dtype=np.float64)
 
+    def reset_lost_counters_for_resume(self) -> None:
+        """Symmetry with GpuICPTracker; cpu_rgbd path has no lost_count streak."""
+
     def get_intrinsic(self):
         return self.preprocessor.get_intrinsic()
 

@@ -1,5 +1,6 @@
 import time
 import threading
+from typing import Callable, Optional
 
 from ..common.types import MapPacket
 from ..common.timing import FPSCounter, Timer
@@ -23,6 +24,8 @@ class TrackingWorker(threading.Thread):
         enable_log=True,
         mapping_stride=1,
         logger=None,
+        tracking_enabled_fn: Optional[Callable[[], bool]] = None,
+        tracking_result_observer: Optional[Callable[..., None]] = None,
     ):
         super().__init__(daemon=True)
         self.latest_frame_slot = latest_frame_slot
@@ -34,6 +37,9 @@ class TrackingWorker(threading.Thread):
         self.enable_log = enable_log
         self.mapping_stride = max(1, int(mapping_stride))
         self.logger = logger
+
+        self._tracking_enabled_fn = tracking_enabled_fn or (lambda: True)
+        self._tracking_result_observer = tracking_result_observer
 
         self.fps_counter = FPSCounter()
         self.processed_frames = 0
@@ -77,6 +83,10 @@ class TrackingWorker(threading.Thread):
                 time.sleep(self.sleep_ms / 1000.0)
                 continue
 
+            if not self._tracking_enabled_fn():
+                time.sleep(self.sleep_ms / 1000.0)
+                continue
+
             timer = Timer()
             timer.start()
 
@@ -97,6 +107,12 @@ class TrackingWorker(threading.Thread):
             fps = self.fps_counter.tick()
 
             self.shared_state.set_latest_tracking(tracking)
+
+            if self._tracking_result_observer is not None:
+                try:
+                    self._tracking_result_observer(tracking)
+                except Exception:
+                    pass
 
             self.processed_frames += 1
             self.last_frame_id = frame.frame_id

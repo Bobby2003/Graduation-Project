@@ -299,6 +299,12 @@ class RealtimeMappingPipeline:
 
         self._last_error = None
 
+        # Center / external recovery gate (tracking & mapping integrate)
+        self._center_recovery_gate_lock = threading.Lock()
+        self._center_tracking_enabled = True
+        self._center_mapping_enabled = True
+        self._tracking_result_observer = None
+
     # ============================================================
     # 内部构建
     # ============================================================
@@ -434,6 +440,8 @@ class RealtimeMappingPipeline:
             enable_log=cfg.logging.status.enabled,
             mapping_stride=cfg.tracking.output_mapping_stride,
             logger=self.tracker_logger,
+            tracking_enabled_fn=self.get_center_tracking_enabled,
+            tracking_result_observer=self._invoke_tracking_observer,
         )
 
         # 新 mapping worker
@@ -444,6 +452,7 @@ class RealtimeMappingPipeline:
             stop_event=self.stop_event,
             enable_log=cfg.logging.status.enabled,
             logger=self.mapper_logger,
+            mapping_enabled_fn=self.get_center_mapping_enabled,
         )
 
     def setup(self, input_mode: str = "scanner"):
@@ -959,6 +968,32 @@ class RealtimeMappingPipeline:
     def get_last_error(self):
         return self._last_error
 
+    def set_tracking_result_observer(self, cb):
+        """Optional callback(tracking: TrackingResult) from tracking thread after each track."""
+        self._tracking_result_observer = cb
+
+    def _invoke_tracking_observer(self, tracking):
+        obs = self._tracking_result_observer
+        if obs is None:
+            return
+        try:
+            obs(tracking)
+        except Exception:
+            pass
+
+    def set_center_recovery_gate(self, tracking_enabled: bool, mapping_enabled: bool):
+        with self._center_recovery_gate_lock:
+            self._center_tracking_enabled = bool(tracking_enabled)
+            self._center_mapping_enabled = bool(mapping_enabled)
+
+    def get_center_tracking_enabled(self) -> bool:
+        with self._center_recovery_gate_lock:
+            return bool(self._center_tracking_enabled)
+
+    def get_center_mapping_enabled(self) -> bool:
+        with self._center_recovery_gate_lock:
+            return bool(self._center_mapping_enabled)
+
     def get_status(self) -> dict:
         tracking = self.get_latest_tracking()
         map_snapshot = self.get_latest_map()
@@ -986,6 +1021,8 @@ class RealtimeMappingPipeline:
             "running": self.is_running(),
             "input_mode": self._input_mode,
             "render_enabled": self.cfg.render.enabled,
+            "center_tracking_enabled": self.get_center_tracking_enabled(),
+            "center_mapping_enabled": self.get_center_mapping_enabled(),
             "tracking": tracking_info,
             "mapping": map_info,
             "tracking_stats": self.get_tracking_stats(),
@@ -1234,6 +1271,9 @@ class RealtimeMappingPipeline:
         result["running"] = self.is_running()
         result["mapping_stats"] = self.get_mapping_stats()
         result["tracking_stats"] = self.get_tracking_stats()
+
+        # Resume integrate/track paths after a full session rebuild unless callers opted out.
+        self.set_center_recovery_gate(True, True)
 
         self.app_logger.status("Reconstruction reset complete.", force=True)
         return result

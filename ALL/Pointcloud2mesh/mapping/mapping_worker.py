@@ -1,5 +1,6 @@
 import threading
 from queue import Empty
+from typing import Callable, Optional
 
 from ..common.timing import FPSCounter, Timer
 
@@ -12,6 +13,7 @@ class MappingWorker(threading.Thread):
         stop_event,
         enable_log=True,
         logger=None,
+        mapping_enabled_fn: Optional[Callable[[], bool]] = None,
     ):
         super().__init__(daemon=True)
         self.mapping_queue = mapping_queue
@@ -20,6 +22,7 @@ class MappingWorker(threading.Thread):
         self.stop_event = stop_event
         self.enable_log = enable_log
         self.logger = logger
+        self._mapping_enabled_fn = mapping_enabled_fn or (lambda: True)
 
         self.fps_counter = FPSCounter()
         self.processed_packets = 0
@@ -55,6 +58,9 @@ class MappingWorker(threading.Thread):
             try:
                 pkt = self.mapping_queue.get(timeout=0.05)
             except Empty:
+                continue
+
+            if not self._mapping_enabled_fn():
                 continue
 
             timer = Timer()

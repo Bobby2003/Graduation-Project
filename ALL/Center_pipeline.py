@@ -55,6 +55,37 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _center_env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, str(default)).strip())
+    except Exception:
+        return int(default)
+
+
+def recommended_view_distance_from_mesh(mesh: o3d.geometry.TriangleMesh | None) -> float | None:
+    """
+    Rough camera distance hint from reconstructed mesh vertices (meters).
+    Uses AABB diagonal and max radial extent from center — not single-frame depth.
+    """
+    if mesh is None:
+        return None
+    try:
+        v = np.asarray(mesh.vertices)
+        if v.size == 0:
+            return None
+        vmin = v.min(axis=0)
+        vmax = v.max(axis=0)
+        center = (vmin + vmax) * 0.5
+        diag = float(np.linalg.norm(vmax - vmin))
+        radius = float(np.max(np.linalg.norm(v - center, axis=1)))
+        span = max(radius, diag * 0.5)
+        if span <= 1e-6:
+            return None
+        return float(span * 2.2 + 0.35)
+    except Exception:
+        return None
+
+
 def rel_path(path: str | Path | None) -> str | None:
     if path is None:
         return None
@@ -225,6 +256,15 @@ class CenterPipelineService:
         self.last_stop_result: dict[str, Any] | None = None
         self._event_queues: list[queue.Queue] = []
 
+        self._center_recovery_state: str = "normal"
+        self._consecutive_lost_frames: int = 0
+        self._consecutive_success_frames: int = 0
+        self._recovery_hint: str | None = None
+        self._clf_pause_threshold: int = _center_env_int("CENTER_PAUSE_CLF_THRESHOLD", 30)
+        self._clf_fail_threshold: int = _center_env_int("CENTER_FAIL_AFTER_RESUME_CLF", 200)
+        self._recover_success_frames_threshold: int = _center_env_int("CENTER_RECOVER_SUCCESS_FRAMES", 5)
+        self._recommended_view_distance_cache: tuple[float | None, float | None] = (None, None)
+
         # HTTP /api/center/latest-mesh/：内存网格版本（几何变化时递增）
         self._api_mesh_lock = threading.Lock()
         self._api_mesh_version = 0
@@ -232,6 +272,196 @@ class CenterPipelineService:
 
         for directory in (POINTCLOUD_MODEL_DIR, MESHFIX_OUTPUT_DIR, MATERIAL_OUTPUT_DIR):
             directory.mkdir(parents=True, exist_ok=True)
+
+    def _reset_recovery_to_normal(self) -> None:
+        self._center_recovery_state = "normal"
+        self._consecutive_lost_frames = 0
+        self._consecutive_success_frames = 0
+        self._recovery_hint = None
+
+    def _attach_recovery_observer(self) -> None:
+        if self.pipeline is None:
+            return
+        self.pipeline.set_tracking_result_observer(self._on_tracking_result)
+        self.pipeline.set_center_recovery_gate(True, True)
+
+    def _sync_recovery_pipeline_gates(self) -> None:
+        """Caller must hold self.lock and ensure self.pipeline is not None."""
+        enabled = self._center_recovery_state not in ("hard_paused_lost", "recovery_failed")
+        self.pipeline.set_center_recovery_gate(enabled, enabled)
+
+    def _on_tracking_result(self, tracking: Any) -> None:
+        with self.lock:
+            if self.pipeline is None:
+                return
+            state = self._center_recovery_state
+            success = bool(getattr(tracking, "success", False))
+
+            pause_th = self._clf_pause_threshold
+            fail_th = self._clf_fail_threshold
+            rec_succ = self._recover_success_frames_threshold
+
+            if state == "normal":
+                if success:
+                    self._consecutive_lost_frames = 0
+                else:
+                    self._consecutive_lost_frames += 1
+                    if self._consecutive_lost_frames >= pause_th:
+                        self._center_recovery_state = "hard_paused_lost"
+                        self._recovery_hint = None
+                        self._sync_recovery_pipeline_gates()
+
+            elif state == "recovering":
+                if success:
+                    self._consecutive_lost_frames = 0
+                    self._consecutive_success_frames += 1
+                    if self._consecutive_success_frames >= rec_succ:
+                        self._center_recovery_state = "normal"
+                        self._consecutive_success_frames = 0
+                        self._recovery_hint = None
+                        self._sync_recovery_pipeline_gates()
+                else:
+                    self._consecutive_lost_frames += 1
+                    self._consecutive_success_frames = 0
+                    if self._consecutive_lost_frames >= fail_th:
+                        self._center_recovery_state = "recovery_failed"
+                        self._recovery_hint = "恢复失败，重新建模"
+                        self._sync_recovery_pipeline_gates()
+
+    def _recommended_view_distance_cached(self) -> float | None:
+        now = time.perf_counter()
+        cached_val, cached_ts = self._recommended_view_distance_cache
+        if cached_ts is not None and (now - cached_ts) < 1.0:
+            return cached_val
+        mesh = self.get_reconstruction_mesh_snapshot()
+        dist = recommended_view_distance_from_mesh(mesh)
+        self._recommended_view_distance_cache = (dist, now)
+        return dist
+
+    def _recovery_status_slice(self, pipeline: Any | None) -> dict[str, Any]:
+        capture_enabled = False
+        tracking_enabled = False
+        mapping_enabled = False
+        if pipeline is not None:
+            try:
+                tracking_enabled = bool(pipeline.get_center_tracking_enabled())
+                mapping_enabled = bool(pipeline.get_center_mapping_enabled())
+                capture_enabled = bool(
+                    pipeline.is_running()
+                    and getattr(pipeline, "_background_thread_started", False)
+                    and getattr(pipeline, "_input_mode", "") == "scanner"
+                )
+            except Exception:
+                pass
+        hint = self._recovery_hint
+        message = hint if hint else None
+        recommended_dist: float | None = None
+        if pipeline is not None and pipeline.is_running():
+            try:
+                recommended_dist = self._recommended_view_distance_cached()
+            except Exception:
+                recommended_dist = None
+
+        return {
+            "center_recovery_state": self._center_recovery_state,
+            "consecutive_lost_frames": self._consecutive_lost_frames,
+            "consecutive_success_frames": self._consecutive_success_frames,
+            "clf_pause_threshold": self._clf_pause_threshold,
+            "clf_fail_threshold": self._clf_fail_threshold,
+            "recover_success_frames_threshold": self._recover_success_frames_threshold,
+            "tracking_enabled": tracking_enabled,
+            "mapping_enabled": mapping_enabled,
+            "capture_enabled": capture_enabled,
+            "hint": hint,
+            "message": message,
+            "recommended_view_distance": recommended_dist,
+        }
+
+    def resume_center_recovery(self) -> dict[str, Any]:
+        with self.lock:
+            if self.pipeline is None or not self.pipeline.is_running():
+                return {"ok": False, "running": False, "error": "pipeline_not_running"}
+            if self._center_recovery_state != "hard_paused_lost":
+                return {
+                    "ok": False,
+                    "running": True,
+                    "error": "resume_only_from_hard_paused_lost",
+                    "center_recovery_state": self._center_recovery_state,
+                }
+            self._center_recovery_state = "recovering"
+            self._consecutive_lost_frames = 0
+            self._consecutive_success_frames = 0
+            self._recovery_hint = None
+            self.pipeline.set_center_recovery_gate(True, True)
+            tracker = self.pipeline.tracker
+            if tracker is not None:
+                fn = getattr(tracker, "reset_lost_counters_for_resume", None)
+                if callable(fn):
+                    fn()
+        out = self.status()
+        out["ok"] = True
+        return out
+
+    def reset_center_reconstruction(
+        self,
+        *,
+        reset_scanner_temporal_state: bool = True,
+        restart_workers: bool = True,
+        join_timeout: float = 1.0,
+        rebuild_renderer: bool = True,
+    ) -> dict[str, Any]:
+        with self.lock:
+            pipeline = self.pipeline
+            if pipeline is None or not pipeline.is_running():
+                running = bool(pipeline is not None and pipeline.is_running())
+                return {"ok": False, "running": running, "error": "pipeline_not_running"}
+
+        try:
+            reset_result = pipeline.reset_reconstruction(
+                reset_scanner_temporal_state=reset_scanner_temporal_state,
+                restart_workers=restart_workers,
+                join_timeout=join_timeout,
+                rebuild_renderer=rebuild_renderer,
+            )
+        except Exception as exc:
+            return {"ok": False, "running": False, "error": repr(exc)}
+
+        if not reset_result.get("success"):
+            st = self.status()
+            return {"ok": False, "reset": json_safe(reset_result), **st}
+
+        with self.lock:
+            self._reset_recovery_to_normal()
+            self._recommended_view_distance_cache = (None, None)
+            pl = self.pipeline
+            if pl is not None:
+                pl.set_tracking_result_observer(self._on_tracking_result)
+                pl.set_center_recovery_gate(True, True)
+                tracker = pl.tracker
+                if tracker is not None:
+                    fn = getattr(tracker, "reset_lost_counters_for_resume", None)
+                    if callable(fn):
+                        fn()
+
+        with self.lock:
+            pl_check = self.pipeline
+        if pl_check is not None and not pl_check.is_running():
+            try:
+                restarted = bool(pl_check.start_background())
+            except Exception as exc:
+                st = self.status()
+                return {"ok": False, "error": repr(exc), "reset": json_safe(reset_result), **st}
+            if not restarted:
+                st = self.status()
+                return {
+                    "ok": False,
+                    "error": "start_background_failed_after_reset",
+                    "reset": json_safe(reset_result),
+                    **st,
+                }
+
+        st = self.status()
+        return {"ok": True, "reset": json_safe(reset_result), **st}
 
     def _build_pipeline(self) -> Any:
         cfg = PipelineConfig()
@@ -257,11 +487,16 @@ class CenterPipelineService:
             if self.pipeline is not None and self.pipeline.is_running():
                 return self.status()
 
+            self._reset_recovery_to_normal()
+            self._recommended_view_distance_cache = (None, None)
+
             self.pipeline = self._build_pipeline()
             ok = self.pipeline.start_background()
             if not ok:
                 self.pipeline = None
                 raise RuntimeError("RealtimeMappingPipeline failed to start")
+
+            self._attach_recovery_observer()
 
             self.worker = ModelProcessingWorker(self)
             self.worker.start()
@@ -289,6 +524,7 @@ class CenterPipelineService:
             self.worker = None
             self.pipeline = None
             self.last_stop_result = json_safe(stop_result)
+            self._reset_recovery_to_normal()
 
         self.emit_event({"type": "pipeline_stopped", "updated_at": utc_now_iso()})
         return self.status()
@@ -315,6 +551,7 @@ class CenterPipelineService:
                     "material": rel_path(MATERIAL_OUTPUT_DIR),
                 },
             }
+            status.update(self._recovery_status_slice(pipeline))
 
         if pipeline is not None:
             try:
@@ -785,6 +1022,14 @@ def stop_pipeline() -> dict[str, Any]:
 
 def get_pipeline_status() -> dict[str, Any]:
     return service.status()
+
+
+def resume_center_recovery() -> dict[str, Any]:
+    return service.resume_center_recovery()
+
+
+def reset_center_reconstruction(**kwargs: Any) -> dict[str, Any]:
+    return service.reset_center_reconstruction(**kwargs)
 
 
 def get_white_model_latest() -> dict[str, Any]:

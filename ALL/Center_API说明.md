@@ -65,3 +65,20 @@ python test_center_api.py             逐个测试所有 Python 接口，每个�
 python test_center_api.py --no-pause  连续测试，不等待 Enter
 python test_center_api.py --skip-start 如果没有相机或不想启动建图，可跳过 start_pipeline
 python test_center_api.py --skip-stop  测试结束后不调用 stop_pipeline
+
+HTTP（Django，`login_required`，POST 需 CSRF token，与 `/api/center/start/` 一致）：
+- `POST /api/center/resume/`：从 `hard_paused_lost` 进入 `recovering`，清零 CLF / GpuICP lost 计数，恢复跟踪与建图写入。
+- `POST /api/center/reset-reconstruction/`：调用管线 `reset_reconstruction` 清空体积并重启 worker；必要时自动 `start_background`；成功后恢复状态为 `normal` 并清零 CLF。
+
+`GET /api/center/status/` 扩展字段（不影响原有字段）：
+- `center_recovery_state`: `normal` | `hard_paused_lost` | `recovering` | `recovery_failed`
+- `consecutive_lost_frames`, `consecutive_success_frames`
+- `clf_pause_threshold`, `clf_fail_threshold`, `recover_success_frames_threshold`
+- `tracking_enabled`, `mapping_enabled`, `capture_enabled`
+- `hint` / `message`（如恢复失败提示）
+- `recommended_view_distance`：由当前 TSDF mesh 顶点包围估算的建议视距（米）
+
+环境变量（可选）：
+- `CENTER_PAUSE_CLF_THRESHOLD`（默认 30）：连续跟踪失败帧上限，触发 `hard_paused_lost`
+- `CENTER_FAIL_AFTER_RESUME_CLF`（默认 200）：resume 后仍处于 `recovering` 时的失败帧上限 → `recovery_failed`
+- `CENTER_RECOVER_SUCCESS_FRAMES`（默认 5）：`recovering` 下连续成功帧达到后回到 `normal`

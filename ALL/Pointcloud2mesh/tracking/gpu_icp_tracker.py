@@ -213,6 +213,16 @@ class GpuICPTracker:
         self.last_lost_reason = None
         self.map_icp_cooldown_frames = 0
 
+    def reset_lost_counters_for_resume(self) -> None:
+        """
+        Called when external logic resumes tracking after a hard pause.
+        Clears lost streak without discarding prev_pcd / pose so relocalization can proceed.
+        """
+        self.lost_count = 0
+        self.is_lost = False
+        self.last_lost_reason = None
+        self.map_icp_cooldown_frames = 0
+
     def get_intrinsic(self):
         """
         兼容旧接口。

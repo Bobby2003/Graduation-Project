@@ -550,6 +550,20 @@ def center_status_api(request):
 
 
 @login_required
+@require_POST
+def center_resume_api(request):
+    data = center_bridge.resume_center_recovery()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_POST
+def center_reset_reconstruction_api(request):
+    data = center_bridge.reset_center_reconstruction()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
 @require_GET
 def center_latest_mesh_api(request):
     try:

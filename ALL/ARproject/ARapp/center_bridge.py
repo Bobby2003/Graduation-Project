@@ -103,8 +103,27 @@ class CenterBridge:
             }
         try:
             return _center_mod.get_latest_mesh_api_payload(max_vertices=max_vertices)
+    def reset_center_reconstruction(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            st = _center_mod.reset_center_reconstruction()
+            if isinstance(st, dict):
+                return _enrich_status_with_pipeline_debug(st)
+            return st
         except Exception as exc:
-            return {"ok": False, "error": repr(exc), "mesh": None}
+            return {"ok": False, "error": repr(exc), "running": False}
+
+    def resume_center_recovery(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            st = _center_mod.resume_center_recovery()
+            if isinstance(st, dict):
+                return _enrich_status_with_pipeline_debug(st)
+            return st
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc), "running": False}
 
 
 center_bridge = CenterBridge()

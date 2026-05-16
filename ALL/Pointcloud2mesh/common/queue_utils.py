@@ -46,3 +46,11 @@ class BoundedDropQueue:
 
     def qsize(self):
         return self._q.qsize()
+
+    def clear(self):
+        """Drop all pending packets (used after reconstruction reset)."""
+        while True:
+            try:
+                self._q.get_nowait()
+            except Empty:
+                break
