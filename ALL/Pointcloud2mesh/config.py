@@ -523,11 +523,11 @@ class LoggingConfig:
 
     # 总控制：False 时关闭 ModuleLogger 的所有控制台输出。
     # 注意：save_log 的 stdout/stderr 文件重定向仍由 LogRedirectManager 独立控制。
-    enable_console: bool = False
+    enable_console: bool = True
 
     # 是否把 stdout/stderr 同时保存到文件。
     # 控制 LogRedirectManager 是否创建 log 文件；不决定某类日志是否生成。
-    save_log: bool = False
+    save_log: bool = True
 
     # 日志文件目录，仅在 save_log=True 时使用。
     log_dir: str = str(BASE_DIR / "log")
@@ -548,7 +548,7 @@ class LoggingConfig:
     # - timestamp debug
     # - 其他开发阶段诊断信息
     debug: LogCategoryConfig = field(default_factory=lambda: LogCategoryConfig(
-        enabled=False,
+        enabled=True,
         interval=30,
     ))
 

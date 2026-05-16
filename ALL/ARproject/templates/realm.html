@@ -327,6 +327,12 @@
                     centerResume: "{% url 'center_resume_api' %}",
                     centerLatestMesh: "{% url 'center_latest_mesh_api' %}",
                     centerPoseLatest: "{% url 'center_pose_latest_api' %}",
+                    centerMaterialTargets: "{% url 'center_material_targets_api' %}",
+                    centerMaterialLibrary: "{% url 'center_material_library_api' %}",
+                    centerMaterialStatus: "{% url 'center_material_status_api' %}",
+                    centerMaterialSceneLatest: "{% url 'center_material_scene_latest_api' %}",
+                    centerMaterialChange: "{% url 'center_material_change_api' %}",
+                    centerMaterialSceneGlb: "{% url 'center_material_scene_glb' %}",
                 }
             };
         })();
@@ -376,6 +382,27 @@
             </div>
             <div id="center-realtime-status" style="color:#aaa;font-size:10px;line-height:1.5;font-family:Rajdhani,sans-serif;">CENTER: IDLE</div>
         </div>
+
+        <details class="realm-ui-chrome realm-immersive-keep realm-reconstruction-material-panel"
+            id="center-reconstruction-material-details"
+            style="position:absolute;top:356px;right:24px;z-index:38;pointer-events:auto;max-width:min(360px,92vw);padding:10px 12px;background:rgba(5,8,12,0.88);border:1px solid rgba(188,0,255,0.28);backdrop-filter:blur(8px);font-family:Rajdhani,sans-serif;font-size:11px;letter-spacing:0.35px;line-height:1.45;color:rgba(255,255,255,0.82);">
+            <summary style="cursor:pointer;font-family:Syncopate,sans-serif;font-size:10px;color:rgba(188,0,255,0.92);letter-spacing:1px;list-style:none;">重建材质 · 扫描分区 ▾</summary>
+            <p id="crm-recon-hint" style="margin:8px 0 10px;color:rgba(255,255,255,0.65);font-size:11px;">请先启动扫描并等待分区完成</p>
+            <label style="display:block;margin-bottom:4px;color:rgba(0,242,255,0.62);font-size:9px;font-family:Syncopate,sans-serif;">分区</label>
+            <select id="crm-recon-target" aria-label="扫描重建分区"
+                style="width:100%;margin-bottom:10px;background:#050810;color:#cceeff;border:1px solid rgba(0,242,255,0.25);padding:6px;"></select>
+            <label style="display:block;margin-bottom:4px;color:rgba(188,0,255,0.62);font-size:9px;font-family:Syncopate,sans-serif;">材质（按分区可用筛选）</label>
+            <select id="crm-recon-library" aria-label="重建分区材质库"
+                style="width:100%;margin-bottom:10px;background:#050810;color:#e8dcff;border:1px solid rgba(188,0,255,0.28);padding:6px;"></select>
+            <label style="display:block;margin-bottom:4px;color:#666;font-size:9px;font-family:Syncopate,sans-serif;">Tiling</label>
+            <input id="crm-recon-tiling" type="number" step="0.1" min="0.1" max="40" value="1"
+                style="width:100%;margin-bottom:12px;background:#050810;color:#fff;border:1px solid #333;padding:6px;box-sizing:border-box;" />
+            <button type="button" id="crm-recon-apply"
+                style="cursor:pointer;width:100%;padding:8px;font-size:11px;background:#1a0822;color:#edc6ff;border:1px solid rgba(188,0,255,0.45);font-family:Syncopate,sans-serif;letter-spacing:1px;">
+                应用到分区
+            </button>
+            <div style="margin-top:8px;font-size:10px;color:#555;">与白模实时 mesh 分两图层展示；不改变底部「材质协议」。</div>
+        </details>
 
         <div id="realm-debug-hud" class="realm-ui-chrome" aria-hidden="true"></div>
 
@@ -442,6 +469,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
     <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517c"></script>
@@ -449,6 +477,7 @@
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>
     <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517h"></script>
+    <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {

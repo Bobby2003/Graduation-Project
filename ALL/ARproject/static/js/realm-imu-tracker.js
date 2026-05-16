@@ -306,9 +306,15 @@
         }
         var e = new THREE.Euler(0, 0, 0, 'YXZ');
         e.setFromQuaternion(quat);
-        var tmp = e.y;
-        e.y = e.z;
-        e.z = tmp;
+        var tmpx = e.y;
+        var tmpy = e.z;
+        var tmpz = e.z;
+
+        e.x = tmpy; // yaw → pitch
+        e.y = tmpz; // roll → yaw
+        e.z = tmpx; // pitch → roll
+
+
         var out = new THREE.Quaternion();
         out.setFromEuler(e);
         return out;

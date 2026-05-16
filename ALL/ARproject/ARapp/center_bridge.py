@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from urllib.parse import quote
 from typing import Any
 
 _ALL_ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +17,37 @@ if _all_str not in sys.path:
 
 _center_mod: Any = None
 _CENTER_IMPORT_ERROR: str | None = None
+
+# 与 urlpatterns 中 path 前缀一致（桥接不写 Django reverse，前端用同源相对路径）
+_MATERIAL_SEGMENT_URL_PREFIX = "/api/center/material/segment"
+
+_MATERIAL_NOT_READY = "MATERIAL_NOT_READY"
+
+
+def _material_segment_model_url(segment_key: str, version: int | None) -> str:
+    enc = quote(str(segment_key), safe="")
+    base = f"{_MATERIAL_SEGMENT_URL_PREFIX}/{enc}/"
+    if version is None:
+        return base
+    return f"{base}?version={int(version)}"
+
+
+def _enrich_material_targets(payload: dict[str, Any]) -> dict[str, Any]:
+    """为每个 segment 填入可经由 Django 下载的 model_url（GET segment）。"""
+    if not isinstance(payload, dict):
+        return payload
+    version = payload.get("version")
+    targets = payload.get("targets")
+    if not isinstance(targets, list):
+        return payload
+    for t in targets:
+        if not isinstance(t, dict):
+            continue
+        sk = t.get("segment_key")
+        if sk is None:
+            continue
+        t["model_url"] = _material_segment_model_url(str(sk), int(version) if version is not None else None)
+    return payload
 
 
 def _ensure_center() -> bool:
@@ -160,6 +192,102 @@ class CenterBridge:
             return {"ok": True, "detail": data}
         except Exception as exc:
             return {"ok": False, "error": repr(exc)}
+
+    def get_material_targets(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            payload = _center_mod.get_material_targets()
+            if not isinstance(payload, dict):
+                return {"ok": False, "error": "INVALID_MATERIAL_TARGETS"}
+            version = payload.get("version")
+            targets = payload.get("targets")
+            if version is None or not isinstance(targets, list) or len(targets) == 0:
+                merged = dict(payload)
+                merged["ok"] = False
+                merged["error"] = _MATERIAL_NOT_READY
+                return merged
+            enriched = _enrich_material_targets(payload)
+            return {"ok": True, **enriched}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc), "targets": [], "version": None}
+
+    def get_material_library(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED", "materials": []}
+        try:
+            data = _center_mod.get_material_library()
+            if isinstance(data, dict):
+                return {"ok": True, **data}
+            return {"ok": True, "materials": data}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc), "materials": []}
+
+    def get_material_status(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            data = _center_mod.get_material_status()
+            if isinstance(data, dict):
+                version = data.get("version")
+                if version is None:
+                    merged = dict(data)
+                    merged["ok"] = False
+                    merged["error"] = _MATERIAL_NOT_READY
+                    return merged
+                return {"ok": True, **data}
+            return {"ok": True, "detail": data}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc), "version": None, "status": {}}
+
+    def get_material_scene_latest(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            data = _center_mod.get_material_scene_latest()
+            if not isinstance(data, dict):
+                return {"ok": False, "error": "INVALID_MATERIAL_SCENE_META"}
+            status = data.get("status")
+            if status == "not_ready":
+                merged = dict(data)
+                merged["ok"] = False
+                merged["error"] = _MATERIAL_NOT_READY
+                return merged
+            return {"ok": True, **data}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
+    def change_material(
+        self,
+        segment_key: str,
+        material_id: str,
+        tiling: float = 1.0,
+    ) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            result = _center_mod.change_material(segment_key, material_id, tiling=tiling)
+            if isinstance(result, dict):
+                return {"ok": True, **result}
+            return {"ok": True, "detail": result}
+        except RuntimeError as exc:
+            err = str(exc)
+            code = _MATERIAL_NOT_READY if "Material scene is not ready" in err else "CENTER_MATERIAL_RUNTIME_ERROR"
+            return {"ok": False, "error": code, "message": err}
+        except ValueError as exc:
+            return {"ok": False, "error": "MATERIAL_CHANGE_FAILED", "message": str(exc)}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
+    def get_material_scene_file_path(self, version: int | None = None) -> Path:
+        if not _ensure_center():
+            raise RuntimeError(_CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED")
+        return Path(_center_mod.get_material_scene_file(version))
+
+    def get_material_segment_file_path(self, segment_key: str, version: int | None = None) -> Path:
+        if not _ensure_center():
+            raise RuntimeError(_CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED")
+        return Path(_center_mod.get_material_segment_file(segment_key, version))
 
 
 center_bridge = CenterBridge()
