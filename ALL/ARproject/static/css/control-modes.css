@@ -25,3 +25,205 @@
     box-shadow: 0 0 10px var(--neon-purple, #b026ff);
     color: #fff;
 }
+
+/* ── AR / VR 沉浸：仅保留画面与必要顶栏 ── */
+body[data-control-mode="gesture"] .realm-ui-chrome:not(.realm-immersive-keep),
+body[data-control-mode="vr"] .realm-ui-chrome:not(.realm-immersive-keep),
+body.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
+body.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+body[data-control-mode="gesture"] .crosshair,
+body[data-control-mode="vr"] .crosshair,
+body.realm-mode-gesture .crosshair,
+body.realm-mode-vr .crosshair {
+    display: none !important;
+}
+
+body[data-control-mode="gesture"] #realm-canvas-root,
+body[data-control-mode="vr"] #realm-canvas-root {
+    z-index: 2;
+}
+
+body[data-control-mode="gesture"] .realm-immersive-bar,
+body[data-control-mode="vr"] .realm-immersive-bar,
+body.realm-mode-gesture .realm-immersive-bar,
+body.realm-mode-vr .realm-immersive-bar {
+    display: flex !important;
+}
+
+body[data-control-mode="desktop"] .realm-immersive-bar,
+body[data-control-mode="desktop"] #realm-immersive-hint,
+body[data-control-mode="desktop"] #realm-ar-menu,
+body.realm-mode-desktop .realm-immersive-bar,
+body.realm-mode-desktop #realm-immersive-hint,
+body.realm-mode-desktop #realm-ar-menu {
+    display: none !important;
+}
+
+body[data-control-mode="gesture"] #realm-immersive-hint,
+body.realm-mode-gesture #realm-immersive-hint {
+    display: block !important;
+}
+
+body[data-control-mode="vr"] #realm-immersive-hint,
+body.realm-mode-vr #realm-immersive-hint {
+    display: block !important;
+}
+
+body[data-control-mode="vr"] #realm-vr-menu-btn,
+body.realm-mode-vr #realm-vr-menu-btn {
+    display: inline-flex !important;
+}
+
+.realm-immersive-bar {
+    display: none;
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(5, 8, 14, 0.72);
+    border: 1px solid rgba(0, 242, 255, 0.35);
+    backdrop-filter: blur(12px);
+    border-radius: 999px;
+    pointer-events: auto;
+}
+
+#realm-immersive-hint {
+    display: none;
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 110;
+    max-width: min(520px, 92vw);
+    padding: 10px 18px;
+    text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.82);
+    background: rgba(5, 8, 14, 0.65);
+    border: 1px solid rgba(0, 242, 255, 0.25);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+#realm-vr-menu-btn {
+    display: none;
+    padding: 6px 14px;
+    border: 1px solid rgba(188, 0, 255, 0.5);
+    background: rgba(188, 0, 255, 0.12);
+    color: #e0b0ff;
+    font-family: 'Syncopate', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#realm-ar-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 4, 8, 0.55);
+    backdrop-filter: blur(6px);
+    pointer-events: auto;
+}
+
+#realm-ar-menu.is-open {
+    display: flex;
+}
+
+body.realm-mode-gesture #realm-ar-menu.is-open,
+body.realm-mode-vr #realm-ar-menu.is-open,
+body[data-control-mode="gesture"] #realm-ar-menu.is-open,
+body[data-control-mode="vr"] #realm-ar-menu.is-open {
+    display: flex !important;
+}
+
+.realm-ar-menu-panel {
+    width: min(360px, 92vw);
+    padding: 22px 20px 18px;
+    background: rgba(8, 12, 20, 0.94);
+    border: 1px solid rgba(0, 242, 255, 0.4);
+    box-shadow: 0 0 40px rgba(0, 242, 255, 0.12);
+    font-family: 'Rajdhani', sans-serif;
+}
+
+.realm-ar-menu-panel h3 {
+    margin: 0 0 6px;
+    font-family: 'Syncopate', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #00f2ff;
+}
+
+.realm-ar-menu-sub {
+    margin: 0 0 16px;
+    font-size: 12px;
+    color: #888;
+    line-height: 1.45;
+}
+
+.realm-ar-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.realm-ar-menu-actions button {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid rgba(0, 242, 255, 0.35);
+    background: rgba(0, 242, 255, 0.06);
+    color: #b8f4ff;
+    font-family: 'Syncopate', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.realm-ar-menu-actions button:hover,
+.realm-ar-menu-actions button.ar-hover {
+    background: rgba(0, 242, 255, 0.2);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(0, 242, 255, 0.35);
+}
+
+.realm-ar-menu-actions button.is-primary {
+    border-color: rgba(0, 255, 136, 0.5);
+    color: #00ff88;
+}
+
+#realm-ar-material-grid {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#realm-ar-material-grid.is-visible {
+    display: flex;
+}
+
+#realm-ar-material-grid button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 120px;
+    padding: 10px;
+    font-size: 10px;
+}

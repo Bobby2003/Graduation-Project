@@ -1,0 +1,41 @@
+<p style="color:#888; margin-bottom:24px;">
+    选择<strong>房间结构</strong>、<strong>材质协议</strong>与<strong>灯光</strong>；装饰列表使用 JSON 数组。保存后写入 MySQL <code>UserProfile.private_realm_json</code>。
+</p>
+<form method="post" action="{% url 'realm_editor' %}" class="hub-form">
+    {% csrf_token %}
+    <h2>ROOM STRUCTURE // 房间结构</h2>
+    <select name="room_template">
+        {% for code, label in room_templates %}
+        <option value="{{ code }}" {% if realm_config.room_template == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <h2>MATERIAL PROTOCOLS // 材质协议</h2>
+    <select name="material_pack">
+        {% for code, label in material_packs %}
+        <option value="{{ code }}" {% if realm_config.material_pack == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <h2>LIGHTING // 灯光</h2>
+    <select name="lighting">
+        {% for code, label in lightings %}
+        <option value="{{ code }}" {% if realm_config.lighting == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <h2>VISIBILITY // 访问权限</h2>
+    <select name="realm_visibility">
+        <option value="private" {% if profile.realm_visibility == 'private' %}selected{% endif %}>私有</option>
+        <option value="friends" {% if profile.realm_visibility == 'friends' %}selected{% endif %}>好友</option>
+        <option value="public" {% if profile.realm_visibility == 'public' %}selected{% endif %}>公开</option>
+    </select>
+
+    <h2>DECORATIONS // 装饰 JSON 数组</h2>
+    <textarea name="decorations_json" rows="8">{{ decorations_json }}</textarea>
+
+    <p style="margin-top:24px;">
+        <button type="submit" class="hub-btn">保存配置</button>
+        <a href="{% url 'worlds' %}?tab=realm" style="margin-left:16px;color:#666;">返回我的位面</a>
+    </p>
+</form>

@@ -140,3 +140,37 @@ def clean_device_metadata(value: Any) -> dict[str, str] | None:
         elif v is not None:
             out[k] = str(v)[:DEVICE_MAX_LEN]
     return out or None
+
+
+WEB_SIMULATOR_SOURCES = frozenset({"web_simulator"})
+WEB_SIMULATOR_PIPELINES = frozenset({"reality_override_web"})
+
+
+def is_web_simulator_reality_scan(scan: Any) -> bool:
+    """浏览器内模拟扫描（reality-override 页）写入的 last_reality_scan。"""
+    if not isinstance(scan, dict):
+        return False
+    source = scan.get("source")
+    if isinstance(source, str) and source.strip() in WEB_SIMULATOR_SOURCES:
+        return True
+    pipeline = scan.get("pipeline")
+    if isinstance(pipeline, str) and pipeline.strip() in WEB_SIMULATOR_PIPELINES:
+        return True
+    mode = scan.get("mode")
+    if mode == "simulated" and scan.get("coordinate_space") == "screen_normalized":
+        return True
+    return False
+
+
+def clear_web_simulator_scan_from_profile(profile) -> bool:
+    """从 private_realm_json 移除浏览器模拟扫描；深度相机 scan 保留。"""
+    raw = getattr(profile, "private_realm_json", None) or {}
+    if not isinstance(raw, dict):
+        return False
+    if not is_web_simulator_reality_scan(raw.get("last_reality_scan")):
+        return False
+    out = dict(raw)
+    out.pop("last_reality_scan", None)
+    profile.private_realm_json = out
+    profile.save(update_fields=["private_realm_json"])
+    return True

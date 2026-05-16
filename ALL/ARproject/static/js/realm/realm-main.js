@@ -1,7 +1,13 @@
 /**
  * AR REALM — Desktop Realm MVP（Three.js）
  * 依赖全局 THREE（由 realm.html 先加载 CDN）
+ * 路径：static/js/realm/realm-main.js（realm.html 唯一引用）
  */
+console.warn('[REALM MAIN] loaded version 2026-05-16-DEBUG');
+window.__REALM_MAIN_LOADED_VERSION = '2026-05-16-DEBUG';
+console.warn('[REALM MAIN] actual file loaded');
+window.__REALM_MAIN_ACTUAL_LOADED = true;
+
 (function () {
     'use strict';
 
@@ -67,6 +73,63 @@
     var keys = {};
     var yaw = 0;
     var pitch = 0;
+
+    function getControlMode() {
+        if (window.ARRealmControls && typeof window.ARRealmControls.getMode === 'function') {
+            return window.ARRealmControls.getMode();
+        }
+        try {
+            return localStorage.getItem('ar_realm_control_mode') || 'desktop';
+        } catch (e) {
+            return 'desktop';
+        }
+    }
+
+    function isDesktopControl() {
+        return getControlMode() === 'desktop';
+    }
+
+    function isMovementKey(code) {
+        return (
+            code === 'KeyW' ||
+            code === 'KeyA' ||
+            code === 'KeyS' ||
+            code === 'KeyD' ||
+            code === 'ArrowUp' ||
+            code === 'ArrowDown' ||
+            code === 'ArrowLeft' ||
+            code === 'ArrowRight' ||
+            code === 'ShiftLeft'
+        );
+    }
+
+    function shouldIgnoreKeyTarget(target) {
+        if (!target || !target.closest) return false;
+        return !!target.closest('input, textarea, select, [contenteditable="true"]');
+    }
+
+    function isWasdKey(code) {
+        return code === 'KeyW' || code === 'KeyA' || code === 'KeyS' || code === 'KeyD';
+    }
+
+    function clearMovementKeys() {
+        keys.KeyW = false;
+        keys.KeyA = false;
+        keys.KeyS = false;
+        keys.KeyD = false;
+        keys.ArrowUp = false;
+        keys.ArrowDown = false;
+        keys.ArrowLeft = false;
+        keys.ArrowRight = false;
+        keys.ShiftLeft = false;
+    }
+
+    function releaseDesktopPointer() {
+        clearMovementKeys();
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+    }
 
     var state = {
         material_pack: realm.material_pack || 'cyber_neon',
@@ -1145,8 +1208,8 @@
     }
 
     function updateMovement(delta) {
-        var lockEl = document.pointerLockElement;
-        if (!renderer || lockEl !== renderer.domElement) return;
+        if (!isDesktopControl()) return;
+        if (!renderer) return;
 
         var speed = keys.ShiftLeft ? 6.5 : 3.2;
         var dir = { x: 0, z: 0 };
@@ -1231,28 +1294,37 @@
     }
 
     function bindKeys() {
-        document.addEventListener(
+        console.warn('[REALM MAIN] bindKeys called');
+        window.addEventListener('realm-action', function (e) {
+            var d = e.detail;
+            if (!d || d.action !== 'control-mode-changed') return;
+            if (d.mode !== 'desktop') {
+                releaseDesktopPointer();
+            }
+        });
+
+        window.addEventListener(
             'keydown',
             function (e) {
-                keys[e.code] = true;
-                if (document.pointerLockElement === renderer.domElement) {
-                    if (
-                        [
-                            'KeyW',
-                            'KeyA',
-                            'KeyS',
-                            'KeyD',
-                            'ArrowUp',
-                            'ArrowDown',
-                            'ArrowLeft',
-                            'ArrowRight',
-                            'ShiftLeft',
-                            'KeyE',
-                        ].indexOf(e.code) >= 0
-                    ) {
+                if (e.repeat) return;
+                if (shouldIgnoreKeyTarget(e.target)) return;
+
+                if (isMovementKey(e.code)) {
+                    if (isDesktopControl()) {
+                        keys[e.code] = true;
+                        e.preventDefault();
+                    } else {
+                        keys[e.code] = false;
+                        e.preventDefault();
                         e.stopPropagation();
                     }
+                    return;
                 }
+
+                if (!isDesktopControl()) return;
+
+                keys[e.code] = true;
+
                 if (e.code === 'Escape' && document.pointerLockElement) {
                     document.exitPointerLock();
                 }
@@ -1275,9 +1347,28 @@
             },
             true
         );
-        document.addEventListener('keyup', function (e) {
-            keys[e.code] = false;
-        });
+        window.addEventListener(
+            'keyup',
+            function (e) {
+                if (isWasdKey(e.code)) {
+                    keys[e.code] = false;
+                    return;
+                }
+                if (shouldIgnoreKeyTarget(e.target)) return;
+                keys[e.code] = false;
+            },
+            true
+        );
+
+        window.addEventListener('blur', clearMovementKeys);
+
+        window.__realmMoveDebug = {
+            keys: keys,
+            getControlMode: getControlMode,
+            isDesktopControl: isDesktopControl,
+            clearMovementKeys: clearMovementKeys,
+        };
+        console.warn('[REALM MAIN] __realmMoveDebug attached', window.__realmMoveDebug);
     }
 
     function bindMaterialDock() {
@@ -1311,7 +1402,17 @@
 
     function bindPointer() {
         var canvas = renderer.domElement;
+        canvas.setAttribute('tabindex', '0');
+        canvas.style.outline = 'none';
+        canvas.addEventListener('click', function () {
+            if (!isDesktopControl()) return;
+            canvas.focus({ preventScroll: true });
+            if (document.pointerLockElement !== canvas) {
+                canvas.requestPointerLock();
+            }
+        });
         document.addEventListener('pointerlockchange', function () {
+            if (!isDesktopControl()) return;
             if (document.pointerLockElement === canvas && !reported.pointerLocked) {
                 reported.pointerLocked = true;
                 reportProgressEvent('pointer_locked', { mode: 'desktop' });
@@ -1320,12 +1421,8 @@
                 completeTrainingStep('pointer');
             }
         });
-        canvas.addEventListener('click', function () {
-            if (document.pointerLockElement !== canvas) {
-                canvas.requestPointerLock();
-            }
-        });
         document.addEventListener('mousemove', function (e) {
+            if (!isDesktopControl()) return;
             if (document.pointerLockElement !== canvas) return;
             if (e.movementX || e.movementY) {
                 if (!reported.lookMoved) {
@@ -1361,6 +1458,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         root.appendChild(renderer.domElement);
+        renderer.domElement.setAttribute('tabindex', '0');
 
         window.scene = scene;
         window.camera = camera;

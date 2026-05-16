@@ -1,9 +1,59 @@
 {% extends "portal_shell.html" %}
-{% block doc_title %}位面广场{% endblock %}
-{% block page_title %}PUBLIC NODES // 位面广场{% endblock %}
+{% load static %}
+{% block doc_title %}位面广场 | AR REALM{% endblock %}
+{% block page_title %}WORLDS PLAZA // 位面广场{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/portal-hub.css' %}">
+{% endblock %}
 {% block doc %}
-<div class="doc-panel">
-    <p>规划中的<strong>公开位面 / 他人房间访问</strong>入口：用于展示可分享的私人位面配置、好友可见房间与广场节点。</p>
-    <p style="color:#666;">当前版本未开放多人联机与公开列表，数据模型已预留访问权限字段（私有 / 好友 / 公开）。后续可接入列表 API 与 Three.js 场景预览。</p>
+<div data-hub-root>
+    <nav class="hub-tabs" aria-label="位面广场">
+        <a href="?tab=plaza" data-tab="plaza">广场</a>
+        <a href="?tab=realm" data-tab="realm">我的位面</a>
+        <a href="?tab=editor" data-tab="editor">位面编辑</a>
+    </nav>
+
+    <div class="hub-panel doc-panel" data-panel="plaza">
+        <p>规划中的<strong>公开位面 / 他人房间访问</strong>入口：展示可分享的私人位面配置、好友可见房间与广场节点。</p>
+        <p style="color:#666;">当前版本未开放多人联机与公开列表，数据模型已预留访问权限字段（私有 / 好友 / 公开）。后续可接入列表 API 与 Three.js 场景预览。</p>
+        <p style="margin-top:20px;">
+            <a href="{% url 'worlds' %}?tab=realm" style="color:#00f2ff;">管理我的位面 →</a>
+        </p>
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="realm" hidden>
+        {% include "partials/hub/my_realm_panel.html" %}
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="editor" hidden>
+        {% if editor_saved %}
+        <div class="hub-msg">位面配置已保存。</div>
+        {% endif %}
+        {% include "partials/hub/realm_editor_panel.html" %}
+    </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/portal-hub-tabs.js' %}"></script>
+<script>
+(function () {
+    var btn = document.getElementById('clear-reality-scan-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        if (!confirm('清除最近一次的 Reality Scan 数据？（不影响房间模板、灯光与装饰）')) return;
+        var inp = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        var csrf = inp ? inp.value : '';
+        fetch('{% url "reality_scan_clear_api" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf },
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.ok) window.location.href = '{% url "worlds" %}?tab=realm';
+                else alert((data && data.error) || '清除失败');
+            })
+            .catch(function () { alert('网络错误'); });
+    });
+})();
+</script>
 {% endblock %}

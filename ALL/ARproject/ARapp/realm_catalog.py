@@ -1,5 +1,7 @@
 """私人位面编辑器：房间模板 / 材质协议 / 灯光方案（配置存 UserProfile.private_realm_json）"""
 
+from .realm_scan import is_web_simulator_reality_scan
+
 PRIVATE_REALM_DEFAULTS = {
     "room_template": "basic_room",
     "material_pack": "cyber_neon",
@@ -63,4 +65,7 @@ def merged_private_realm(profile) -> dict:
         if k not in base or base[k] is None:
             base[k] = PRIVATE_REALM_DEFAULTS[k]
     base["room_template"] = normalize_room_template(base.get("room_template", ""))
+    if is_web_simulator_reality_scan(base.get("last_reality_scan")):
+        base = dict(base)
+        base.pop("last_reality_scan", None)
     return base

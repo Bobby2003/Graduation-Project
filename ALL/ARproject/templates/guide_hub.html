@@ -1,0 +1,43 @@
+{% extends "portal_shell.html" %}
+{% load static %}
+{% block doc_title %}入门训练 | AR REALM{% endblock %}
+{% block page_title %}GUIDE & TRAINING // 入门训练{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/portal-hub.css' %}">
+{% endblock %}
+{% block doc %}
+<div data-hub-root>
+    <nav class="hub-tabs" aria-label="入门训练">
+        <a href="?tab=tutorial" data-tab="tutorial">教程</a>
+        <a href="?tab=training" data-tab="training">训练场</a>
+    </nav>
+
+    <div class="hub-panel doc-panel" data-panel="tutorial">
+        <h2 style="margin-top:0;">STEP 01 // 绿洲与位面</h2>
+        <p>AR REALM 是连接现实与虚拟世界的「绿洲」入口：你在网页中扮演探索者，访问不同位面、任务与装备体系。深度相机与点云管线属于底层的<strong>现实重构</strong>能力。</p>
+        <h2>STEP 02 // 控制模式</h2>
+        <ul>
+            <li><strong>桌面</strong>：键鼠在绿洲中移动与交互。</li>
+            <li><strong>AR 手势</strong>：摄像头 + MediaPipe，捏合确认、张开菜单等。</li>
+            <li><strong>VR</strong>：WebXR 占位，后续可对接头显。</li>
+        </ul>
+        <h2>STEP 03 // 成长与经济</h2>
+        <p>在<strong>成长中心</strong>完成任务、解锁成就、装备道具；黑市消耗信用点；排行展示绿洲战力。</p>
+        <h2>STEP 04 // 位面配置</h2>
+        <p>在<strong>位面广场</strong>管理私人位面：房间模板、材质协议、灯光与装饰 JSON；进入<strong>绿洲</strong>体验 3D 场景。</p>
+        <p style="margin-top:24px;color:#666;font-size:13px;">完整交互式教程步骤可在训练场中边玩边学。</p>
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="training" hidden>
+        <div class="hub-cta-card">
+            <h2 style="font-family:'Syncopate',sans-serif;font-size:12px;letter-spacing:3px;color:#00f2ff;margin:0 0 12px;">TRAINING GROUND</h2>
+            <p>训练场为独立 Three.js 场景：在简化房间内练习移动、手势与任务引导，配置与私人位面数据联动。</p>
+            <p style="font-size:13px;color:#888;margin-top:12px;">建议使用桌面模式首次进入；AR 模式需允许摄像头权限。</p>
+            <a href="{% url 'training' %}">进入训练场 →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/portal-hub-tabs.js' %}"></script>
+{% endblock %}

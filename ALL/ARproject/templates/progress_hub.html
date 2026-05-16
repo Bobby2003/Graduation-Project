@@ -1,0 +1,139 @@
+{% extends "portal_shell.html" %}
+{% load static %}
+{% block doc_title %}成长中心 | AR REALM{% endblock %}
+{% block page_title %}PROGRESS HUB // 成长中心{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/portal-hub.css' %}">
+{% endblock %}
+{% block doc %}
+<div data-hub-root>
+    <nav class="hub-tabs" aria-label="成长中心">
+        <a href="?tab=missions" data-tab="missions">任务</a>
+        <a href="?tab=achievements" data-tab="achievements">成就</a>
+        <a href="?tab=equipment" data-tab="equipment">装备</a>
+        <a href="?tab=market" data-tab="market">黑市</a>
+        <a href="?tab=ranking" data-tab="ranking">排行</a>
+    </nav>
+
+    <div class="hub-panel doc-panel" data-panel="missions">
+        <div class="hub-stat-row">
+            <div class="hub-stat"><strong>{{ stats.daily_total }}</strong><span>日常任务数</span></div>
+            <div class="hub-stat"><strong>{{ stats.completed_total }}</strong><span>已完成任务</span></div>
+            <div class="hub-stat"><strong>₮ {{ stats.pending_credits }}</strong><span>未完成可得信用点</span></div>
+            <div class="hub-stat"><strong>{{ stats.daily_pct }}%</strong><span>日常完成度</span></div>
+        </div>
+        {% for section in mission_sections %}
+        <div class="hub-section-title">{{ section.title }}</div>
+        {% for row in section.rows %}
+        <div class="hub-mission-card{% if row.btn_done %} completed{% endif %}">
+            <div>
+                <strong style="color:#fff;">{{ row.mission.title }}</strong>
+                <p style="margin:6px 0 0;font-size:13px;color:#888;">{{ row.mission.description }}</p>
+                <p style="margin:8px 0 0;font-size:12px;color:#666;">进度 {{ row.prog_text }} · {{ row.pct }}%</p>
+            </div>
+            <div style="text-align:right;font-size:12px;">
+                <div>+{{ row.mission.reward_exp }} EXP</div>
+                {% if row.mission.reward_credits %}<div>₮ {{ row.mission.reward_credits }}</div>{% endif %}
+                <div style="margin-top:8px;color:#555;">{{ row.btn_text }}</div>
+            </div>
+        </div>
+        {% endfor %}
+        {% empty %}
+        <p style="color:#666;">暂无任务配置，请运行 <code>python manage.py seed_realm_data</code>。</p>
+        {% endfor %}
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="achievements" hidden>
+        <div class="hub-stat-row">
+            <div class="hub-stat"><strong>{{ unlocked_count }}</strong><span>已解锁</span></div>
+            <div class="hub-stat"><strong>{{ completion_pct }}%</strong><span>完成度</span></div>
+            <div class="hub-stat"><strong>{{ total_achievements }}</strong><span>总成就数</span></div>
+        </div>
+        {% for cat in achievement_categories %}
+        <div class="hub-section-title">{{ cat.icon }} {{ cat.title }}（{{ cat.unlocked }}/{{ cat.total }}）</div>
+        {% for row in cat.items %}
+        <div class="hub-ach-card {% if row.unlocked %}unlocked{% else %}locked{% endif %}">
+            <div style="font-size:24px;width:40px;text-align:center;">{{ row.a.icon_key|default:"·" }}</div>
+            <div style="flex:1;">
+                <strong style="color:#fff;">{{ row.a.name }}</strong>
+                <p style="margin:4px 0;font-size:13px;color:#888;">{{ row.a.description }}</p>
+                <p style="font-size:12px;color:#666;">+{{ row.a.reward_exp }} EXP{% if row.a.reward_credits %} · ₮ {{ row.a.reward_credits }}{% endif %}
+                {% if row.unlocked and row.unlocked_at %} · {{ row.unlocked_at|date:"Y.m.d" }} 解锁{% endif %}</p>
+            </div>
+            <span style="font-size:10px;color:#888;">{{ row.a.rarity }}</span>
+        </div>
+        {% endfor %}
+        {% empty %}
+        <p style="color:#666;">暂无成就配置。</p>
+        {% endfor %}
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="equipment" hidden>
+        <p>当前战力 <strong style="color:#00f2ff;font-size:20px;">{{ loadout_power }}</strong></p>
+        <div class="hub-equip-slots">
+            {% for row in slot_rows %}
+            <div class="hub-equip-slot{% if row.equipped %} equipped{% endif %}">
+                {% if row.equipped %}{{ row.icon }}<br>{{ row.label }}<br>+{{ row.power }}{% else %}+<br>{{ row.label }}{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="hub-section-title">INVENTORY // 背包</div>
+        {% for row in catalog_rows %}
+        <div class="hub-item-row">
+            <span style="font-size:22px;">{{ row.icon }}</span>
+            <div style="flex:1;">
+                <strong>{{ row.item.name }}</strong>
+                <div style="font-size:12px;color:#888;">{{ row.item.get_slot_display }} · {{ row.item.get_rarity_display }}</div>
+            </div>
+            {% if row.is_equipped %}
+            <button type="button" class="hub-btn" disabled>已装备</button>
+            {% else %}
+            <form method="post" action="{% url 'equipment_equip' %}">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" value="{{ row.item.id }}">
+                <button type="submit" class="hub-btn">装备</button>
+            </form>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p style="color:#666;">暂无装备图鉴。</p>
+        {% endfor %}
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="market" hidden>
+        <div class="hub-market-grid">
+            {% for p in products %}
+            <div class="hub-market-card">
+                <h4>{{ p.name }}</h4>
+                <p style="font-size:13px;color:#888;">{{ p.description }}</p>
+                <p class="price">₮ {{ p.price_credits }}</p>
+            </div>
+            {% empty %}
+            <p style="color:#666;">暂无上架商品。</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="hub-panel doc-panel" data-panel="ranking" hidden>
+        <table class="hub-rank-table">
+            <thead>
+                <tr><th>#</th><th>玩家</th><th>战力</th></tr>
+            </thead>
+            <tbody>
+                {% for p in top_profiles %}
+                <tr{% if user.is_authenticated and p.user_id == user.id %} class="is-me"{% endif %}>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ p.user.username }}</td>
+                    <td>{{ p.combat_power|floatformat:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" style="color:#666;">暂无玩家数据。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/portal-hub-tabs.js' %}"></script>
+{% endblock %}

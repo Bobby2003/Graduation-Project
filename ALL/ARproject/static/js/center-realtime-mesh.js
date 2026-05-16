@@ -10,6 +10,10 @@
     var centerMeshPollInFlight = false;
     /** START 成功后延迟开启轮询的 timer，STOP 时需清除以防误开轮询 */
     var centerMeshPollDelayTimer = null;
+    var centerStatusPollTimer = null;
+    var centerStatusPollInFlight = false;
+    /** hard_paused_lost 时自动请求 resume，避免重复 POST */
+    var centerAutoResumePending = false;
     var urls = (window.REALM_BOOTSTRAP && window.REALM_BOOTSTRAP.urls) || {};
 
     function apiUrl(name, fallback) {
@@ -55,6 +59,7 @@
             centerMeshPollDelayTimer = setTimeout(function () {
                 centerMeshPollDelayTimer = null;
                 startCenterMeshPolling();
+                startCenterStatusPolling();
             }, 500);
         }).catch(function (err) {
             updateCenterRealtimeStatus({ ok: false, error: formatCenterFetchError(err) });
@@ -67,6 +72,9 @@
             centerMeshPollDelayTimer = null;
         }
         stopCenterMeshPolling();
+        stopCenterStatusPolling();
+        centerAutoResumePending = false;
+        updateCenterRecoveryBanner({ center_recovery_state: 'normal' });
         postCenterApi(apiUrl('centerStop', '/api/center/stop/')).then(function (data) {
             updateCenterRealtimeStatus(data);
         }).catch(function (err) {
@@ -113,7 +121,99 @@
             });
     }
 
+    function updateCenterRecoveryBanner(data) {
+        var banner = document.getElementById('center-recovery-banner');
+        if (!banner) return;
+        var state = data && data.center_recovery_state;
+        var text = '';
+        var visible = false;
+        if (state === 'recovering') {
+            visible = true;
+            text = '跟踪丢失，正在恢复…';
+            banner.style.borderColor = 'rgba(0, 242, 255, 0.45)';
+            banner.style.background = 'rgba(0, 242, 255, 0.08)';
+            banner.style.color = '#7ee8ff';
+        } else if (state === 'hard_paused_lost') {
+            visible = true;
+            text = '跟踪丢失，正在准备恢复…';
+            banner.style.borderColor = 'rgba(255, 200, 0, 0.45)';
+            banner.style.background = 'rgba(255, 180, 0, 0.08)';
+            banner.style.color = '#ffd080';
+        } else if (state === 'recovery_failed') {
+            visible = true;
+            text = (data && (data.hint || data.message)) || '恢复失败，请重新建模';
+            banner.style.borderColor = 'rgba(255, 80, 80, 0.5)';
+            banner.style.background = 'rgba(255, 40, 40, 0.1)';
+            banner.style.color = '#ff9999';
+        }
+        if (visible) {
+            banner.hidden = false;
+            banner.style.display = 'block';
+            banner.textContent = text;
+        } else {
+            banner.hidden = true;
+            banner.style.display = 'none';
+            banner.textContent = '';
+        }
+    }
+
+    function maybeAutoResumeCenter(data) {
+        if (!data || !data.running) return;
+        if (data.center_recovery_state !== 'hard_paused_lost') {
+            centerAutoResumePending = false;
+            return;
+        }
+        if (centerAutoResumePending) return;
+        centerAutoResumePending = true;
+        postCenterApi(apiUrl('centerResume', '/api/center/resume/'))
+            .then(function (res) {
+                if (res && res.center_recovery_state) {
+                    updateCenterRecoveryBanner(res);
+                }
+                updateCenterRealtimeStatus(res);
+            })
+            .catch(function () {
+                centerAutoResumePending = false;
+            });
+    }
+
+    function refreshCenterPipelineStatus() {
+        if (centerStatusPollInFlight) return;
+        centerStatusPollInFlight = true;
+        fetch(apiUrl('centerStatus', '/api/center/status/'), { credentials: 'same-origin' })
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (data) {
+                if (data && data.ok !== false) {
+                    updateCenterRecoveryBanner(data);
+                    maybeAutoResumeCenter(data);
+                }
+            })
+            .catch(function () {
+                /* 静默：mesh 轮询仍会更新主状态行 */
+            })
+            .finally(function () {
+                centerStatusPollInFlight = false;
+            });
+    }
+
+    function startCenterStatusPolling() {
+        if (centerStatusPollTimer) return;
+        refreshCenterPipelineStatus();
+        centerStatusPollTimer = setInterval(refreshCenterPipelineStatus, 1000);
+    }
+
+    function stopCenterStatusPolling() {
+        if (!centerStatusPollTimer) return;
+        clearInterval(centerStatusPollTimer);
+        centerStatusPollTimer = null;
+    }
+
     function updateCenterRealtimeStatus(data) {
+        if (data && data.center_recovery_state) {
+            updateCenterRecoveryBanner(data);
+        }
         var el = document.getElementById('center-realtime-status');
         if (!el) return;
         if (!data) {
@@ -307,6 +407,7 @@
             });
         }
         startCenterMeshPolling();
+        startCenterStatusPolling();
     }
 
     if (document.readyState === 'loading') {

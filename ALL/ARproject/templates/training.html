@@ -432,8 +432,7 @@
                 <button type="button" class="dock-more-btn" id="toggle-more-protocols">MORE PROTOCOLS ▾</button>
                 <button type="button" class="dock-save-btn" id="save-realm-btn">保存位面</button>
                 <a class="dock-link" href="{% url 'material_library' %}">材质库 →</a>
-                <a class="dock-link" href="{% url 'reality_override' %}">现实覆写 →</a>
-                <a class="dock-link" href="{% url 'my_realm' %}">我的位面 →</a>
+                <a class="dock-link" href="{% url 'worlds' %}?tab=realm">我的位面 →</a>
             </div>
             <div id="more-protocols-row" class="dock-row more-protocols collapsed">
                 <button type="button" class="material-btn" data-material="forest_temple">森林</button>
@@ -445,9 +444,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/realm/realm-main.js' %}"></script>
-    <script src="{% static 'js/gesture.js' %}"></script>
     <script src="{% static 'js/controls.js' %}"></script>
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/realm-immersive.js' %}"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}"></script>
     <script>
         (function () {
             var ind = document.getElementById('mode-indicator');

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516c">
     <style>
         :root {
             --neon: #00f2ff;
@@ -285,6 +285,19 @@
             z-index: 35;
             pointer-events: none;
         }
+        /* 沉浸模式兜底（与 control-modes.css 双保险） */
+        body.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
+        body.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
+            display: none !important;
+        }
+        #realm-ar-gesture-status {
+            font-family: Rajdhani, sans-serif;
+            font-size: 11px;
+            color: rgba(0, 242, 255, 0.85);
+            max-width: 200px;
+            text-align: center;
+            line-height: 1.35;
+        }
     </style>
 </head>
 <body>
@@ -309,6 +322,7 @@
                     centerStart: "{% url 'center_start_api' %}",
                     centerStop: "{% url 'center_stop_api' %}",
                     centerStatus: "{% url 'center_status_api' %}",
+                    centerResume: "{% url 'center_resume_api' %}",
                     centerLatestMesh: "{% url 'center_latest_mesh_api' %}",
                 }
             };
@@ -318,7 +332,17 @@
     <div class="realm-viewport">
         <div id="realm-canvas-root" aria-label="Desktop Realm 3D viewport"></div>
 
-        <div class="hud-top">
+        <div class="realm-immersive-bar realm-immersive-keep" role="navigation" aria-label="沉浸模式切换">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop" title="桌面 · WASD 移动">⌨ 桌面</button>
+                <button type="button" class="mode-btn" data-mode="gesture" title="AR 手势">🖐 AR</button>
+                <button type="button" class="mode-btn" data-mode="vr" title="VR 演示">🥽 VR</button>
+            </div>
+            <button type="button" id="realm-vr-menu-btn" title="打开管理菜单">☰ 菜单</button>
+            <span id="realm-ar-gesture-status" aria-live="polite"></span>
+        </div>
+
+        <div class="hud-top realm-ui-chrome">
             <div class="realm-title">AR REALM // DESKTOP REALM</div>
             <div class="hud-top-right">
                 <div class="control-mode-switcher">
@@ -331,27 +355,30 @@
             </div>
         </div>
 
-        <div class="realm-3d-hud">
+        <div class="realm-3d-hud realm-ui-chrome">
             <div>PRIVATE REALM // <span>{{ user.username|upper }}</span></div>
             <div id="realm-hud-room">ROOM: —</div>
             <div id="realm-hud-material">MATERIAL: —</div>
             <div id="realm-hud-lighting">LIGHTING: —</div>
         </div>
 
-        <div class="realm-center-panel" id="center-realtime-panel" style="position:absolute;top:200px;right:24px;z-index:38;padding:10px 14px;background:rgba(5,8,12,0.88);border:1px solid rgba(0,242,255,0.28);backdrop-filter:blur(8px);font-family:Syncopate,sans-serif;font-size:9px;letter-spacing:1px;pointer-events:auto;max-width:min(360px,92vw);">
+        <div class="realm-center-panel realm-ui-chrome" id="center-realtime-panel" style="position:absolute;top:200px;right:24px;z-index:38;padding:10px 14px;background:rgba(5,8,12,0.88);border:1px solid rgba(0,242,255,0.28);backdrop-filter:blur(8px);font-family:Syncopate,sans-serif;font-size:9px;letter-spacing:1px;pointer-events:auto;max-width:min(360px,92vw);">
             <div style="color:rgba(0,242,255,0.85);margin-bottom:8px;">CENTER PIPELINE · MEMORY MESH</div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;">
                 <button type="button" id="center-start-btn" style="cursor:pointer;padding:6px 10px;font-size:10px;background:#002a33;color:#00f2ff;border:1px solid #00f2ff;">START</button>
                 <button type="button" id="center-stop-btn" style="cursor:pointer;padding:6px 10px;font-size:10px;background:#220011;color:#ff88aa;border:1px solid #ff88aa;">STOP</button>
             </div>
+            <div id="center-recovery-banner" role="status" aria-live="polite" hidden
+                style="display:none;margin-bottom:8px;padding:8px 10px;font-size:11px;line-height:1.45;font-family:Rajdhani,sans-serif;letter-spacing:0.5px;border:1px solid rgba(255,200,0,0.45);background:rgba(255,180,0,0.08);color:#ffd080;">
+            </div>
             <div id="center-realtime-status" style="color:#aaa;font-size:10px;line-height:1.5;font-family:Rajdhani,sans-serif;">CENTER: IDLE</div>
         </div>
 
-        <div id="realm-debug-hud" aria-hidden="true"></div>
+        <div id="realm-debug-hud" class="realm-ui-chrome" aria-hidden="true"></div>
 
         <div class="crosshair"></div>
 
-        <div class="hud-left">
+        <div class="hud-left realm-ui-chrome">
             <div class="player-name">{{ user.username }}</div>
             <div class="bar hp"><span></span></div>
             <div class="bar energy"><span></span></div>
@@ -361,7 +388,7 @@
             <div id="realm-hud-ghost-legend" style="display:none;font-size:10px;color:rgba(0,242,255,0.65);margin-top:6px;letter-spacing:0.5px;line-height:1.45;max-width:260px;"></div>
         </div>
 
-        <div class="hud-right">
+        <div class="hud-right realm-ui-chrome">
             <div class="panel-title">ACTIVE QUEST</div>
             {% for m in realm_quests %}
             <div class="mission-item">▸ {{ m.title }}</div>
@@ -370,11 +397,28 @@
             {% endfor %}
         </div>
 
-        <div class="control-help">
-            点击画布锁定鼠标 · WASD 移动 · 1–8 快速切换协议 · Esc 解锁
+        <div class="control-help realm-ui-chrome">
+            桌面模式：WASD 移动（无需锁定）· 点击画布锁定视角 · 1–8 切换协议 · Esc 解锁
         </div>
 
-        <div class="realm-dock">
+        <div id="realm-immersive-hint" class="realm-immersive-keep" aria-live="polite"></div>
+
+        <div id="realm-ar-menu" aria-hidden="true" aria-label="AR 管理菜单">
+            <div class="realm-ar-menu-panel" role="dialog">
+                <h3>位面管理</h3>
+                <p class="realm-ar-menu-sub">张开左手掌打开 · 握拳或 Esc 关闭 · 右手捏合可点按钮</p>
+                <div class="realm-ar-menu-actions">
+                    <button type="button" data-ar-action="materials">材质替换</button>
+                    <button type="button" data-ar-action="scan-start" class="is-primary">开始扫描</button>
+                    <button type="button" data-ar-action="scan-stop">停止扫描</button>
+                    <button type="button" data-ar-action="desktop">返回桌面模式</button>
+                    <button type="button" data-ar-action="close">关闭菜单</button>
+                </div>
+                <div id="realm-ar-material-grid" aria-label="材质协议"></div>
+            </div>
+        </div>
+
+        <div class="realm-dock realm-ui-chrome">
             <div class="dock-row dock-row-main">
                 <button type="button" class="material-btn" data-material="cyber_neon">赛博</button>
                 <button type="button" class="material-btn" data-material="wasteland_rust">废土</button>
@@ -383,8 +427,7 @@
                 <button type="button" class="dock-more-btn" id="toggle-more-protocols">MORE PROTOCOLS ▾</button>
                 <button type="button" class="dock-save-btn" id="save-realm-btn">保存位面</button>
                 <a class="dock-link" href="{% url 'material_library' %}">材质库 →</a>
-                <a class="dock-link" href="{% url 'reality_override' %}">现实覆写 →</a>
-                <a class="dock-link" href="{% url 'my_realm' %}">我的位面 →</a>
+                <a class="dock-link" href="{% url 'worlds' %}?tab=realm">我的位面 →</a>
             </div>
             <div id="more-protocols-row" class="dock-row more-protocols collapsed">
                 <button type="button" class="material-btn" data-material="forest_temple">森林</button>
@@ -396,39 +439,79 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/realm/realm-main.js' %}"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}"></script>
-    <script src="{% static 'js/gesture.js' %}"></script>
-    <script src="{% static 'js/controls.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}?v=20260516c"></script>
+    <script src="{% static 'js/realm-mode-boot.js' %}?v=20260516c"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260516c"></script>
+    <script src="{% static 'js/realm-immersive.js' %}?v=20260516c"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260516c"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516c"></script>
     <script>
+        window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {
             var ind = document.getElementById('mode-indicator');
+            var helpEl = document.querySelector('.control-help');
+            var HELP_DESKTOP = '桌面模式：WASD 移动（无需锁定）· 点击画布锁定视角 · 1–8 切换协议 · Esc 解锁';
+
+            function syncControlHelp(mode) {
+                if (!helpEl) return;
+                if (mode === 'desktop') helpEl.textContent = HELP_DESKTOP;
+                else if (mode === 'gesture') helpEl.textContent = 'AR 模式：WASD 已禁用 · 张开左手掌打开菜单';
+                else helpEl.textContent = 'VR 模式：WASD 已禁用 · 点顶部「菜单」或切换桌面';
+            }
+            window.syncControlHelp = syncControlHelp;
+
             window.addEventListener('realm-action', function (e) {
                 var d = e.detail;
                 if (!d) return;
                 var MODE_UI = {
                     desktop: 'DESKTOP REALM',
-                    gesture: 'REALITY OVERRIDE',
+                    gesture: 'AR GESTURE',
                     vr: 'VR LINK'
                 };
                 if (d.action === 'control-mode-changed' && ind) {
                     var label = MODE_UI[d.mode] || String(d.mode).toUpperCase();
                     ind.textContent = 'CONTROL: ' + label;
+                    syncControlHelp(d.mode);
                 }
                 if (d.action === 'material-protocol-changed') {
                     console.log('[REALM] material protocol:', d.material);
                 }
             });
             function applyQueryMode() {
-                var q = new URLSearchParams(location.search).get('mode');
+                var q = new URLSearchParams(window.location.search).get('mode');
                 if (q && window.ARRealmControls && ['desktop', 'gesture', 'vr'].indexOf(q) >= 0) {
                     window.ARRealmControls.setMode(q);
                 }
             }
+            function bootModeUi() {
+                applyQueryMode();
+                var m = (window.ARRealmControls && window.ARRealmControls.getMode()) || 'desktop';
+                if (typeof syncControlHelp === 'function') {
+                    syncControlHelp(m);
+                }
+                if (typeof window.syncRealmBodyMode === 'function') {
+                    window.syncRealmBodyMode(m);
+                }
+            }
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', applyQueryMode);
+                document.addEventListener('DOMContentLoaded', bootModeUi);
             } else {
-                requestAnimationFrame(applyQueryMode);
+                requestAnimationFrame(bootModeUi);
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            var ok =
+                window.__REALM_MAIN_ACTUAL_LOADED === true &&
+                window.__REALM_MAIN_LOADED_VERSION === '2026-05-16-DEBUG';
+            if (!ok) {
+                console.error(
+                    '[REALM] realm-main.js 未加载最新版。请 Ctrl+Shift+R 强刷，并确认 Network 里 realm-main.js?v=20260516c 含 2026-05-16-DEBUG'
+                );
+            }
+            if (typeof window.syncRealmBodyMode !== 'function') {
+                console.error('[REALM] syncRealmBodyMode 仍不可用，请检查 realm-mode-boot.js 是否 200');
             }
         })();
     </script>

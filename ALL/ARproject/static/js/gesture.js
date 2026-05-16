@@ -5,8 +5,8 @@
  */
 
 const MP_TASKS_VERSION = '0.10.14';
-const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_TASKS_VERSION}/wasm`;
-const TASKS_ESM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_TASKS_VERSION}/+esm`;
+const WASM_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+const TASKS_ESM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm';
 const HAND_MODEL_URL =
     'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
@@ -65,14 +65,19 @@ function getPointerNorm(lm) {
     return { x: 1 - lm[8].x, y: lm[8].y };
 }
 
+/** 张开手掌：至少 4 指伸展（兼容镜像与不同摄像头角度） */
 function isOpenPalm(lm) {
-    const tips = [8, 12, 16, 20];
-    const pips = [6, 10, 14, 18];
-    let up = 0;
-    for (let i = 0; i < 4; i++) {
-        if (lm[tips[i]].y < lm[pips[i]].y) up++;
+    const tips = [4, 8, 12, 16, 20];
+    const bases = [2, 5, 9, 13, 17];
+    let extended = 0;
+    for (let i = 0; i < 5; i++) {
+        const tip = tips[i];
+        const base = bases[i];
+        const dTip = lmHypot(lm[tip].x - lm[0].x, lm[tip].y - lm[0].y);
+        const dBase = lmHypot(lm[base].x - lm[0].x, lm[base].y - lm[0].y);
+        if (dTip > dBase * 1.08) extended++;
     }
-    return up >= 4;
+    return extended >= 4;
 }
 
 function isFist(lm) {
@@ -87,8 +92,11 @@ function isFist(lm) {
 
 class ARGestureController {
     constructor() {
-        this.statusText = document.getElementById('gesture-status-text');
+        this.statusText =
+            document.getElementById('gesture-status-text') ||
+            document.getElementById('realm-ar-gesture-status');
         this.gestureWidget = document.getElementById('ar-gesture-widget');
+        this._detectLogFrame = 0;
 
         this.ws = null;
         this.arActive = false;
@@ -105,9 +113,12 @@ class ARGestureController {
         this.video = null;
 
         this._lastWsSend = 0;
+        this._openPalmFrames = 0;
+        this._palmMenuOpen = false;
 
         this.selectors =
-            'a, button, input, .realm-card, .market-card, .btn-action, .loot-item, .rank-item, .btn-link';
+            'a, button, input, .realm-card, .market-card, .btn-action, .loot-item, .rank-item, .btn-link, ' +
+            '#realm-ar-menu button, [data-ar-action], #realm-vr-menu-btn, .mode-btn';
 
         this.createCursor();
         this.wireToggle();
@@ -135,6 +146,8 @@ class ARGestureController {
                 this.startAR().catch((e) => console.error('[AR System] 手势模式启动失败:', e));
             } else {
                 this.stopAR();
+                this._palmMenuOpen = false;
+                this._openPalmFrames = 0;
             }
         });
 
@@ -148,6 +161,18 @@ class ARGestureController {
                 this.statusText.innerText = m === 'gesture' ? 'MODE: GESTURE' : 'MODE: ' + String(m).toUpperCase();
                 this.statusText.style.color = '#8892b0';
             }
+            queueMicrotask(() => {
+                const m =
+                    (window.ARRealmControls && window.ARRealmControls.getMode()) ||
+                    localStorage.getItem('ar_realm_control_mode') ||
+                    'desktop';
+                if (m === 'gesture') {
+                    this.startAR().catch((e) => {
+                        console.error('[AR System] 手势模式启动失败:', e);
+                        this.showRealmGestureToast('摄像头启动失败，请允许权限');
+                    });
+                }
+            });
             return;
         }
 
@@ -171,10 +196,21 @@ class ARGestureController {
 
     async startAR() {
         if (this.arActive) return;
+        console.log('[AR System] startAR begin', { wasm: WASM_BASE, esm: TASKS_ESM });
+
+        if (window.ARRealmControls && window.ARRealmControls.getMode() !== 'gesture') {
+            window.ARRealmControls.setMode('gesture');
+        }
+
         this.arActive = true;
 
         if (this.gestureWidget) {
             this.gestureWidget.style.display = 'block';
+        }
+
+        if (this.statusText) {
+            this.statusText.innerText = 'AR: 正在启动摄像头…';
+            this.statusText.style.color = '#ffd080';
         }
 
         try {
@@ -183,8 +219,16 @@ class ARGestureController {
             await this.loadLandmarker();
             this.connectWebSocket();
             this.loopDetect();
+            console.log('[AR System] startAR success');
+            this.showRealmGestureToast('AR 就绪 · 任意手张开掌打开菜单 · M 键备用');
         } catch (e) {
+            console.error('[AR System] startAR fail', e);
             this.stopAR();
+            const msg =
+                (e && e.name === 'NotAllowedError')
+                    ? '请允许摄像头权限后重试'
+                    : 'AR 启动失败: ' + (e && e.message ? e.message : String(e));
+            this.showRealmGestureToast(msg);
             throw e;
         }
     }
@@ -259,29 +303,45 @@ class ARGestureController {
     }
 
     async openCamera() {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-            audio: false,
-        });
-        this.stream = stream;
-        this.video.srcObject = stream;
-        await this.video.play();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: false,
+            });
+            this.stream = stream;
+            this.video.srcObject = stream;
+            await this.video.play();
 
-        await new Promise((resolve) => {
-            const ok = () => {
-                if (this.video.videoWidth > 0) {
-                    this.video.removeEventListener('loadeddata', ok);
-                    resolve();
-                }
-            };
-            this.video.addEventListener('loadeddata', ok);
-            ok();
-        });
+            await new Promise((resolve) => {
+                const ok = () => {
+                    if (this.video.videoWidth > 0) {
+                        this.video.removeEventListener('loadeddata', ok);
+                        resolve();
+                    }
+                };
+                this.video.addEventListener('loadeddata', ok);
+                ok();
+            });
+            console.log('[AR System] camera success', {
+                width: this.video.videoWidth,
+                height: this.video.videoHeight,
+            });
+        } catch (e) {
+            console.error('[AR System] camera fail', e);
+            throw e;
+        }
     }
 
     async loadLandmarker() {
-        if (!this.visionModule) {
-            this.visionModule = await import(TASKS_ESM);
+        try {
+            if (!this.visionModule) {
+                console.log('[AR System] mediapipe import', TASKS_ESM);
+                this.visionModule = await import(TASKS_ESM);
+                console.log('[AR System] mediapipe import success');
+            }
+        } catch (e) {
+            console.error('[AR System] mediapipe import fail', e);
+            throw e;
         }
         const { HandLandmarker, FilesetResolver } = this.visionModule;
 
@@ -303,10 +363,12 @@ class ARGestureController {
 
         try {
             this.handLandmarker = await HandLandmarker.createFromOptions(fileset, opts);
+            console.log('[AR System] HandLandmarker ready (GPU)');
         } catch (e) {
             console.warn('[AR System] GPU delegate 不可用，回退 CPU', e);
             opts.baseOptions = { ...baseOpts, delegate: 'CPU' };
             this.handLandmarker = await HandLandmarker.createFromOptions(fileset, opts);
+            console.log('[AR System] HandLandmarker ready (CPU)');
         }
     }
 
@@ -350,50 +412,59 @@ class ARGestureController {
         let leftGesture = 'none';
         let scroll = null;
         let pointer = null;
+        let palmOpen = false;
+        let palmFist = false;
 
         const n = result.landmarks?.length || 0;
-        let hasLeftHand = false;
+
+        for (let i = 0; i < n; i++) {
+            const lm = result.landmarks[i];
+            if (isOpenPalm(lm)) palmOpen = true;
+            if (isFist(lm)) palmFist = true;
+        }
 
         for (let i = 0; i < n; i++) {
             const lm = result.landmarks[i];
             const cat = result.handednesses?.[i]?.[0];
             const label = cat?.categoryName || cat?.displayName || '';
 
-            const isUserRight = label === 'Right';
-            const isUserLeft = label === 'Left';
+            const palmThisHand = isOpenPalm(lm);
+            const fistThisHand = isFist(lm);
+            const treatAsMenuHand = palmThisHand || (palmOpen && !isPointing(lm) && !isPinch(lm));
 
-            if (isUserRight) {
+            if (treatAsMenuHand) {
+                leftGesture = 'open';
+            } else if (fistThisHand) {
+                leftGesture = 'fist';
+            }
+
+            const useForPointer =
+                !palmThisHand &&
+                (label === 'Right' || (label !== 'Left' && rightGesture === 'none'));
+
+            if (useForPointer) {
                 if (isPinch(lm)) {
                     rightGesture = 'pinch';
                 } else if (isPointing(lm)) {
                     rightGesture = 'point';
                     pointer = getPointerNorm(lm);
                 }
-            } else if (isUserLeft) {
-                hasLeftHand = true;
-                if (isOpenPalm(lm)) {
-                    leftGesture = 'open';
-                    const currY = lm[9].y;
-                    if (this.prevPalmY != null) {
-                        const delta = currY - this.prevPalmY;
-                        if (delta > 0.02) scroll = 'down';
-                        else if (delta < -0.02) scroll = 'up';
-                    }
-                    this.prevPalmY = currY;
-                } else {
-                    if (isFist(lm)) {
-                        leftGesture = 'fist';
-                    }
-                    this.prevPalmY = null;
-                }
             }
         }
 
-        if (!hasLeftHand) {
-            this.prevPalmY = null;
+        if (palmOpen) leftGesture = 'open';
+        if (palmFist && !palmOpen) leftGesture = 'fist';
+
+        if (rightGesture === 'none' && n > 0 && !palmOpen) {
+            const lm0 = result.landmarks[0];
+            if (isPinch(lm0)) rightGesture = 'pinch';
+            else if (isPointing(lm0)) {
+                rightGesture = 'point';
+                pointer = getPointerNorm(lm0);
+            }
         }
 
-        return { right: rightGesture, left: leftGesture, scroll, pointer };
+        return { right: rightGesture, left: leftGesture, scroll, pointer, palmOpen, palmFist };
     }
 
     maybeSendWs(payload) {
@@ -407,6 +478,7 @@ class ARGestureController {
 
     loopDetect() {
         if (!this.arActive || !this.handLandmarker || !this.video) return;
+        console.log('[AR System] loopDetect start');
 
         const step = () => {
             if (!this.arActive) return;
@@ -414,6 +486,14 @@ class ARGestureController {
             if (this.video.videoWidth > 0) {
                 const result = this.handLandmarker.detectForVideo(this.video, performance.now());
                 const payload = this.buildPayload(result);
+                this._detectLogFrame += 1;
+                if (this._detectLogFrame % 45 === 0) {
+                    console.log('[AR System] detect', {
+                        handCount: result.landmarks?.length || 0,
+                        palmOpen: payload.palmOpen,
+                        left: payload.left,
+                    });
+                }
                 this.handleData(payload);
                 this.maybeSendWs(payload);
             }
@@ -454,11 +534,57 @@ class ARGestureController {
             }
         }
 
-        if (data.scroll === 'down') {
-            window.scrollBy({ top: 150, behavior: 'smooth' });
+        this.handlePalmMenuGestures(data);
+    }
+
+    handlePalmMenuGestures(data) {
+        const mode =
+            (window.ARRealmControls && window.ARRealmControls.getMode()) ||
+            (typeof localStorage !== 'undefined' && localStorage.getItem('ar_realm_control_mode')) ||
+            'desktop';
+        if (mode !== 'gesture') {
+            this._openPalmFrames = 0;
+            return;
         }
-        if (data.scroll === 'up') {
-            window.scrollBy({ top: -150, behavior: 'smooth' });
+
+        const palmOpen = !!(data.palmOpen || data.left === 'open');
+        const palmFist = !!(data.palmFist || data.left === 'fist');
+
+        if (palmOpen) {
+            this._openPalmFrames += 1;
+            if (!this._palmMenuOpen && this._openPalmFrames >= 3) {
+                this._palmMenuOpen = true;
+                console.log('[AR System] dispatch open-palm-menu', {
+                    palmOpen: palmOpen,
+                    frames: this._openPalmFrames,
+                });
+                window.dispatchEvent(
+                    new CustomEvent('ar-gesture', { detail: { action: 'open-palm-menu' } })
+                );
+                this.showRealmGestureToast('已打开管理菜单');
+            }
+        } else {
+            this._openPalmFrames = Math.max(0, this._openPalmFrames - 1);
+        }
+
+        if (palmFist && this._palmMenuOpen) {
+            this._palmMenuOpen = false;
+            this._openPalmFrames = 0;
+            window.dispatchEvent(
+                new CustomEvent('ar-gesture', { detail: { action: 'close-palm-menu' } })
+            );
+            this.showRealmGestureToast('菜单已关闭');
+        }
+    }
+
+    showRealmGestureToast(msg) {
+        let el = document.getElementById('realm-ar-gesture-status');
+        if (!el) {
+            el = document.getElementById('gesture-status-text');
+        }
+        if (el) {
+            el.textContent = msg;
+            el.style.color = '#7ee8ff';
         }
     }
 

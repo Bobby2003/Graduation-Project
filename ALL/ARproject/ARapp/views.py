@@ -10,6 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.db.models import Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
@@ -23,6 +24,7 @@ from .realm_scan import (
     clean_device_metadata,
     clean_mesh_summary,
     clean_surfaces_list,
+    clear_web_simulator_scan_from_profile,
     sanitize_raw_ref,
 )
 from .realm_catalog import (
@@ -176,21 +178,41 @@ def dashboard(request):
     return render(request, "user_center.html", context)
 
 
+PROGRESS_HUB_TABS = frozenset(
+    {"missions", "achievements", "equipment", "market", "ranking"}
+)
+WORLDS_HUB_TABS = frozenset({"plaza", "realm", "editor"})
+GUIDE_HUB_TABS = frozenset({"tutorial", "training"})
+
+
+def _hub_tab(request, allowed, default):
+    tab = (request.GET.get("tab") or default).strip()
+    if tab not in allowed:
+        return default
+    return tab
+
+
+def _market_context():
+    return {"products": MarketProduct.objects.filter(is_active=True)}
+
+
+def _ranking_context():
+    return {
+        "top_profiles": UserProfile.objects.select_related("user").order_by(
+            "-combat_power", "user__id"
+        )[:50]
+    }
+
+
 def market(request):
-    products = MarketProduct.objects.filter(is_active=True)
-    return render(request, "market.html", {"products": products})
+    return redirect(reverse("progress_hub") + "?tab=market")
 
 
 def ranking(request):
-    top_profiles = (
-        UserProfile.objects.select_related("user")
-        .order_by("-combat_power", "user__id")[:50]
-    )
-    return render(request, "ranking.html", {"top_profiles": top_profiles})
+    return redirect(reverse("progress_hub") + "?tab=ranking")
 
 
-@login_required
-def missions(request):
+def _missions_context(request):
     ensure_user_missions(request.user)
     user = request.user
     missions_qs = Mission.objects.filter(is_active=True).order_by("sort_order", "id")
@@ -265,15 +287,15 @@ def missions(request):
         "pending_credits": pending_credits,
         "daily_pct": day_pct,
     }
-    return render(
-        request,
-        "missions.html",
-        {"mission_sections": mission_sections, "stats": stats},
-    )
+    return {"mission_sections": mission_sections, "stats": stats}
 
 
 @login_required
-def achievements(request):
+def missions(request):
+    return redirect(reverse("progress_hub") + "?tab=missions")
+
+
+def _achievements_context(request):
     user = request.user
     achievements_qs = Achievement.objects.filter(is_active=True).order_by(
         "category_key", "sort_order", "id"
@@ -321,21 +343,56 @@ def achievements(request):
     unlocked_n = len(unlocked)
     pct = int(100 * unlocked_n / total_n) if total_n else 0
 
-    return render(
-        request,
-        "achievements.html",
-        {
-            "achievement_categories": categories,
-            "total_achievements": total_n,
-            "unlocked_count": unlocked_n,
-            "weekly_new_achievements": 0,
-            "completion_pct": pct,
-        },
-    )
+    return {
+        "achievement_categories": categories,
+        "total_achievements": total_n,
+        "unlocked_count": unlocked_n,
+        "weekly_new_achievements": 0,
+        "completion_pct": pct,
+    }
 
 
 @login_required
-def equipment(request):
+def achievements(request):
+    return redirect(reverse("progress_hub") + "?tab=achievements")
+
+
+@login_required
+def progress_hub(request):
+    tab = _hub_tab(request, PROGRESS_HUB_TABS, "missions")
+    ctx = {
+        "nav_active": "progress_hub",
+        "hub_tab": tab,
+    }
+    ctx.update(_market_context())
+    ctx.update(_ranking_context())
+    if request.user.is_authenticated:
+        ctx.update(_missions_context(request))
+        ctx.update(_achievements_context(request))
+        ctx.update(_equipment_context(request))
+    else:
+        ctx.update(
+            {
+                "mission_sections": [],
+                "stats": {
+                    "daily_total": 0,
+                    "completed_total": 0,
+                    "pending_credits": 0,
+                    "daily_pct": 0,
+                },
+                "achievement_categories": [],
+                "total_achievements": 0,
+                "unlocked_count": 0,
+                "completion_pct": 0,
+                "slot_rows": [],
+                "catalog_rows": [],
+                "loadout_power": 0,
+            }
+        )
+    return render(request, "progress_hub.html", ctx)
+
+
+def _equipment_context(request):
     ensure_default_loadout(request.user)
     user = request.user
     profile, _ = UserProfile.objects.get_or_create(user=user)
@@ -388,18 +445,19 @@ def equipment(request):
 
     detail_icon = _equip_icon(detail.icon) if detail else ""
 
-    return render(
-        request,
-        "equipment.html",
-        {
-            "profile": profile,
-            "slot_rows": slot_rows,
-            "catalog_rows": catalog_rows,
-            "detail_item": detail,
-            "detail_icon": detail_icon,
-            "loadout_power": loadout_power,
-        },
-    )
+    return {
+        "profile": profile,
+        "slot_rows": slot_rows,
+        "catalog_rows": catalog_rows,
+        "detail_item": detail,
+        "detail_icon": detail_icon,
+        "loadout_power": loadout_power,
+    }
+
+
+@login_required
+def equipment(request):
+    return redirect(reverse("progress_hub") + "?tab=equipment")
 
 
 @login_required
@@ -410,10 +468,10 @@ def equipment_equip(request):
     try:
         item_id = int(raw)
     except (TypeError, ValueError):
-        return redirect("equipment")
+        return redirect(reverse("progress_hub") + "?tab=equipment")
     item = EquipmentItem.objects.filter(pk=item_id).first()
     if item is None:
-        return redirect("equipment")
+        return redirect(reverse("progress_hub") + "?tab=equipment")
     UserEquippedItem.objects.update_or_create(
         user=request.user,
         slot=item.slot,
@@ -428,7 +486,7 @@ def equipment_equip(request):
     UserProfile.objects.filter(user=request.user).update(
         combat_power=1000 + int(loadout)
     )
-    return redirect("equipment")
+    return redirect(reverse("progress_hub") + "?tab=equipment")
 
 
 def settings_page(request):
@@ -438,6 +496,7 @@ def settings_page(request):
 
 def _desktop_realm_bootstrap_context(request, force_room_template=None):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    clear_web_simulator_scan_from_profile(profile)
     realm_quests = Mission.objects.filter(
         kind=Mission.KIND_MAIN, is_active=True
     ).order_by("sort_order", "id")[:5]
@@ -602,85 +661,17 @@ def progress_event_api(request):
 
 @login_required
 def reality_override(request):
-    """Sprint 5：现实覆写实验页（摄像头 + 模拟平面识别 + 保存扫描 JSON）"""
-    return render(
-        request,
-        "reality_override.html",
-        {
-            "nav_active": "reality_override",
-            "debug_allowed": settings.DEBUG or getattr(request.user, "is_staff", False),
-        },
-    )
+    """现实覆写页已下线：重定向至绿洲（浏览器模拟扫描入口已隐藏）。"""
+    return redirect("realm")
 
 
 @login_required
 @require_POST
 def reality_override_save_api(request):
-    """保存材质协议与 last_reality_scan，合并进 private_realm_json（不覆盖其它扩展字段）"""
-    try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
-
-    if not isinstance(payload, dict):
-        return JsonResponse({"ok": False, "error": "INVALID_PAYLOAD"}, status=400)
-
-    material_pack = payload.get("material_pack")
-    scan = payload.get("scan")
-    valid_materials = dict(MATERIAL_PACK_CHOICES)
-
-    if material_pack not in valid_materials:
-        return JsonResponse({"ok": False, "error": "INVALID_MATERIAL_PACK"}, status=400)
-
-    if not isinstance(scan, dict):
-        return JsonResponse({"ok": False, "error": "INVALID_SCAN"}, status=400)
-
-    surfaces = scan.get("surfaces")
-    if surfaces is None:
-        surfaces = []
-    if not isinstance(surfaces, list):
-        return JsonResponse({"ok": False, "error": "INVALID_SURFACES"}, status=400)
-    surfaces_clean = clean_surfaces_list(surfaces, max_items=MAX_WEB_SURFACES)
-
-    mesh_summary = clean_mesh_summary(scan.get("mesh_summary"))
-
-    profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    raw = getattr(profile, "private_realm_json", None) or {}
-    if not isinstance(raw, dict):
-        raw = {}
-    out = dict(raw)
-    out["material_pack"] = material_pack
-
-    scan_id = scan.get("id") if isinstance(scan.get("id"), str) else None
-    if scan_id:
-        scan_id = scan_id.strip()[:80]
-    else:
-        scan_id = _new_reality_scan_id()
-
-    out["last_reality_scan"] = {
-        "id": scan_id,
-        "mode": clamp_meta_str(scan.get("mode"), "simulated", 32),
-        "source": clamp_meta_str(scan.get("source"), "web_simulator", 48),
-        "pipeline": clamp_meta_str(scan.get("pipeline"), "reality_override_web", 64),
-        "captured_at": timezone.now().isoformat(),
-        "material_pack": material_pack,
-        "coordinate_space": clamp_meta_str(
-            scan.get("coordinate_space"), "screen_normalized", 32
-        ),
-        "surfaces": surfaces_clean,
-        "mesh_summary": mesh_summary,
-        "raw_ref": sanitize_raw_ref(scan.get("raw_ref")),
-    }
-    profile.private_realm_json = out
-    profile.save(update_fields=["private_realm_json"])
-
+    """浏览器模拟扫描已下线，不再写入 last_reality_scan。"""
     return JsonResponse(
-        {
-            "ok": True,
-            "material_pack": material_pack,
-            "last_reality_scan": out["last_reality_scan"],
-            "realm": merged_private_realm(profile),
-        }
+        {"ok": False, "error": "REALITY_OVERRIDE_DISABLED"},
+        status=410,
     )
 
 
@@ -799,12 +790,16 @@ def reality_scan_clear_api(request):
     return JsonResponse({"ok": True, "realm": merged_private_realm(profile)})
 
 
-@login_required
-def my_realm(request):
+def _my_realm_context(request):
     """私人位面总览（配置存 MySQL UserProfile）"""
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    clear_web_simulator_scan_from_profile(profile)
     realm_config = merged_private_realm(profile)
-    last_scan = realm_config.get("last_reality_scan") if isinstance(realm_config.get("last_reality_scan"), dict) else None
+    last_scan = (
+        realm_config.get("last_reality_scan")
+        if isinstance(realm_config.get("last_reality_scan"), dict)
+        else None
+    )
     scan_source_key = (last_scan or {}).get("source") or ""
     scan_source_labels = {
         "web_simulator": "WEB SIMULATOR（浏览器演示管线）",
@@ -818,28 +813,32 @@ def my_realm(request):
             scan_source_label = scan_source_key.replace("_", " ").upper()
         else:
             scan_source_label = "—"
-    return render(
-        request,
-        "my_realm.html",
-        {
-            "nav_active": "my_realm",
-            "profile": profile,
-            "realm_config": realm_config,
-            "scan_source_label": scan_source_label,
-            "room_templates": ROOM_TEMPLATE_CHOICES,
-            "material_packs": MATERIAL_PACK_CHOICES,
-            "lightings": LIGHTING_CHOICES,
-            "room_label": dict(ROOM_TEMPLATE_CHOICES).get(
-                realm_config.get("room_template"), realm_config.get("room_template")
-            ),
-            "material_label": dict(MATERIAL_PACK_CHOICES).get(
-                realm_config.get("material_pack"), realm_config.get("material_pack")
-            ),
-            "lighting_label": dict(LIGHTING_CHOICES).get(
-                realm_config.get("lighting"), realm_config.get("lighting")
-            ),
-        },
+    decorations_json = json.dumps(
+        realm_config.get("decorations", []), ensure_ascii=False, indent=2
     )
+    return {
+        "profile": profile,
+        "realm_config": realm_config,
+        "scan_source_label": scan_source_label,
+        "room_templates": ROOM_TEMPLATE_CHOICES,
+        "material_packs": MATERIAL_PACK_CHOICES,
+        "lightings": LIGHTING_CHOICES,
+        "decorations_json": decorations_json,
+        "room_label": dict(ROOM_TEMPLATE_CHOICES).get(
+            realm_config.get("room_template"), realm_config.get("room_template")
+        ),
+        "material_label": dict(MATERIAL_PACK_CHOICES).get(
+            realm_config.get("material_pack"), realm_config.get("material_pack")
+        ),
+        "lighting_label": dict(LIGHTING_CHOICES).get(
+            realm_config.get("lighting"), realm_config.get("lighting")
+        ),
+    }
+
+
+@login_required
+def my_realm(request):
+    return redirect(reverse("worlds") + "?tab=realm")
 
 
 @login_required
@@ -884,25 +883,9 @@ def realm_editor(request):
         )
         profile.realm_visibility = visibility
         profile.save(update_fields=["private_realm_json", "realm_visibility"])
-        return redirect("my_realm")
+        return redirect(reverse("worlds") + "?tab=editor&saved=1")
 
-    realm_config = merged_private_realm(profile)
-    decorations_json = json.dumps(
-        realm_config.get("decorations", []), ensure_ascii=False, indent=2
-    )
-    return render(
-        request,
-        "realm_editor.html",
-        {
-            "nav_active": "realm_editor",
-            "profile": profile,
-            "realm_config": realm_config,
-            "room_templates": ROOM_TEMPLATE_CHOICES,
-            "material_packs": MATERIAL_PACK_CHOICES,
-            "lightings": LIGHTING_CHOICES,
-            "decorations_json": decorations_json,
-        },
-    )
+    return redirect(reverse("worlds") + "?tab=editor")
 
 
 def privacy_policy(request):
@@ -922,7 +905,7 @@ def disclaimer(request):
 
 
 def devices(request):
-    return render(request, "devices.html", {"nav_active": "devices"})
+    return redirect(reverse("settings") + "#devices")
 
 
 @login_required
@@ -943,12 +926,27 @@ def material_library(request):
     )
 
 
+@login_required
 def worlds_plaza(request):
-    return render(request, "worlds.html", {"nav_active": "worlds"})
+    tab = _hub_tab(request, WORLDS_HUB_TABS, "plaza")
+    ctx = _my_realm_context(request)
+    ctx["nav_active"] = "worlds"
+    ctx["hub_tab"] = tab
+    ctx["editor_saved"] = request.GET.get("saved") == "1"
+    return render(request, "worlds.html", ctx)
+
+
+def guide_hub(request):
+    tab = _hub_tab(request, GUIDE_HUB_TABS, "tutorial")
+    return render(
+        request,
+        "guide_hub.html",
+        {"nav_active": "guide", "hub_tab": tab},
+    )
 
 
 def tutorial(request):
-    return render(request, "tutorial.html")
+    return redirect(reverse("guide") + "?tab=tutorial")
 
 
 def about(request):
