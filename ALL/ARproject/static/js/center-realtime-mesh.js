@@ -205,6 +205,43 @@
         window.scene.add(centerMeshAnchor);
     }
 
+    var imuPipelineEnsurePromise = null;
+
+    /**
+     * AR/VR 进入时自动拉起 Center 跟踪（IMU/相机位姿），不重置 mesh、不开启 mesh 轮询。
+     * 显式「开始扫描」仍走 startCenterRealtime()。
+     */
+    function ensureCenterPipelineForImu() {
+        if (imuPipelineEnsurePromise) return imuPipelineEnsurePromise;
+
+        imuPipelineEnsurePromise = fetch(apiUrl('centerStatus', '/api/center/status/'), {
+            credentials: 'same-origin',
+        })
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (data) {
+                if (data && data.running) {
+                    startCenterStatusPolling();
+                    return data;
+                }
+                return postCenterApi(apiUrl('centerStart', '/api/center/start/')).then(function (startData) {
+                    updateCenterRealtimeStatus(startData);
+                    startCenterStatusPolling();
+                    return startData;
+                });
+            })
+            .catch(function (err) {
+                updateCenterRealtimeStatus({ ok: false, error: formatCenterFetchError(err) });
+                throw err;
+            })
+            .finally(function () {
+                imuPipelineEnsurePromise = null;
+            });
+
+        return imuPipelineEnsurePromise;
+    }
+
     function startCenterRealtime() {
         resetCenterMeshSession();
         postCenterApi(apiUrl('centerStart', '/api/center/start/')).then(function (data) {
@@ -594,6 +631,8 @@
 
     window.CenterRealtimeMesh = {
         resetSession: resetCenterMeshSession,
+        ensurePipelineForImu: ensureCenterPipelineForImu,
+        startMeshPolling: startCenterMeshPolling,
         isPlacementLocked: function () {
             return placementLocked;
         },

@@ -1,5 +1,6 @@
 /**
- * AR/VR 沉浸位面：轮询 Center get_pose_latest()，用 IMU（优先）/相机位姿驱动 Three 相机。
+ * AR/VR 沉浸位面：进入 gesture/vr 即拉起 Center 跟踪并轮询 get_pose_latest()，
+ * 用 IMU（优先）/相机位姿驱动 Three 相机（无需先点「开始扫描」）。
  * 页面临时显示 IMU 连接与倾斜/移动调试信息（Center_pipeline.get_pose_latest）。
  */
 (function () {
@@ -153,7 +154,7 @@
         var st = data.status || 'ok';
         lines.push('【管线】 status=' + st);
         if (st === 'not_running') {
-            lines.push('  → 请先点 START / 掌菜单「开始扫描」');
+            lines.push('  → 正在自动启动 Center 跟踪（AR/VR 进入即启）');
         } else if (st === 'not_ready') {
             lines.push('  → 管线已启但跟踪/外参未就绪');
         } else {
@@ -363,7 +364,8 @@
         }
 
         if (data.status === 'not_running') {
-            setStatusHint('IMU: 请先开始扫描 (Center START)');
+            requestImuPipeline();
+            setStatusHint('IMU: 正在启动跟踪…');
             return;
         }
         if (data.status === 'not_ready' || !data.tracking_success) {
@@ -433,9 +435,19 @@
         pollTimer = null;
     }
 
+    function requestImuPipeline() {
+        if (
+            window.CenterRealtimeMesh &&
+            typeof window.CenterRealtimeMesh.ensurePipelineForImu === 'function'
+        ) {
+            window.CenterRealtimeMesh.ensurePipelineForImu().catch(function () {});
+        }
+    }
+
     function syncTrackingState() {
         ensureDebugPanel();
         if (shouldTrackImu()) {
+            requestImuPipeline();
             startPolling();
         } else {
             stopPolling();
