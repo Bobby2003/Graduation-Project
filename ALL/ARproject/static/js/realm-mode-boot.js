@@ -1,39 +1,20 @@
 /**
  * Realm 模式同步兜底（在 controls.js 之后加载）
- * 解决浏览器缓存旧 controls.js 时 body class 与 getMode() 不一致。
  */
 (function () {
     'use strict';
 
-    var BOOT_VERSION = '2026-05-16c';
+    var BOOT_VERSION = '2026-05-16h';
     window.__REALM_MODE_BOOT_VERSION = BOOT_VERSION;
 
-    function normalizeMode(mode) {
-        if (mode === 'desktop' || mode === 'gesture' || mode === 'vr') return mode;
-        return 'desktop';
-    }
-
-    function syncRealmBodyMode(mode) {
-        mode = normalizeMode(mode);
-        if (!document.body) return;
-        document.body.dataset.controlMode = mode;
-        document.body.classList.remove(
-            'realm-mode-desktop',
-            'realm-mode-gesture',
-            'realm-mode-vr'
+    function isImmersive3DPage() {
+        if (typeof window.ARRealmIsImmersive3DPage === 'function') {
+            return window.ARRealmIsImmersive3DPage();
+        }
+        return !!(
+            document.getElementById('realm-canvas-root') ||
+            (document.body && document.body.classList.contains('ar-immersive-3d'))
         );
-        document.body.classList.add('realm-mode-' + mode);
-        console.log('[REALM MODE BOOT]', {
-            version: BOOT_VERSION,
-            mode: mode,
-            bodyMode: document.body.dataset.controlMode,
-            bodyClass: document.body.className,
-        });
-    }
-
-    if (typeof window.syncRealmBodyMode !== 'function') {
-        window.syncRealmBodyMode = syncRealmBodyMode;
-        console.warn('[REALM MODE BOOT] installed syncRealmBodyMode (cached controls.js)');
     }
 
     function resolveMode() {
@@ -48,12 +29,28 @@
     }
 
     function bootSync() {
-        syncRealmBodyMode(resolveMode());
+        var mode = resolveMode();
+        if (typeof window.syncRealmBodyMode === 'function') {
+            window.syncRealmBodyMode(mode);
+        }
+        if (
+            window.RealmStereo &&
+            typeof window.RealmStereo.applyStereoLayout === 'function'
+        ) {
+            window.RealmStereo.applyStereoLayout(mode);
+        }
+        if (
+            window.PortalStereo &&
+            typeof window.PortalStereo.applyPortalStereo === 'function'
+        ) {
+            window.PortalStereo.applyPortalStereo(mode);
+        }
     }
 
     document.addEventListener(
         'click',
         function (e) {
+            if (!isImmersive3DPage()) return;
             var btn = e.target && e.target.closest ? e.target.closest('.mode-btn') : null;
             if (!btn || !btn.dataset || !btn.dataset.mode) return;
             console.warn('[REALM MODE BTN]', {
@@ -67,7 +64,7 @@
     window.addEventListener('realm-action', function (e) {
         var d = e.detail;
         if (d && d.action === 'control-mode-changed' && d.mode) {
-            syncRealmBodyMode(d.mode);
+            bootSync();
         }
     });
 

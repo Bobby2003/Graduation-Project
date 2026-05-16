@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516c">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516e">
     <style>
         :root {
             --neon: #00f2ff;
@@ -286,8 +286,8 @@
             pointer-events: none;
         }
         /* 沉浸模式兜底（与 control-modes.css 双保险） */
-        body.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
-        body.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
+        body.ar-immersive-3d.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
+        body.ar-immersive-3d.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
             display: none !important;
         }
         #realm-ar-gesture-status {
@@ -300,7 +300,7 @@
         }
     </style>
 </head>
-<body>
+<body class="ar-immersive-3d">
     <form style="display:none;" id="realm-csrf-form">{% csrf_token %}</form>
     <script type="application/json" id="realm-private-json">{{ private_realm_json }}</script>
     <script>
@@ -439,12 +439,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/controls.js' %}?v=20260516c"></script>
-    <script src="{% static 'js/realm-mode-boot.js' %}?v=20260516c"></script>
-    <script src="{% static 'js/gesture.js' %}?v=20260516c"></script>
-    <script src="{% static 'js/realm-immersive.js' %}?v=20260516c"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260516c"></script>
-    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516c"></script>
+    <script src="{% static 'js/controls.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/realm-immersive.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260516j"></script>
+    {% include "partials/ar_stereo_scripts.html" %}
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516j"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {
@@ -455,8 +455,8 @@
             function syncControlHelp(mode) {
                 if (!helpEl) return;
                 if (mode === 'desktop') helpEl.textContent = HELP_DESKTOP;
-                else if (mode === 'gesture') helpEl.textContent = 'AR 模式：WASD 已禁用 · 张开左手掌打开菜单';
-                else helpEl.textContent = 'VR 模式：WASD 已禁用 · 点顶部「菜单」或切换桌面';
+                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · 手机横屏 · 张开左手掌打开菜单';
+                else helpEl.textContent = 'VR 立体模式：左右分屏 · 手机横屏放入眼镜 · 点「菜单」或切换桌面';
             }
             window.syncControlHelp = syncControlHelp;
 
@@ -507,7 +507,7 @@
                 window.__REALM_MAIN_LOADED_VERSION === '2026-05-16-DEBUG';
             if (!ok) {
                 console.error(
-                    '[REALM] realm-main.js 未加载最新版。请 Ctrl+Shift+R 强刷，并确认 Network 里 realm-main.js?v=20260516c 含 2026-05-16-DEBUG'
+                    '[REALM] realm-main.js 未加载最新版。请 Ctrl+Shift+R 强刷，并确认 Network 里 realm-main.js?v=20260516d 含 2026-05-16-DEBUG'
                 );
             }
             if (typeof window.syncRealmBodyMode !== 'function') {

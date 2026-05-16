@@ -125,8 +125,9 @@
 
     <!-- ==================== 2. 引入手势核心脚本 ==================== -->
     <!-- (必须确保在 static/js/gesture.js 位置) -->
-    <script src="{% static 'js/gesture.js' %}"></script>
-    <script src="{% static 'js/controls.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260516j"></script>
+    {% include "partials/ar_stereo_scripts.html" %}
 
     <!-- 统一输入层：realm-action（键鼠 / 模式切换）；ar-gesture（捏合等手势语义） -->
     <script>

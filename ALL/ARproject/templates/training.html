@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TRAINING GROUND | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516e">
     <style>
         :root {
             --neon: #00f2ff;
@@ -179,29 +179,6 @@
         .bar span { display: block; height: 100%; }
         .hp span { width: 86%; background: var(--green); }
         .energy span { width: 64%; background: var(--purple); }
-        .hud-right {
-            position: absolute;
-            right: 24px;
-            top: 100px;
-            width: 280px;
-            padding: 16px;
-            background: rgba(5, 8, 12, 0.78);
-            border: 1px solid rgba(188, 0, 255, 0.22);
-            backdrop-filter: blur(8px);
-            z-index: 35;
-        }
-        .panel-title {
-            font-family: 'Syncopate', sans-serif;
-            color: var(--purple);
-            font-size: 11px;
-            letter-spacing: 3px;
-            margin-bottom: 12px;
-        }
-        .mission-item {
-            font-size: 13px;
-            color: #aaa;
-            margin-bottom: 8px;
-        }
         .realm-dock {
             position: absolute;
             left: 50%;
@@ -344,9 +321,21 @@
         .training-step-item.done {
             color: #00ff88;
         }
+        body.ar-immersive-3d.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
+        body.ar-immersive-3d.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
+            display: none !important;
+        }
+        #realm-ar-gesture-status {
+            font-family: Rajdhani, sans-serif;
+            font-size: 11px;
+            color: rgba(0, 242, 255, 0.85);
+            max-width: 200px;
+            text-align: center;
+            line-height: 1.35;
+        }
     </style>
 </head>
-<body>
+<body class="ar-immersive-3d">
     <form style="display:none;" id="realm-csrf-form">{% csrf_token %}</form>
     <script type="application/json" id="realm-private-json">{{ private_realm_json }}</script>
     <script>
@@ -372,15 +361,25 @@
     </script>
 
     <div class="realm-viewport">
-        <div id="realm-canvas-root" aria-label="Desktop Realm 3D viewport"></div>
+        <div id="realm-canvas-root" aria-label="Training Ground 3D viewport"></div>
 
-        <div class="hud-top">
+        <div class="realm-immersive-bar realm-immersive-keep" role="navigation" aria-label="沉浸模式切换">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop" title="桌面 · WASD 移动">⌨ 桌面</button>
+                <button type="button" class="mode-btn" data-mode="gesture" title="AR 手势">🖐 AR</button>
+                <button type="button" class="mode-btn" data-mode="vr" title="VR 演示">🥽 VR</button>
+            </div>
+            <button type="button" id="realm-vr-menu-btn" title="打开管理菜单">☰ 菜单</button>
+            <span id="realm-ar-gesture-status" aria-live="polite"></span>
+        </div>
+
+        <div class="hud-top realm-ui-chrome">
             <div class="realm-title">TRAINING GROUND // 接入训练</div>
             <div class="hud-top-right">
                 <div class="control-mode-switcher">
-                    <button type="button" class="mode-btn" data-mode="desktop" title="DESKTOP REALM · 桌面位面">⌨ 桌面</button>
-                    <button type="button" class="mode-btn" data-mode="gesture" title="REALITY OVERRIDE · 现实覆写">🖐 AR</button>
-                    <button type="button" class="mode-btn" data-mode="vr" title="VR LINK · 神经接入">🥽 VR</button>
+                    <button type="button" class="mode-btn" data-mode="desktop" title="DESKTOP · 桌面训练">⌨ 桌面</button>
+                    <button type="button" class="mode-btn" data-mode="gesture" title="AR 手势训练">🖐 AR</button>
+                    <button type="button" class="mode-btn" data-mode="vr" title="VR 演示">🥽 VR</button>
                 </div>
                 <div class="mode-indicator" id="mode-indicator">CONTROL: TRAINING PROTOCOL</div>
                 <a href="{% url 'realm' %}" class="link-exit" style="margin-right:8px;">完整位面</a>
@@ -388,18 +387,18 @@
             </div>
         </div>
 
-        <div class="realm-3d-hud">
-            <div>PRIVATE REALM // <span>{{ user.username|upper }}</span></div>
+        <div class="realm-3d-hud realm-ui-chrome">
+            <div>TRAINING // <span>{{ user.username|upper }}</span></div>
             <div id="realm-hud-room">ROOM: —</div>
             <div id="realm-hud-material">MATERIAL: —</div>
             <div id="realm-hud-lighting">LIGHTING: —</div>
         </div>
 
-        <div id="realm-debug-hud" aria-hidden="true"></div>
+        <div id="realm-debug-hud" class="realm-ui-chrome" aria-hidden="true"></div>
 
         <div class="crosshair"></div>
 
-        <div id="training-panel" class="training-panel">
+        <div id="training-panel" class="training-panel realm-ui-chrome">
             <div class="training-label">TRAINING PROTOCOL</div>
             <div id="training-step-title" class="training-step-title">初始化中…</div>
             <div id="training-step-desc" class="training-step-desc">等待接入训练场。</div>
@@ -409,7 +408,7 @@
             <div id="training-step-list" class="training-step-list"></div>
         </div>
 
-        <div class="hud-left">
+        <div class="hud-left realm-ui-chrome">
             <div class="player-name">{{ user.username }}</div>
             <div class="bar hp"><span></span></div>
             <div class="bar energy"><span></span></div>
@@ -419,11 +418,26 @@
             <div id="realm-hud-ghost-legend" style="display:none;font-size:10px;color:rgba(0,242,255,0.65);margin-top:6px;letter-spacing:0.5px;line-height:1.45;max-width:260px;"></div>
         </div>
 
-        <div class="control-help">
-            点击画布锁定鼠标 · WASD 移动 · 看向传送门并移动鼠标 · E 激活节点 · 1–8 切换材质 · 保存位面 · Esc 解锁
+        <div class="control-help realm-ui-chrome">
+            桌面模式：WASD 移动（无需锁定）· 点击画布锁定视角 · E 激活训练节点 · 1–8 切换材质 · Esc 解锁
         </div>
 
-        <div class="realm-dock">
+        <div id="realm-immersive-hint" class="realm-immersive-keep" aria-live="polite"></div>
+
+        <div id="realm-ar-menu" aria-hidden="true" aria-label="AR 训练菜单">
+            <div class="realm-ar-menu-panel" role="dialog">
+                <h3>训练场管理</h3>
+                <p class="realm-ar-menu-sub">张开左手掌打开 · 握拳或 Esc 关闭 · 右手捏合可点按钮 · M 键备用</p>
+                <div class="realm-ar-menu-actions">
+                    <button type="button" data-ar-action="materials">材质替换</button>
+                    <button type="button" data-ar-action="desktop">返回桌面模式</button>
+                    <button type="button" data-ar-action="close">关闭菜单</button>
+                </div>
+                <div id="realm-ar-material-grid" aria-label="材质协议"></div>
+            </div>
+        </div>
+
+        <div class="realm-dock realm-ui-chrome">
             <div class="dock-row dock-row-main">
                 <button type="button" class="material-btn" data-material="cyber_neon">赛博</button>
                 <button type="button" class="material-btn" data-material="wasteland_rust">废土</button>
@@ -444,39 +458,61 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/controls.js' %}"></script>
-    <script src="{% static 'js/gesture.js' %}"></script>
-    <script src="{% static 'js/realm-immersive.js' %}"></script>
-    <script src="{% static 'js/realm/realm-main.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/realm-immersive.js' %}?v=20260516j"></script>
+    {% include "partials/ar_stereo_scripts.html" %}
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516j"></script>
     <script>
+        window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {
             var ind = document.getElementById('mode-indicator');
+            var helpEl = document.querySelector('.control-help');
+            var HELP_DESKTOP = '桌面模式：WASD 移动（无需锁定）· 点击画布锁定视角 · E 激活训练节点 · 1–8 切换材质 · Esc 解锁';
+
+            function syncControlHelp(mode) {
+                if (!helpEl) return;
+                if (mode === 'desktop') helpEl.textContent = HELP_DESKTOP;
+                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · 手机横屏 · 张开左手掌打开菜单';
+                else helpEl.textContent = 'VR 立体模式：左右分屏 · 手机横屏放入眼镜 · 点「菜单」或切换桌面';
+            }
+            window.syncControlHelp = syncControlHelp;
+
             window.addEventListener('realm-action', function (e) {
                 var d = e.detail;
                 if (!d) return;
                 var MODE_UI = {
-                    desktop: 'DESKTOP REALM',
-                    gesture: 'REALITY OVERRIDE',
+                    desktop: 'DESKTOP TRAINING',
+                    gesture: 'AR GESTURE',
                     vr: 'VR LINK'
                 };
                 if (d.action === 'control-mode-changed' && ind) {
                     var label = MODE_UI[d.mode] || String(d.mode).toUpperCase();
                     ind.textContent = 'CONTROL: ' + label;
+                    syncControlHelp(d.mode);
                 }
                 if (d.action === 'material-protocol-changed') {
-                    console.log('[REALM] material protocol:', d.material);
+                    console.log('[TRAINING] material protocol:', d.material);
                 }
             });
             function applyQueryMode() {
-                var q = new URLSearchParams(location.search).get('mode');
+                var q = new URLSearchParams(window.location.search).get('mode');
                 if (q && window.ARRealmControls && ['desktop', 'gesture', 'vr'].indexOf(q) >= 0) {
                     window.ARRealmControls.setMode(q);
                 }
             }
+            function bootModeUi() {
+                applyQueryMode();
+                var m = (window.ARRealmControls && window.ARRealmControls.getMode()) || 'desktop';
+                syncControlHelp(m);
+                if (typeof window.syncRealmBodyMode === 'function') {
+                    window.syncRealmBodyMode(m);
+                }
+            }
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', applyQueryMode);
+                document.addEventListener('DOMContentLoaded', bootModeUi);
             } else {
-                requestAnimationFrame(applyQueryMode);
+                requestAnimationFrame(bootModeUi);
             }
         })();
     </script>

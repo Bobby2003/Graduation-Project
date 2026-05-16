@@ -861,9 +861,13 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
 
     function onResize() {
         if (!camera || !renderer) return;
-        camera.aspect = window.innerWidth / window.innerHeight;
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        if (h < 1) return;
+        camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(w, h);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     }
 
     function getCsrfToken() {
@@ -1290,7 +1294,28 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         if (realmDebugEnabled) {
             updateDebugHud(now);
         }
-        renderer.render(scene, camera);
+        var didStereo = false;
+        if (window.RealmStereo && typeof window.RealmStereo.renderStereo === 'function') {
+            try {
+                didStereo = window.RealmStereo.renderStereo(renderer, scene, camera);
+            } catch (err) {
+                console.error('[REALM] stereo render failed, fallback to mono', err);
+                didStereo = false;
+            }
+        }
+        if (!didStereo) {
+            renderer.autoClear = true;
+            renderer.setScissorTest(false);
+            var buf =
+                window.RealmStereo && typeof window.RealmStereo.getBufferSize === 'function'
+                    ? window.RealmStereo.getBufferSize(renderer)
+                    : {
+                          w: renderer.domElement ? renderer.domElement.width : 0,
+                          h: renderer.domElement ? renderer.domElement.height : 0,
+                      };
+            renderer.setViewport(0, 0, buf.w, buf.h);
+            renderer.render(scene, camera);
+        }
     }
 
     function bindKeys() {
@@ -1301,6 +1326,10 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             if (d.mode !== 'desktop') {
                 releaseDesktopPointer();
             }
+            if (window.RealmStereo && typeof window.RealmStereo.applyStereoLayout === 'function') {
+                window.RealmStereo.applyStereoLayout(d.mode);
+            }
+            onResize();
         });
 
         window.addEventListener(
@@ -1481,6 +1510,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         }
 
         window.addEventListener('resize', onResize);
+        onResize();
         animate();
         if (runtimeMode === 'realm') {
             reportProgressEvent('realm_entered', { mode: 'realm' });

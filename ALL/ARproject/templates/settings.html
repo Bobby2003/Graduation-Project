@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SETTINGS | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516h">
     <style>
         :root {
             --neon: #00f2ff;
@@ -358,11 +358,62 @@
             letter-spacing: 2px;
         }
 
+        .settings-device-status {
+            min-width: 200px;
+            max-width: min(420px, 92vw);
+            text-align: right;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .settings-device-ok {
+            color: var(--green);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .settings-device-ok-inline {
+            color: var(--green);
+        }
+        .settings-camera-line {
+            margin-bottom: 4px;
+        }
+        .settings-camera-name {
+            display: block;
+            color: #bff;
+            font-weight: 600;
+        }
+        .settings-camera-meta {
+            display: block;
+            color: #666;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .settings-device-muted {
+            color: #888;
+            font-size: 12px;
+        }
+        .settings-device-sub {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            color: #777;
+            font-size: 11px;
+            line-height: 1.45;
+            text-align: right;
+        }
+
         @media (max-width: 768px) {
             .setting-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
+            }
+            .settings-device-status {
+                text-align: left;
+            }
+            .settings-device-sub {
+                text-align: left;
             }
             .slider-control {
                 width: 100%;
@@ -375,7 +426,7 @@
     </style>
     <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
 </head>
-<body>
+<body class="ar-portal-page">
     <div class="top-nav">
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
         <div class="page-title">SYSTEM SETTINGS</div>
@@ -406,7 +457,12 @@
                     <div class="setting-desc">奥比中光等深度设备 · 用于点云与现实材质覆写管线</div>
                 </div>
                 <div class="select-control">
-                    <span style="color:#666;font-size:12px;">见扫描引擎页</span>
+                    <div
+                        id="settings-depth-camera-status"
+                        class="settings-device-status"
+                        aria-live="polite"
+                        {% if user.is_authenticated %}data-center-status-url="{% url 'center_status_api' %}"{% endif %}
+                    >正在检测摄像头…</div>
                 </div>
             </div>
             <div class="setting-item">
@@ -704,8 +760,10 @@
         </div>
     </div>
 
-    <script src="{% static 'js/gesture.js' %}"></script>
-    <script src="{% static 'js/controls.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}?v=20260516j"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260516j"></script>
+    {% include "partials/ar_stereo_scripts.html" %}
+    <script src="{% static 'js/settings-device-status.js' %}?v=20260516j"></script>
     <script>
         // 滑块功能 - 同步数值显示
         document.querySelectorAll('input[type="range"]').forEach(function(slider) {

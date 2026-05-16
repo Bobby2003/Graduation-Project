@@ -26,57 +26,128 @@
     color: #fff;
 }
 
-/* ── AR / VR 沉浸：仅保留画面与必要顶栏 ── */
-body[data-control-mode="gesture"] .realm-ui-chrome:not(.realm-immersive-keep),
-body[data-control-mode="vr"] .realm-ui-chrome:not(.realm-immersive-keep),
-body.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
-body.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
+/* ── AR / VR 沉浸：仅 3D 位面页（body.ar-immersive-3d）── */
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-ui-chrome:not(.realm-immersive-keep),
+body.ar-immersive-3d[data-control-mode="vr"] .realm-ui-chrome:not(.realm-immersive-keep),
+body.ar-immersive-3d.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
+body.ar-immersive-3d.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
 }
 
-body[data-control-mode="gesture"] .crosshair,
-body[data-control-mode="vr"] .crosshair,
-body.realm-mode-gesture .crosshair,
-body.realm-mode-vr .crosshair {
+body.ar-immersive-3d[data-control-mode="gesture"] .crosshair,
+body.ar-immersive-3d[data-control-mode="vr"] .crosshair,
+body.ar-immersive-3d.realm-mode-gesture .crosshair,
+body.ar-immersive-3d.realm-mode-vr .crosshair {
     display: none !important;
 }
 
-body[data-control-mode="gesture"] #realm-canvas-root,
-body[data-control-mode="vr"] #realm-canvas-root {
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-canvas-root,
+body.ar-immersive-3d[data-control-mode="vr"] #realm-canvas-root,
+body.ar-immersive-3d.realm-stereo-active #realm-canvas-root {
     z-index: 2;
 }
 
-body[data-control-mode="gesture"] .realm-immersive-bar,
-body[data-control-mode="vr"] .realm-immersive-bar,
-body.realm-mode-gesture .realm-immersive-bar,
-body.realm-mode-vr .realm-immersive-bar {
+/* VR / AR 立体分屏（SBS）· 左右眼 */
+body.ar-immersive-3d.realm-stereo-active #realm-canvas-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+body.ar-immersive-3d.realm-stereo-active #realm-canvas-root canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+body.ar-immersive-3d.realm-stereo-active .realm-viewport::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(0, 242, 255, 0.35) 15%,
+        rgba(0, 242, 255, 0.35) 85%,
+        transparent
+    );
+    box-shadow: 0 0 12px rgba(0, 242, 255, 0.2);
+}
+
+/* 手机 VR：横屏全宽 SBS */
+body.ar-immersive-3d.realm-stereo-mobile .realm-viewport {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+}
+
+@media (max-width: 896px) and (orientation: portrait) {
+    body.ar-immersive-3d.realm-stereo-mobile .realm-viewport::before {
+        content: '请横置手机并放入 VR 眼镜 · 画面将分为左右眼';
+        position: absolute;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #bff;
+        background: rgba(2, 6, 12, 0.92);
+        pointer-events: none;
+    }
+}
+
+@media (max-width: 896px) and (orientation: landscape) {
+    body.ar-immersive-3d.realm-stereo-mobile .realm-viewport::before {
+        display: none;
+    }
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-immersive-bar,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-immersive-bar,
+body.ar-immersive-3d.realm-mode-gesture .realm-immersive-bar,
+body.ar-immersive-3d.realm-mode-vr .realm-immersive-bar {
     display: flex !important;
 }
 
-body[data-control-mode="desktop"] .realm-immersive-bar,
-body[data-control-mode="desktop"] #realm-immersive-hint,
-body[data-control-mode="desktop"] #realm-ar-menu,
-body.realm-mode-desktop .realm-immersive-bar,
-body.realm-mode-desktop #realm-immersive-hint,
-body.realm-mode-desktop #realm-ar-menu {
+body.ar-immersive-3d[data-control-mode="desktop"] .realm-immersive-bar,
+body.ar-immersive-3d[data-control-mode="desktop"] #realm-immersive-hint,
+body.ar-immersive-3d[data-control-mode="desktop"] #realm-ar-menu,
+body.ar-immersive-3d.realm-mode-desktop .realm-immersive-bar,
+body.ar-immersive-3d.realm-mode-desktop #realm-immersive-hint,
+body.ar-immersive-3d.realm-mode-desktop #realm-ar-menu {
     display: none !important;
 }
 
-body[data-control-mode="gesture"] #realm-immersive-hint,
-body.realm-mode-gesture #realm-immersive-hint {
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-immersive-hint,
+body.ar-immersive-3d.realm-mode-gesture #realm-immersive-hint {
     display: block !important;
 }
 
-body[data-control-mode="vr"] #realm-immersive-hint,
-body.realm-mode-vr #realm-immersive-hint {
+body.ar-immersive-3d[data-control-mode="vr"] #realm-immersive-hint,
+body.ar-immersive-3d.realm-mode-vr #realm-immersive-hint {
     display: block !important;
 }
 
-body[data-control-mode="vr"] #realm-vr-menu-btn,
-body.realm-mode-vr #realm-vr-menu-btn {
+body.ar-immersive-3d[data-control-mode="vr"] #realm-vr-menu-btn,
+body.ar-immersive-3d.realm-mode-vr #realm-vr-menu-btn {
     display: inline-flex !important;
 }
 
@@ -146,10 +217,10 @@ body.realm-mode-vr #realm-vr-menu-btn {
     display: flex;
 }
 
-body.realm-mode-gesture #realm-ar-menu.is-open,
-body.realm-mode-vr #realm-ar-menu.is-open,
-body[data-control-mode="gesture"] #realm-ar-menu.is-open,
-body[data-control-mode="vr"] #realm-ar-menu.is-open {
+body.ar-immersive-3d.realm-mode-gesture #realm-ar-menu.is-open,
+body.ar-immersive-3d.realm-mode-vr #realm-ar-menu.is-open,
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-ar-menu.is-open,
+body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-menu.is-open {
     display: flex !important;
 }
 
@@ -226,4 +297,95 @@ body[data-control-mode="vr"] #realm-ar-menu.is-open {
     min-width: 120px;
     padding: 10px;
     font-size: 10px;
+}
+
+/* ── 门户页 AR/VR 立体分屏（设置 / 终端 / 任务等）── */
+body.realm-stereo-active:not(.ar-immersive-3d) {
+    overflow: hidden;
+    background: #000;
+}
+
+body.realm-stereo-active:not(.ar-immersive-3d) .top-nav,
+body.realm-stereo-active:not(.ar-immersive-3d) header.top-nav {
+    z-index: 300 !important;
+    pointer-events: auto !important;
+}
+
+.ar-portal-stereo-host {
+    position: fixed;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background: #050608;
+    pointer-events: none;
+}
+
+.ar-portal-stereo-pane {
+    flex: 0 0 50%;
+    width: 50%;
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.ar-portal-stereo-pane--left {
+    border-right: 1px solid rgba(0, 242, 255, 0.22);
+}
+
+.ar-portal-stereo-inner {
+    min-height: 100%;
+    padding-bottom: 24px;
+    transform-origin: center top;
+}
+
+.ar-portal-stereo-parallax--left .ar-portal-stereo-inner {
+    transform: perspective(900px) rotateY(1.4deg);
+}
+
+.ar-portal-stereo-parallax--right .ar-portal-stereo-inner {
+    transform: perspective(900px) rotateY(-1.4deg);
+}
+
+.ar-portal-stereo-source-active {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+    z-index: 200 !important;
+    overflow: auto !important;
+    pointer-events: auto !important;
+    background: transparent !important;
+}
+
+@media (max-width: 896px) and (orientation: portrait) {
+    body.realm-stereo-active:not(.ar-immersive-3d) .ar-portal-stereo-host::after {
+        content: '请横置手机并放入 VR 眼镜 · 页面已分为左右眼';
+        position: fixed;
+        inset: 0;
+        z-index: 400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #bff;
+        background: rgba(2, 6, 12, 0.88);
+        pointer-events: none;
+    }
+}
+
+@media (max-width: 896px) and (orientation: landscape) {
+    body.realm-stereo-active:not(.ar-immersive-3d) .ar-portal-stereo-host::after {
+        display: none;
+    }
 }

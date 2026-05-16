@@ -44,9 +44,10 @@
         var m = getMode();
         if (m === 'gesture') {
             hint.textContent =
-                '张开手掌 → 管理菜单 · 握拳关闭 · 食指指向移动光标 · 捏合点击 · 按 M 打开菜单';
+                '立体分屏（左/右眼）· 手机请横置放入 VR 眼镜 · 张开手掌打开菜单 · M 键备用';
         } else if (m === 'vr') {
-            hint.textContent = 'VR 演示模式：移动已禁用 · 可点顶部「菜单」或切换回桌面 / AR';
+            hint.textContent =
+                '立体分屏（左/右眼）· 电脑/手机均可 SBS 预览 · 横屏放入 VR 眼镜 · 点「菜单」或切回桌面';
         }
     }
 

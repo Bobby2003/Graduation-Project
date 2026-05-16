@@ -138,12 +138,72 @@ class ARGestureController {
         document.body.appendChild(this.cursor);
     }
 
+    isHomePage() {
+        if (window.ARRealmControls && typeof window.ARRealmControls.isHomePage === 'function') {
+            return window.ARRealmControls.isHomePage();
+        }
+        if (document.body && document.body.dataset.arHomePage === '1') {
+            return true;
+        }
+        const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+        return p === '/' || p === '';
+    }
+
+    isImmersive3DPage() {
+        if (typeof window.ARRealmIsImmersive3DPage === 'function') {
+            return window.ARRealmIsImmersive3DPage();
+        }
+        return !!(
+            document.getElementById('realm-canvas-root') ||
+            (document.body && document.body.classList.contains('ar-immersive-3d'))
+        );
+    }
+
+    /** 与 realm 一致：首页不启手势；位面 / 带模式切换的门户页 / autostart 页可启 */
+    isGestureCapablePage() {
+        if (this.isHomePage()) return false;
+        if (this.isImmersive3DPage()) return true;
+        if (document.body?.dataset?.arGestureAutostart === '1') return true;
+        return !!document.querySelector('.mode-btn');
+    }
+
+    getStoredControlMode() {
+        if (window.ARRealmControls && typeof window.ARRealmControls.getMode === 'function') {
+            return window.ARRealmControls.getMode();
+        }
+        return (typeof localStorage !== 'undefined' && localStorage.getItem('ar_realm_control_mode')) || 'desktop';
+    }
+
+    syncGestureStatusLabel(mode) {
+        if (!this.statusText) return;
+        const m = mode || this.getStoredControlMode();
+        if (m === 'gesture') {
+            this.statusText.innerText = this.isImmersive3DPage() ? 'MODE: GESTURE' : 'MODE: GESTURE';
+        } else {
+            this.statusText.innerText = 'MODE: ' + String(m).toUpperCase();
+        }
+        this.statusText.style.color = '#8892b0';
+    }
+
+    maybeStartGestureForMode(mode) {
+        if (mode !== 'gesture' || !this.isGestureCapablePage()) return;
+        this.startAR().catch((e) => {
+            console.error('[AR System] 手势模式启动失败:', e);
+            this.showRealmGestureToast('摄像头启动失败，请允许权限');
+        });
+    }
+
     wireToggle() {
         window.addEventListener('realm-action', (ev) => {
             const d = ev.detail;
             if (!d || d.action !== 'control-mode-changed') return;
+            if (this.isHomePage()) {
+                this.stopAR();
+                return;
+            }
+            this.syncGestureStatusLabel(d.mode);
             if (d.mode === 'gesture') {
-                this.startAR().catch((e) => console.error('[AR System] 手势模式启动失败:', e));
+                this.maybeStartGestureForMode('gesture');
             } else {
                 this.stopAR();
                 this._palmMenuOpen = false;
@@ -152,33 +212,36 @@ class ARGestureController {
         });
 
         const hasModeSwitcher = document.querySelector('.mode-btn');
-        const autostart = document.body?.dataset?.arGestureAutostart === '1';
-        const stored = (typeof localStorage !== 'undefined' && localStorage.getItem('ar_realm_control_mode')) || 'desktop';
+        const stored = this.getStoredControlMode();
 
-        if (hasModeSwitcher) {
+        if (this.isHomePage()) {
+            this.stopAR();
             if (this.statusText) {
-                const m = stored;
-                this.statusText.innerText = m === 'gesture' ? 'MODE: GESTURE' : 'MODE: ' + String(m).toUpperCase();
+                this.statusText.innerText = 'MODE: DESKTOP';
                 this.statusText.style.color = '#8892b0';
             }
+            return;
+        }
+
+        if (hasModeSwitcher || this.isGestureCapablePage()) {
+            this.syncGestureStatusLabel(stored);
             queueMicrotask(() => {
-                const m =
-                    (window.ARRealmControls && window.ARRealmControls.getMode()) ||
-                    localStorage.getItem('ar_realm_control_mode') ||
-                    'desktop';
+                const m = this.getStoredControlMode();
                 if (m === 'gesture') {
-                    this.startAR().catch((e) => {
-                        console.error('[AR System] 手势模式启动失败:', e);
-                        this.showRealmGestureToast('摄像头启动失败，请允许权限');
-                    });
+                    this.maybeStartGestureForMode('gesture');
                 }
             });
             return;
         }
 
+        const autostart = document.body?.dataset?.arGestureAutostart === '1';
         if (autostart || stored === 'gesture') {
             queueMicrotask(() => {
-                this.startAR().catch((e) => console.error('[AR System] 自动启动失败:', e));
+                if (autostart) {
+                    this.startAR().catch((e) => console.error('[AR System] 自动启动失败:', e));
+                } else {
+                    this.maybeStartGestureForMode('gesture');
+                }
             });
         } else if (this.statusText) {
             this.statusText.innerText = 'CONTROL: DESKTOP';
@@ -196,9 +259,25 @@ class ARGestureController {
 
     async startAR() {
         if (this.arActive) return;
-        console.log('[AR System] startAR begin', { wasm: WASM_BASE, esm: TASKS_ESM });
+        if (this.isHomePage() || !this.isGestureCapablePage()) {
+            console.log('[AR System] startAR skipped (page does not support gesture AR)');
+            return;
+        }
 
-        if (window.ARRealmControls && window.ARRealmControls.getMode() !== 'gesture') {
+        const mode = this.getStoredControlMode();
+        const autostart = document.body?.dataset?.arGestureAutostart === '1';
+        if (mode !== 'gesture' && !autostart) {
+            console.log('[AR System] startAR skipped (control mode is not gesture)');
+            return;
+        }
+
+        console.log('[AR System] startAR begin', {
+            wasm: WASM_BASE,
+            esm: TASKS_ESM,
+            immersive: this.isImmersive3DPage(),
+        });
+
+        if (this.isImmersive3DPage() && window.ARRealmControls && window.ARRealmControls.getMode() !== 'gesture') {
             window.ARRealmControls.setMode('gesture');
         }
 
@@ -220,7 +299,11 @@ class ARGestureController {
             this.connectWebSocket();
             this.loopDetect();
             console.log('[AR System] startAR success');
-            this.showRealmGestureToast('AR 就绪 · 任意手张开掌打开菜单 · M 键备用');
+            this.showRealmGestureToast(
+                this.isImmersive3DPage()
+                    ? 'AR 就绪 · 任意手张开掌打开菜单 · M 键备用'
+                    : 'AR 就绪 · 指向悬停 · 捏合点击（立体分屏已开启）'
+            );
         } catch (e) {
             console.error('[AR System] startAR fail', e);
             this.stopAR();
@@ -538,11 +621,8 @@ class ARGestureController {
     }
 
     handlePalmMenuGestures(data) {
-        const mode =
-            (window.ARRealmControls && window.ARRealmControls.getMode()) ||
-            (typeof localStorage !== 'undefined' && localStorage.getItem('ar_realm_control_mode')) ||
-            'desktop';
-        if (mode !== 'gesture') {
+        const mode = this.getStoredControlMode();
+        if (mode !== 'gesture' || !this.isImmersive3DPage()) {
             this._openPalmFrames = 0;
             return;
         }
