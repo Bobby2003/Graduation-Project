@@ -285,16 +285,48 @@
         return null;
     }
 
+    function quatToRotvec(q) {
+        q.normalize();
+        var w = Math.max(-1, Math.min(1, q.w));
+        var angle = 2 * Math.acos(w);
+        if (angle < 1e-8) {
+            return new THREE.Vector3(0, 0, 0);
+        }
+        var s = Math.sqrt(Math.max(0, 1 - w * w));
+        if (s < 1e-8) {
+            return new THREE.Vector3(q.x, q.y, q.z).normalize().multiplyScalar(angle);
+        }
+        return new THREE.Vector3(q.x / s, q.y / s, q.z / s).multiplyScalar(angle);
+    }
+
     /**
-     * 当前 R_cam_imu 下 IMU 偏航会落在 YXZ 的 pitch(x) 上；与桌面视角一致需交换 yaw/pitch。
-     * （见 Pointcloud2mesh/tools/interactive_imu_camera_calibration.py ROTVEC_EXPECTED_ACTION_AXES）
+     * 在「进入 AR 时」的相机朝向下分解增量旋转，再按 IMU→相机外参映射到 Three YXZ：
+     *   IMU X(roll)  → euler.z
+     *   IMU Y(pitch) → euler.x
+     *   IMU Z(yaw)   → euler.y
+     * （与 interactive_imu_camera_calibration.py ROTVEC_EXPECTED_ACTION_AXES 一致）
      */
-    function remapImuDeltaQuaternionForThree(quat) {
-        var e = new THREE.Euler(0, 0, 0, 'YXZ');
-        e.setFromQuaternion(quat);
-        var tmp = e.x;
-        e.x = e.y;
-        e.y = tmp;
+    function remapImuDeltaForThree(deltaMat4, refMat4) {
+        var refRot = new THREE.Matrix4().copy(refMat4);
+        refRot.setPosition(0, 0, 0);
+        var refInv = refRot.clone().invert();
+
+        var deltaRot = new THREE.Matrix4().copy(deltaMat4);
+        deltaRot.setPosition(0, 0, 0);
+
+        var localDelta = new THREE.Matrix4().multiplyMatrices(refInv, deltaRot);
+        localDelta.multiply(refRot);
+
+        var localQ = new THREE.Quaternion().setFromRotationMatrix(
+            new THREE.Matrix3().setFromMatrix4(localDelta)
+        );
+        var rv = quatToRotvec(localQ);
+
+        var pitch = rv.x;
+        var yaw = rv.y;
+        var roll = rv.z;
+
+        var e = new THREE.Euler(pitch, yaw, roll, 'YXZ');
         var out = new THREE.Quaternion();
         out.setFromEuler(e);
         return out;
@@ -348,7 +380,7 @@
         var scl = new THREE.Vector3();
         delta.decompose(pos, quat, scl);
         pos.multiplyScalar(POSITION_GAIN);
-        quat = remapImuDeltaQuaternionForThree(quat);
+        quat = remapImuDeltaForThree(delta, refCameraMatrix);
 
         var deltaPure = new THREE.Matrix4().compose(pos, quat, new THREE.Vector3(1, 1, 1));
         var target = new THREE.Matrix4().copy(refCameraMatrix).multiply(deltaPure);
