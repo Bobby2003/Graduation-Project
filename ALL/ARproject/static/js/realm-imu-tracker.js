@@ -253,25 +253,26 @@
         debugBody.textContent = buildDebugText(data || lastPayload, errMsg || lastNetworkError);
     }
 
+    /** NumPy/API 为行主序 4×4；Three.Matrix4.set 参数为列主序，需转置写入 */
     function mat4FromRows(rows) {
         if (!rows || rows.length < 4 || typeof THREE === 'undefined') return null;
         var m = new THREE.Matrix4();
         m.set(
             rows[0][0],
-            rows[0][1],
-            rows[0][2],
-            rows[0][3],
             rows[1][0],
-            rows[1][1],
-            rows[1][2],
-            rows[1][3],
             rows[2][0],
-            rows[2][1],
-            rows[2][2],
-            rows[2][3],
             rows[3][0],
+            rows[0][1],
+            rows[1][1],
+            rows[2][1],
             rows[3][1],
+            rows[0][2],
+            rows[1][2],
+            rows[2][2],
             rows[3][2],
+            rows[0][3],
+            rows[1][3],
+            rows[2][3],
             rows[3][3]
         );
         return m;
@@ -285,27 +286,6 @@
         return null;
     }
 
-    function quatToRotvec(q) {
-        q.normalize();
-        var w = Math.max(-1, Math.min(1, q.w));
-        var angle = 2 * Math.acos(w);
-        if (angle < 1e-8) {
-            return new THREE.Vector3(0, 0, 0);
-        }
-        var s = Math.sqrt(Math.max(0, 1 - w * w));
-        if (s < 1e-8) {
-            return new THREE.Vector3(q.x, q.y, q.z).normalize().multiplyScalar(angle);
-        }
-        return new THREE.Vector3(q.x / s, q.y / s, q.z / s).multiplyScalar(angle);
-    }
-
-    /**
-     * 在「进入 AR 时」的相机朝向下分解增量旋转，再按 IMU→相机外参映射到 Three YXZ：
-     *   IMU X(roll)  → euler.z
-     *   IMU Y(pitch) → euler.x
-     *   IMU Z(yaw)   → euler.y
-     * （与 interactive_imu_camera_calibration.py ROTVEC_EXPECTED_ACTION_AXES 一致）
-     */
     function isValidQuaternion(q) {
         if (!q) return false;
         return (
@@ -316,30 +296,39 @@
         );
     }
 
-    function remapImuDeltaForThree(deltaMat4, refMat4) {
-        var refRot = new THREE.Matrix4().copy(refMat4);
-        refRot.setPosition(0, 0, 0);
-        var refInv = refRot.clone().invert();
-
-        var deltaRot = new THREE.Matrix4().copy(deltaMat4);
-        deltaRot.setPosition(0, 0, 0);
-
-        var localDelta = new THREE.Matrix4().multiplyMatrices(refInv, deltaRot);
-        localDelta.multiply(refRot);
-
-        var localQ = new THREE.Quaternion().setFromRotationMatrix(
-            new THREE.Matrix3().setFromMatrix4(localDelta)
-        );
-        var rv = quatToRotvec(localQ);
-
-        var pitch = rv.x;
-        var yaw = rv.y;
-        var roll = rv.z;
-
-        var e = new THREE.Euler(pitch, yaw, roll, 'YXZ');
+    /**
+     * 相对旋转映射到 Three YXZ（pitch=x, yaw=y, roll=z）。
+     * 修正 R_cam_imu 下常见的 yaw/roll 轴耦合：交换 euler.y 与 euler.z。
+     */
+    function remapImuDeltaQuaternion(quat) {
+        if (!isValidQuaternion(quat)) {
+            return quat;
+        }
+        var e = new THREE.Euler(0, 0, 0, 'YXZ');
+        e.setFromQuaternion(quat);
+        var tmp = e.y;
+        e.y = e.z;
+        e.z = tmp;
         var out = new THREE.Quaternion();
         out.setFromEuler(e);
         return out;
+    }
+
+    function getCenterCsrfToken() {
+        var form = document.getElementById('realm-csrf-form');
+        if (!form) return '';
+        var el = form.querySelector('[name=csrfmiddlewaretoken]');
+        return el ? el.value : '';
+    }
+
+    function postStartImuApi() {
+        return fetch(apiUrl('centerStartImu', '/api/center/start-imu/'), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCenterCsrfToken() },
+            credentials: 'same-origin',
+        }).then(function (res) {
+            return res.json();
+        });
     }
 
     function resetTracking() {
@@ -384,26 +373,30 @@
             return;
         }
 
-        var delta = new THREE.Matrix4().copy(baselinePose).invert().multiply(currentPose);
+        var baselineInv = new THREE.Matrix4().copy(baselinePose).invert();
+        var delta = new THREE.Matrix4().copy(currentPose).multiply(baselineInv);
         var pos = new THREE.Vector3();
         var quat = new THREE.Quaternion();
         var scl = new THREE.Vector3();
         delta.decompose(pos, quat, scl);
-        pos.multiplyScalar(POSITION_GAIN);
-        quat = remapImuDeltaForThree(delta, refCameraMatrix);
+        quat = remapImuDeltaQuaternion(quat);
 
-        var deltaPure = new THREE.Matrix4().compose(pos, quat, new THREE.Vector3(1, 1, 1));
-        var target = new THREE.Matrix4().copy(refCameraMatrix).multiply(deltaPure);
+        var deltaRot = new THREE.Matrix4().compose(
+            new THREE.Vector3(0, 0, 0),
+            quat,
+            new THREE.Vector3(1, 1, 1)
+        );
+        var target = new THREE.Matrix4().copy(refCameraMatrix).multiply(deltaRot);
 
         var targetPos = new THREE.Vector3();
         var targetQuat = new THREE.Quaternion();
         var targetScl = new THREE.Vector3();
         target.decompose(targetPos, targetQuat, targetScl);
 
-        if (!smoothedPos) smoothedPos = targetPos.clone();
-        if (!smoothedQuat) smoothedQuat = targetQuat.clone();
+        if (!smoothedQuat) {
+            smoothedQuat = cam.quaternion.clone();
+        }
 
-        lerpVec3(smoothedPos, smoothedPos, targetPos, SMOOTH);
         smoothedQuat.slerp(targetQuat, SMOOTH);
 
         if (!isValidQuaternion(smoothedQuat)) {
@@ -436,7 +429,11 @@
             setStatusHint('IMU: 正在启动跟踪…');
             return;
         }
-        if (data.status === 'not_ready' || !data.tracking_success) {
+        if (data.status === 'not_ready') {
+            setStatusHint('IMU: 等待首帧…');
+            return;
+        }
+        if (!data.tracking_success && !data.imu_only) {
             setStatusHint('IMU: 等待跟踪…');
             return;
         }
@@ -503,13 +500,28 @@
         pollTimer = null;
     }
 
+    var imuStartInFlight = false;
+
     function requestImuPipeline() {
+        if (imuStartInFlight) return;
         if (
             window.CenterRealtimeMesh &&
             typeof window.CenterRealtimeMesh.ensurePipelineForImu === 'function'
         ) {
-            window.CenterRealtimeMesh.ensurePipelineForImu().catch(function () {});
+            imuStartInFlight = true;
+            window.CenterRealtimeMesh.ensurePipelineForImu()
+                .catch(function () {
+                    return postStartImuApi();
+                })
+                .finally(function () {
+                    imuStartInFlight = false;
+                });
+            return;
         }
+        imuStartInFlight = true;
+        postStartImuApi().finally(function () {
+            imuStartInFlight = false;
+        });
     }
 
     function syncTrackingState() {
