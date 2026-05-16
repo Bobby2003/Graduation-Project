@@ -635,6 +635,13 @@ def center_latest_mesh_api(request):
 
 
 @login_required
+@require_GET
+def center_latest_pose_api(request):
+    data = center_bridge.get_latest_pose()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
 @require_POST
 def progress_event_api(request):
     """Sprint 2：客户端上报位面行为事件 → 任务 / 成就 / 统计"""

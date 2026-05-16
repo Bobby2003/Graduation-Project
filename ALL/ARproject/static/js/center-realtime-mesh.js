@@ -14,6 +14,15 @@
     var centerStatusPollInFlight = false;
     /** hard_paused_lost 时自动请求 resume，避免重复 POST */
     var centerAutoResumePending = false;
+    /** 前几帧标定 mesh 缩放与落地位置，之后只更新几何不再整体缩小 */
+    var centerMeshTransformLocked = false;
+    var centerMeshCalibFrames = 0;
+    var CENTER_MESH_CALIB_TARGET_FRAMES = 4;
+    var CENTER_MESH_CALIB_MIN_VERTICES = 80;
+    var lockedMeshScale = 1;
+    var lockedMeshPosition = null;
+    var calibScaleSamples = [];
+    var calibPositionSamples = [];
     var urls = (window.REALM_BOOTSTRAP && window.REALM_BOOTSTRAP.urls) || {};
 
     function apiUrl(name, fallback) {
@@ -49,6 +58,11 @@
     }
 
     function startCenterRealtime() {
+        resetCenterMeshTransformLock();
+        centerMeshVersion = null;
+        if (window.RealmImu && typeof window.RealmImu.resetAnchor === 'function') {
+            window.RealmImu.resetAnchor();
+        }
         postCenterApi(apiUrl('centerStart', '/api/center/start/')).then(function (data) {
             updateCenterRealtimeStatus(data);
             if (centerMeshPollDelayTimer) {
@@ -66,6 +80,15 @@
         });
     }
 
+    function resetCenterMeshTransformLock() {
+        centerMeshTransformLocked = false;
+        centerMeshCalibFrames = 0;
+        lockedMeshScale = 1;
+        lockedMeshPosition = null;
+        calibScaleSamples = [];
+        calibPositionSamples = [];
+    }
+
     function stopCenterRealtime() {
         if (centerMeshPollDelayTimer) {
             clearTimeout(centerMeshPollDelayTimer);
@@ -74,6 +97,7 @@
         stopCenterMeshPolling();
         stopCenterStatusPolling();
         centerAutoResumePending = false;
+        resetCenterMeshTransformLock();
         updateCenterRecoveryBanner({ center_recovery_state: 'normal' });
         postCenterApi(apiUrl('centerStop', '/api/center/stop/')).then(function (data) {
             updateCenterRealtimeStatus(data);
@@ -301,7 +325,36 @@
     /** 略抬高避免与地板 z-fight，同时保持 min.y >= REALM_FLOOR_Y */
     var REALM_MESH_FLOOR_EPS = 0.008;
 
-    function normalizeCenterMeshToRealm(object3d) {
+    function averageSamples(samples) {
+        if (!samples.length) return 0;
+        var sum = 0;
+        for (var i = 0; i < samples.length; i++) sum += samples[i];
+        return sum / samples.length;
+    }
+
+    function averageVectorSamples(samples) {
+        if (!samples.length) return new THREE.Vector3();
+        var out = new THREE.Vector3();
+        for (var i = 0; i < samples.length; i++) {
+            out.add(samples[i]);
+        }
+        out.multiplyScalar(1 / samples.length);
+        return out;
+    }
+
+    function applyLockedMeshTransform(object3d) {
+        object3d.scale.setScalar(lockedMeshScale);
+        if (lockedMeshPosition) {
+            object3d.position.copy(lockedMeshPosition);
+        }
+    }
+
+    function normalizeCenterMeshToRealm(object3d, vertexCount) {
+        if (centerMeshTransformLocked) {
+            applyLockedMeshTransform(object3d);
+            return;
+        }
+
         object3d.updateMatrixWorld(true);
         var box = new THREE.Box3().setFromObject(object3d);
         var size = new THREE.Vector3();
@@ -310,6 +363,7 @@
         box.getCenter(center);
         var maxDim = Math.max(size.x, size.y, size.z);
         if (!maxDim || !Number.isFinite(maxDim)) return;
+
         var targetSize = 4.2;
         var scale = targetSize / maxDim;
         object3d.scale.setScalar(scale);
@@ -323,6 +377,50 @@
             REALM_FLOOR_Y + REALM_MESH_FLOOR_EPS - minY,
             -center.z * scale
         );
+
+        var verts = vertexCount != null ? vertexCount : 0;
+        if (verts < CENTER_MESH_CALIB_MIN_VERTICES) return;
+
+        centerMeshCalibFrames += 1;
+        calibScaleSamples.push(scale);
+        calibPositionSamples.push(object3d.position.clone());
+
+        if (centerMeshCalibFrames >= CENTER_MESH_CALIB_TARGET_FRAMES) {
+            lockedMeshScale = averageSamples(calibScaleSamples);
+            lockedMeshPosition = averageVectorSamples(calibPositionSamples);
+            centerMeshTransformLocked = true;
+            applyLockedMeshTransform(object3d);
+        }
+    }
+
+    function updateCenterMeshGeometry(mesh, meshPayload) {
+        var vertices = meshPayload.vertices || [];
+        var indices = meshPayload.indices || [];
+        var normals = meshPayload.normals || null;
+        var colors = meshPayload.colors || null;
+        if (!vertices.length) return false;
+
+        var geometry = mesh.geometry;
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        if (indices && indices.length) {
+            geometry.setIndex(indices);
+        } else {
+            geometry.setIndex(null);
+        }
+        if (normals && normals.length === vertices.length) {
+            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+        } else {
+            geometry.deleteAttribute('normal');
+            geometry.computeVertexNormals();
+        }
+        if (colors && colors.length === vertices.length) {
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        } else {
+            geometry.deleteAttribute('color');
+        }
+        geometry.attributes.position.needsUpdate = true;
+        geometry.computeBoundingSphere();
+        return true;
     }
 
     function renderCenterMemoryMesh(meshPayload, meta) {
@@ -335,8 +433,6 @@
             return;
         }
 
-        removeCenterRealtimeMesh();
-
         var vertices = meshPayload.vertices || [];
         var indices = meshPayload.indices || [];
         var normals = meshPayload.normals || null;
@@ -346,6 +442,15 @@
             console.warn('[CENTER] mesh has no vertices.');
             return;
         }
+
+        if (centerRealtimeMesh && centerMeshTransformLocked) {
+            if (updateCenterMeshGeometry(centerRealtimeMesh, meshPayload)) {
+                applyLockedMeshTransform(centerRealtimeMesh);
+            }
+            return;
+        }
+
+        removeCenterRealtimeMesh();
 
         var geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -387,11 +492,13 @@
         mesh.userData.coordinateSpace = (meta && meta.coordinate_space) || 'reconstruction_world';
         mesh.renderOrder = 10;
 
-        normalizeCenterMeshToRealm(mesh);
+        normalizeCenterMeshToRealm(mesh, vertices.length / 3);
 
         centerRealtimeMesh = mesh;
         window.scene.add(mesh);
     }
+
+    window.resetCenterMeshTransformLock = resetCenterMeshTransformLock;
 
     function onReady() {
         var startBtn = document.getElementById('center-start-btn');

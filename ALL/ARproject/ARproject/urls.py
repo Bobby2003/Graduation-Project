@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/center/resume/', views.center_resume_api, name='center_resume_api'),
     path('api/center/reset-reconstruction/', views.center_reset_reconstruction_api, name='center_reset_reconstruction_api'),
     path('api/center/latest-mesh/', views.center_latest_mesh_api, name='center_latest_mesh_api'),
+    path('api/center/latest-pose/', views.center_latest_pose_api, name='center_latest_pose_api'),
     path('api/reality-override/save/', views.reality_override_save_api, name='reality_override_save_api'),
     path('api/depth-scan/import/', views.depth_scan_import_api, name='depth_scan_import_api'),
     path('api/reality-scan/clear/', views.reality_scan_clear_api, name='reality_scan_clear_api'),

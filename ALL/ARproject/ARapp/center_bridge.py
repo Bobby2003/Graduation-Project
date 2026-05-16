@@ -106,6 +106,21 @@ class CenterBridge:
         except Exception as exc:
             return {"ok": False, "error": repr(exc), "mesh": None}
 
+    def get_latest_pose(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {
+                "ok": False,
+                "tracking_success": False,
+                "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED",
+            }
+        try:
+            pose = _center_mod.get_pose_latest()
+            if isinstance(pose, dict):
+                return {"ok": True, **pose}
+            return {"ok": True, "detail": pose}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc), "tracking_success": False}
+
     def reset_center_reconstruction(self, **kwargs: Any) -> dict[str, Any]:
         if not _ensure_center():
             return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
