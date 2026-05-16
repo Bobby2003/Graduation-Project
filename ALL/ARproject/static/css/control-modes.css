@@ -168,6 +168,49 @@ body.ar-immersive-3d.realm-mode-vr #realm-vr-menu-btn {
     pointer-events: auto;
 }
 
+/* AR / VR 顶栏：更大按钮，便于手势误触容差 */
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-immersive-bar,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-immersive-bar,
+body.ar-immersive-3d.realm-mode-gesture .realm-immersive-bar,
+body.ar-immersive-3d.realm-mode-vr .realm-immersive-bar {
+    gap: 18px;
+    padding: 12px 22px;
+    top: 16px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-immersive-bar .mode-btn,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-immersive-bar .mode-btn,
+body.ar-immersive-3d.realm-mode-gesture .realm-immersive-bar .mode-btn,
+body.ar-immersive-3d.realm-mode-vr .realm-immersive-bar .mode-btn {
+    min-height: 48px;
+    min-width: 72px;
+    padding: 12px 20px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    border-radius: 8px;
+    border-width: 2px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-vr-menu-btn,
+body.ar-immersive-3d[data-control-mode="vr"] #realm-vr-menu-btn,
+body.ar-immersive-3d.realm-mode-gesture #realm-vr-menu-btn,
+body.ar-immersive-3d.realm-mode-vr #realm-vr-menu-btn {
+    min-height: 48px;
+    padding: 12px 22px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    border-width: 2px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-ar-gesture-status,
+body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-gesture-status,
+body.ar-immersive-3d.realm-mode-gesture #realm-ar-gesture-status,
+body.ar-immersive-3d.realm-mode-vr #realm-ar-gesture-status {
+    font-size: 14px;
+    max-width: 280px;
+}
+
 #realm-immersive-hint {
     display: none;
     position: absolute;
@@ -225,26 +268,26 @@ body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-menu.is-open {
 }
 
 .realm-ar-menu-panel {
-    width: min(520px, 94vw);
-    padding: 32px 28px 26px;
+    width: min(420px, 94vw);
+    padding: 28px 26px 24px;
     background: rgba(8, 12, 20, 0.96);
-    border: 1px solid rgba(0, 242, 255, 0.45);
-    box-shadow: 0 0 48px rgba(0, 242, 255, 0.16);
-    font-family: 'Rajdhani', sans-serif;
+    border: 2px solid rgba(0, 242, 255, 0.45);
     border-radius: 12px;
+    box-shadow: 0 0 48px rgba(0, 242, 255, 0.15);
+    font-family: 'Rajdhani', sans-serif;
 }
 
 .realm-ar-menu-panel h3 {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
     font-family: 'Syncopate', sans-serif;
-    font-size: 18px;
+    font-size: 16px;
     letter-spacing: 4px;
     color: #00f2ff;
 }
 
 .realm-ar-menu-sub {
-    margin: 0 0 24px;
-    font-size: 15px;
+    margin: 0 0 22px;
+    font-size: 14px;
     color: #9aa8b8;
     line-height: 1.55;
 }
@@ -259,27 +302,29 @@ body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-menu.is-open {
     width: 100%;
     min-height: 52px;
     padding: 16px 20px;
-    border: 1px solid rgba(0, 242, 255, 0.4);
+    border: 2px solid rgba(0, 242, 255, 0.4);
+    border-radius: 10px;
     background: rgba(0, 242, 255, 0.08);
-    color: #b8f4ff;
+    color: #d4f8ff;
     font-family: 'Syncopate', sans-serif;
     font-size: 14px;
     letter-spacing: 1.5px;
     cursor: pointer;
     transition: 0.2s ease;
-    border-radius: 8px;
 }
 
 .realm-ar-menu-actions button:hover,
 .realm-ar-menu-actions button.ar-hover {
-    background: rgba(0, 242, 255, 0.2);
+    background: rgba(0, 242, 255, 0.24);
     color: #fff;
-    box-shadow: 0 0 16px rgba(0, 242, 255, 0.35);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+    transform: scale(1.02);
 }
 
 .realm-ar-menu-actions button.is-primary {
-    border-color: rgba(0, 255, 136, 0.5);
+    border-color: rgba(0, 255, 136, 0.55);
     color: #00ff88;
+    background: rgba(0, 255, 136, 0.1);
 }
 
 #realm-ar-material-grid {
@@ -297,28 +342,92 @@ body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-menu.is-open {
 
 #realm-ar-material-grid button {
     flex: 1 1 calc(50% - 14px);
-    min-width: 140px;
+    min-width: 148px;
     min-height: 48px;
     padding: 14px 12px;
     font-size: 13px;
     letter-spacing: 1px;
     border-radius: 8px;
+    border-width: 2px;
 }
 
-/* VR 眼镜 / 立体模式下菜单再放大一档 */
-body.ar-immersive-3d.realm-stereo-active .realm-ar-menu-panel {
-    width: min(580px, 96vw);
+/* AR / VR 掌开菜单：VR 眼镜 / 手机横屏下再放大一档 */
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-panel,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-panel,
+body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-panel,
+body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-panel {
+    width: min(520px, 96vw);
     padding: 36px 32px 30px;
 }
 
-body.ar-immersive-3d.realm-stereo-active .realm-ar-menu-actions {
-    gap: 18px;
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-panel h3,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-panel h3,
+body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-panel h3,
+body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-panel h3 {
+    font-size: 20px;
+    margin-bottom: 14px;
 }
 
-body.ar-immersive-3d.realm-stereo-active .realm-ar-menu-actions button {
-    min-height: 56px;
-    font-size: 15px;
-    padding: 18px 22px;
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-sub,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-sub,
+body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-sub,
+body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-sub {
+    font-size: 16px;
+    margin-bottom: 28px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-actions,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-actions,
+body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-actions,
+body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-actions {
+    gap: 20px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-actions button,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-actions button,
+body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-actions button,
+body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-actions button {
+    min-height: 60px;
+    padding: 18px 24px;
+    font-size: 16px;
+    letter-spacing: 2px;
+    border-radius: 12px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-ar-material-grid,
+body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-material-grid,
+body.ar-immersive-3d.realm-mode-gesture #realm-ar-material-grid,
+body.ar-immersive-3d.realm-mode-vr #realm-ar-material-grid {
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 24px;
+}
+
+body.ar-immersive-3d[data-control-mode="gesture"] #realm-ar-material-grid button,
+body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-material-grid button,
+body.ar-immersive-3d.realm-mode-gesture #realm-ar-material-grid button,
+body.ar-immersive-3d.realm-mode-vr #realm-ar-material-grid button {
+    min-height: 54px;
+    min-width: 160px;
+    font-size: 14px;
+    padding: 16px 14px;
+}
+
+@media (max-width: 896px) and (orientation: landscape) {
+    body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-panel,
+    body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-panel,
+    body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-panel,
+    body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-panel {
+        width: min(560px, 92vw);
+    }
+
+    body.ar-immersive-3d.realm-mode-gesture .realm-ar-menu-actions button,
+    body.ar-immersive-3d.realm-mode-vr .realm-ar-menu-actions button,
+    body.ar-immersive-3d[data-control-mode="gesture"] .realm-ar-menu-actions button,
+    body.ar-immersive-3d[data-control-mode="vr"] .realm-ar-menu-actions button {
+        min-height: 64px;
+        font-size: 17px;
+    }
 }
 
 /* ── 门户页 AR/VR 立体分屏（设置 / 终端 / 任务等）── */

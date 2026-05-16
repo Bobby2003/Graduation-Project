@@ -730,7 +730,6 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         adjustLightsForRoom(activeRoomTemplateKey);
         syncSceneFog();
         createScanGhosts();
-        window.realmCameraMoveBounds = cameraMoveBounds;
     }
 
     function updateMaterialDockActive(code) {
@@ -1493,7 +1492,6 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         window.scene = scene;
         window.camera = camera;
         window.renderer = renderer;
-        window.realmCameraMoveBounds = cameraMoveBounds;
 
         roomGroup = new THREE.Group();
         scene.add(roomGroup);

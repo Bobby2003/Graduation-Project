@@ -88,20 +88,8 @@ class CenterBridge:
         try:
             st = _center_mod.get_pipeline_status()
             if isinstance(st, dict):
-                out = _enrich_status_with_pipeline_debug({"ok": True, **st})
-            else:
-                out = {"ok": True, "detail": st}
-            try:
-                pose = _center_mod.get_pose_latest()
-                if isinstance(pose, dict):
-                    out["pose_latest"] = pose
-            except Exception as exc:
-                out["pose_latest"] = {
-                    "status": "error",
-                    "tracking_success": False,
-                    "error": repr(exc),
-                }
-            return out
+                return _enrich_status_with_pipeline_debug({"ok": True, **st})
+            return {"ok": True, "detail": st}
         except Exception as exc:
             return {"ok": False, "running": False, "error": repr(exc)}
 

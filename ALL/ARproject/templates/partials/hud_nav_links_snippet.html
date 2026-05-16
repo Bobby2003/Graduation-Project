@@ -1,11 +1,22 @@
-{# 主导航锚点列表。父模板须传入 active_key（url_name 或与 urlpatterns 一致的字符串）。 #}
-{% with v=active_key|default:"" %}
-    <a href="{% url 'realm' %}"{% if v == "realm" %} class="active"{% endif %}>绿洲</a>
-    <a href="{% url 'dashboard' %}"{% if v == "dashboard" %} class="active"{% endif %}>终端</a>
-    <a href="{% url 'worlds' %}"{% if v == "worlds" %} class="active"{% endif %}>位面广场</a>
-    <a href="{% url 'material_library' %}"{% if v == "material_library" %} class="active"{% endif %}>材质库</a>
-    <a href="{% url 'progress_hub' %}"{% if v == "progress_hub" or v == "missions" or v == "achievements" or v == "equipment" or v == "market" or v == "ranking" %} class="active"{% endif %}>成长中心</a>
-    <a href="{% url 'guide' %}"{% if v == "guide" or v == "tutorial" or v == "training" %} class="active"{% endif %}>入门训练</a>
-    <a href="{% url 'settings' %}"{% if v == "settings" or v == "devices" %} class="active"{% endif %}>设置</a>
-    <a href="{% url 'about' %}"{% if v == "about" %} class="active"{% endif %}>关于</a>
-{% endwith %}
+{# 主导航锚点列表。父模板须传入 active_key（url_name 或与 urlpatterns 一致的字符串）。 #}
+
+{% with v=active_key|default:"" %}
+
+    <a href="{% url 'realm' %}"{% if v == "realm" %} class="active"{% endif %}>绿洲</a>
+
+    <a href="{% url 'dashboard' %}"{% if v == "dashboard" %} class="active"{% endif %}>终端</a>
+
+    <a href="{% url 'worlds' %}"{% if v == "worlds" %} class="active"{% endif %}>位面广场</a>
+
+    <a href="{% url 'material_library' %}"{% if v == "material_library" %} class="active"{% endif %}>材质库</a>
+
+    <a href="{% url 'progress_hub' %}"{% if v == "progress_hub" or v == "missions" or v == "achievements" or v == "equipment" or v == "market" or v == "ranking" %} class="active"{% endif %}>成长中心</a>
+
+    <a href="{% url 'guide' %}"{% if v == "guide" or v == "tutorial" or v == "training" %} class="active"{% endif %}>入门训练</a>
+
+    <a href="{% url 'settings' %}"{% if v == "settings" or v == "devices" %} class="active"{% endif %}>设置</a>
+
+    <a href="{% url 'about' %}"{% if v == "about" %} class="active"{% endif %}>关于</a>
+
+{% endwith %}
+

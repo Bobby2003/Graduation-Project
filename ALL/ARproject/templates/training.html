@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TRAINING GROUND | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516e">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516n">
     <style>
         :root {
             --neon: #00f2ff;
@@ -327,11 +327,11 @@
         }
         #realm-ar-gesture-status {
             font-family: Rajdhani, sans-serif;
-            font-size: 11px;
+            font-size: 14px;
             color: rgba(0, 242, 255, 0.85);
-            max-width: 200px;
+            max-width: 280px;
             text-align: center;
-            line-height: 1.35;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -458,12 +458,11 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
-    <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
-    <script src="{% static 'js/realm-immersive.js' %}?v=20260516n"></script>
-    <script src="{% static 'js/realm-imu.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
+    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
+    <script src="{% static 'js/realm-immersive.js' %}?v=20260516j"></script>
     {% include "partials/ar_stereo_scripts.html" %}
-    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260516j"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {

@@ -913,6 +913,7 @@ class CenterPipelineService:
         tracking = pipeline.get_latest_tracking()
         world_to_camera = pipeline.get_current_extrinsic_world_to_camera()
         camera_to_world = pipeline.get_current_camera_pose_world()
+        imu_to_world = pipeline.get_current_imu_pose_world()
         if tracking is None or world_to_camera is None or camera_to_world is None:
             return {
                 "status": "not_ready",
@@ -920,7 +921,7 @@ class CenterPipelineService:
                 "coordinate_space": "reconstruction_world",
             }
 
-        return {
+        out = {
             "frame_id": tracking.frame_id,
             "timestamp": tracking.timestamp,
             "tracking_success": bool(tracking.success),
@@ -929,6 +930,9 @@ class CenterPipelineService:
             "camera_to_world": np.asarray(camera_to_world).tolist(),
             "coordinate_space": "reconstruction_world",
         }
+        if imu_to_world is not None:
+            out["imu_to_world"] = np.asarray(imu_to_world).tolist()
+        return out
 
     def get_white_file(self, version: int | None) -> Path:
         with self.lock:
