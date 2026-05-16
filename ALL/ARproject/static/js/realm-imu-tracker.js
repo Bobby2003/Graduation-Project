@@ -1,6 +1,6 @@
 /**
  * AR/VR 沉浸位面：轮询 Center get_pose_latest()，用 IMU（优先）/相机位姿驱动 Three 相机。
- * 模型保持在场景内，通过相对位姿 delta 实现「可移动设备」漫游（对齐 Center_API 说明）。
+ * 页面临时显示 IMU 连接与倾斜/移动调试信息（Center_pipeline.get_pose_latest）。
  */
 (function () {
     'use strict';
@@ -16,6 +16,13 @@
     var lastStatus = '';
     var smoothedPos = null;
     var smoothedQuat = null;
+
+    var debugPanel = null;
+    var debugBody = null;
+    var lastPollAt = 0;
+    var lastHttpOk = false;
+    var lastPayload = null;
+    var lastNetworkError = '';
 
     var urls = (window.REALM_BOOTSTRAP && window.REALM_BOOTSTRAP.urls) || {};
 
@@ -50,8 +57,200 @@
         return m === 'gesture' || m === 'vr';
     }
 
-    function mat4FromRows(rows) {
+    function ensureDebugPanel() {
+        if (debugPanel) return;
+        var host = document.querySelector('.realm-viewport') || document.body;
+        debugPanel = document.createElement('div');
+        debugPanel.id = 'realm-imu-debug-panel';
+        debugPanel.className = 'realm-immersive-keep';
+        debugPanel.setAttribute('aria-live', 'polite');
+        debugPanel.hidden = true;
+
+        var title = document.createElement('div');
+        title.className = 'realm-imu-debug-title';
+        title.textContent = 'IMU / 设备位姿 · 调试（临时）';
+
+        debugBody = document.createElement('pre');
+        debugBody.id = 'realm-imu-debug-body';
+        debugBody.className = 'realm-imu-debug-body';
+        debugBody.textContent = '等待 AR/VR 模式…';
+
+        debugPanel.appendChild(title);
+        debugPanel.appendChild(debugBody);
+        host.appendChild(debugPanel);
+    }
+
+    function fmtNum(n, digits) {
+        if (n == null || !Number.isFinite(n)) return '—';
+        return n.toFixed(digits);
+    }
+
+    function translationFromRows(rows) {
         if (!rows || rows.length < 4) return null;
+        return {
+            x: rows[0][3],
+            y: rows[1][3],
+            z: rows[2][3],
+        };
+    }
+
+    function eulerDegFromRows(rows) {
+        if (!rows || typeof THREE === 'undefined') return null;
+        var m = mat4FromRows(rows);
+        if (!m) return null;
+        var e = new THREE.Euler().setFromRotationMatrix(m, 'YXZ');
+        return {
+            pitch: THREE.MathUtils.radToDeg(e.x),
+            yaw: THREE.MathUtils.radToDeg(e.y),
+            roll: THREE.MathUtils.radToDeg(e.z),
+        };
+    }
+
+    function deltaFromBaseline(currentRows) {
+        if (!baselinePose || !currentRows || typeof THREE === 'undefined') return null;
+        var cur = mat4FromRows(currentRows);
+        if (!cur) return null;
+        var delta = new THREE.Matrix4().copy(baselinePose).invert().multiply(cur);
+        var pos = new THREE.Vector3();
+        var quat = new THREE.Quaternion();
+        var scl = new THREE.Vector3();
+        delta.decompose(pos, quat, scl);
+        var e = new THREE.Euler().setFromQuaternion(quat, 'YXZ');
+        return {
+            dx: pos.x,
+            dy: pos.y,
+            dz: pos.z,
+            pitch: THREE.MathUtils.radToDeg(e.x),
+            yaw: THREE.MathUtils.radToDeg(e.y),
+            roll: THREE.MathUtils.radToDeg(e.z),
+        };
+    }
+
+    function buildDebugText(data, errMsg) {
+        var lines = [];
+        var now = Date.now();
+        var ageMs = lastPollAt ? now - lastPollAt : null;
+
+        lines.push('【接口】 GET /api/center/pose-latest/');
+        if (errMsg) {
+            lines.push('  连接: ✗ ' + errMsg);
+        } else if (lastHttpOk) {
+            lines.push('  连接: ✓ HTTP 200' + (ageMs != null ? ' · ' + ageMs + 'ms 前' : ''));
+        } else {
+            lines.push('  连接: … 等待首次响应');
+        }
+
+        if (!data) {
+            lines.push('【数据】 无 payload');
+            return lines.join('\n');
+        }
+
+        if (data.ok === false) {
+            lines.push('【数据】 ✗ ' + (data.error || 'ok=false'));
+            return lines.join('\n');
+        }
+
+        var st = data.status || 'ok';
+        lines.push('【管线】 status=' + st);
+        if (st === 'not_running') {
+            lines.push('  → 请先点 START / 掌菜单「开始扫描」');
+        } else if (st === 'not_ready') {
+            lines.push('  → 管线已启但跟踪/外参未就绪');
+        } else {
+            lines.push(
+                '  tracking=' +
+                    (data.tracking_success ? '✓ 成功' : '✗ 失败') +
+                    ' · mode=' +
+                    (data.tracking_mode != null ? data.tracking_mode : '—') +
+                    ' · frame=' +
+                    (data.frame_id != null ? data.frame_id : '—')
+            );
+        }
+
+        var hasImu = !!(data.imu_to_world && data.imu_to_world.length >= 4);
+        var hasCam = !!(data.camera_to_world && data.camera_to_world.length >= 4);
+        lines.push('【IMU 字段】');
+        lines.push('  imu_to_world: ' + (hasImu ? '✓ 有（Center 推导）' : '✗ 无'));
+        lines.push('  camera_to_world: ' + (hasCam ? '✓ 有' : '✗ 无'));
+        lines.push('  坐标系: ' + (data.coordinate_space || 'reconstruction_world'));
+
+        var poseRows = hasImu ? data.imu_to_world : hasCam ? data.camera_to_world : null;
+        var src = hasImu ? 'imu_to_world' : hasCam ? 'camera_to_world' : null;
+
+        if (poseRows) {
+            var t = translationFromRows(poseRows);
+            var rpy = eulerDegFromRows(poseRows);
+            lines.push('【当前位姿 · ' + src + '】');
+            if (t) {
+                lines.push(
+                    '  平移(m): x=' +
+                        fmtNum(t.x, 3) +
+                        '  y=' +
+                        fmtNum(t.y, 3) +
+                        '  z=' +
+                        fmtNum(t.z, 3)
+                );
+            }
+            if (rpy) {
+                lines.push(
+                    '  倾斜(°): pitch=' +
+                        fmtNum(rpy.pitch, 2) +
+                        '  yaw=' +
+                        fmtNum(rpy.yaw, 2) +
+                        '  roll=' +
+                        fmtNum(rpy.roll, 2)
+                );
+                lines.push('  （pitch≈俯仰  yaw≈偏航  roll≈横滚）');
+            }
+
+            var d = deltaFromBaseline(poseRows);
+            if (d) {
+                lines.push('【相对基准 · 设备移动量】');
+                lines.push(
+                    '  Δ平移(m): x=' +
+                        fmtNum(d.dx, 3) +
+                        '  y=' +
+                        fmtNum(d.dy, 3) +
+                        '  z=' +
+                        fmtNum(d.dz, 3)
+                );
+                lines.push(
+                    '  Δ倾斜(°): pitch=' +
+                        fmtNum(d.pitch, 2) +
+                        '  yaw=' +
+                        fmtNum(d.yaw, 2) +
+                        '  roll=' +
+                        fmtNum(d.roll, 2)
+                );
+            } else if (data.tracking_success) {
+                lines.push('【相对基准】 等待首帧校准…');
+            }
+        } else {
+            lines.push('【位姿】 无 4×4 矩阵可解析');
+        }
+
+        lines.push('【AR 相机驱动】');
+        lines.push('  基准已锁定: ' + (baselinePose ? '✓' : '✗'));
+        lines.push('  轮询: ' + (pollTimer ? '进行中 ' + POLL_MS + 'ms' : '已停'));
+
+        return lines.join('\n');
+    }
+
+    function refreshDebugPanel(data, errMsg) {
+        ensureDebugPanel();
+        if (!debugPanel || !debugBody) return;
+
+        if (!shouldTrackImu()) {
+            debugPanel.hidden = true;
+            return;
+        }
+
+        debugPanel.hidden = false;
+        debugBody.textContent = buildDebugText(data || lastPayload, errMsg || lastNetworkError);
+    }
+
+    function mat4FromRows(rows) {
+        if (!rows || rows.length < 4 || typeof THREE === 'undefined') return null;
         var m = new THREE.Matrix4();
         m.set(
             rows[0][0],
@@ -87,6 +286,8 @@
         smoothedPos = null;
         smoothedQuat = null;
         lastStatus = '';
+        lastPayload = null;
+        refreshDebugPanel(null, lastNetworkError);
     }
 
     function setStatusHint(text) {
@@ -117,6 +318,7 @@
             smoothedPos = cam.position.clone();
             smoothedQuat = cam.quaternion.clone();
             setStatusHint('IMU 已校准 · 移动设备/相机可漫游场景');
+            refreshDebugPanel(lastPayload, '');
             return;
         }
 
@@ -147,6 +349,12 @@
     }
 
     function handlePosePayload(data) {
+        lastPayload = data;
+        lastPollAt = Date.now();
+        lastHttpOk = true;
+        lastNetworkError = '';
+        refreshDebugPanel(data, '');
+
         if (!data || data.ok === false) {
             if (data && data.error) {
                 setStatusHint('IMU: ' + String(data.error).slice(0, 80));
@@ -170,21 +378,42 @@
         }
 
         applyRelativePose(pose);
+        refreshDebugPanel(data, '');
     }
 
     function pollPose() {
-        if (!shouldTrackImu()) return;
+        if (!shouldTrackImu()) {
+            refreshDebugPanel(null, '');
+            return;
+        }
         if (pollInFlight) return;
-        if (typeof THREE === 'undefined' || !window.camera) return;
+
+        ensureDebugPanel();
+        refreshDebugPanel(lastPayload, lastNetworkError);
+
+        if (typeof THREE === 'undefined' || !window.camera) {
+            refreshDebugPanel(
+                lastPayload,
+                'Three.js 或 camera 未就绪（请稍候 realm-main 加载）'
+            );
+            return;
+        }
 
         pollInFlight = true;
         fetch(apiUrl('centerPoseLatest', '/api/center/pose-latest/'), { credentials: 'same-origin' })
             .then(function (res) {
+                lastHttpOk = res.ok;
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
                 return res.json();
             })
             .then(handlePosePayload)
-            .catch(function () {
-                setStatusHint('IMU: 无法连接 pose-latest');
+            .catch(function (err) {
+                lastNetworkError =
+                    err && err.message ? err.message : '无法连接 pose-latest';
+                setStatusHint('IMU: ' + lastNetworkError);
+                refreshDebugPanel(lastPayload, lastNetworkError);
             })
             .finally(function () {
                 pollInFlight = false;
@@ -193,6 +422,7 @@
 
     function startPolling() {
         if (pollTimer) return;
+        ensureDebugPanel();
         pollPose();
         pollTimer = setInterval(pollPose, POLL_MS);
     }
@@ -204,11 +434,13 @@
     }
 
     function syncTrackingState() {
+        ensureDebugPanel();
         if (shouldTrackImu()) {
             startPolling();
         } else {
             stopPolling();
             resetTracking();
+            if (debugPanel) debugPanel.hidden = true;
         }
     }
 
@@ -236,6 +468,9 @@
         reset: resetTracking,
         isActive: function () {
             return !!pollTimer;
+        },
+        getLastPayload: function () {
+            return lastPayload;
         },
     };
 })();
