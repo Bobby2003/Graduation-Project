@@ -153,8 +153,11 @@
 
         var st = data.status || 'ok';
         lines.push('【管线】 status=' + st);
+        if (data.imu_only) {
+            lines.push('  模式: 仅 IMU（深度相机未启动）');
+        }
         if (st === 'not_running') {
-            lines.push('  → 正在自动启动 Center 跟踪（AR/VR 进入即启）');
+            lines.push('  → 正在自动启动 IMU 跟踪（AR/VR 进入即启，不启深度相机）');
         } else if (st === 'not_ready') {
             lines.push('  → 管线已启但跟踪/外参未就绪');
         } else {
@@ -448,11 +451,23 @@
         ensureDebugPanel();
         if (shouldTrackImu()) {
             requestImuPipeline();
+            if (
+                window.CenterRealtimeMesh &&
+                typeof window.CenterRealtimeMesh.syncForControlMode === 'function'
+            ) {
+                window.CenterRealtimeMesh.syncForControlMode();
+            }
             startPolling();
         } else {
             stopPolling();
             resetTracking();
             if (debugPanel) debugPanel.hidden = true;
+            if (
+                window.CenterRealtimeMesh &&
+                typeof window.CenterRealtimeMesh.stopImuOnly === 'function'
+            ) {
+                window.CenterRealtimeMesh.stopImuOnly().catch(function () {});
+            }
         }
     }
 

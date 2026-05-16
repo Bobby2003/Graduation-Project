@@ -207,11 +207,28 @@
 
     var imuPipelineEnsurePromise = null;
 
+    function getControlMode() {
+        if (window.ARRealmControls && typeof window.ARRealmControls.getMode === 'function') {
+            return window.ARRealmControls.getMode();
+        }
+        try {
+            return localStorage.getItem('ar_realm_control_mode') || 'desktop';
+        } catch (e) {
+            return 'desktop';
+        }
+    }
+
+    function isImmersiveControlMode() {
+        var m = getControlMode();
+        return m === 'gesture' || m === 'vr';
+    }
+
     /**
-     * AR/VR 进入时自动拉起 Center 跟踪（IMU/相机位姿），不重置 mesh、不开启 mesh 轮询。
-     * 显式「开始扫描」仍走 startCenterRealtime()。
+     * AR/VR 进入时仅拉起 IMU 位姿（POST start-imu），不启深度相机、不轮询 mesh。
+     * 显式「开始扫描」走 startCenterRealtime() → POST start（scanner）。
      */
     function ensureCenterPipelineForImu() {
+        if (!isImmersiveControlMode()) return Promise.resolve(null);
         if (imuPipelineEnsurePromise) return imuPipelineEnsurePromise;
 
         imuPipelineEnsurePromise = fetch(apiUrl('centerStatus', '/api/center/status/'), {
@@ -221,15 +238,21 @@
                 return res.json();
             })
             .then(function (data) {
-                if (data && data.running) {
+                if (data && data.depth_capture_enabled) {
                     startCenterStatusPolling();
                     return data;
                 }
-                return postCenterApi(apiUrl('centerStart', '/api/center/start/')).then(function (startData) {
-                    updateCenterRealtimeStatus(startData);
+                if (data && data.imu_only && data.running) {
                     startCenterStatusPolling();
-                    return startData;
-                });
+                    return data;
+                }
+                return postCenterApi(apiUrl('centerStartImu', '/api/center/start-imu/')).then(
+                    function (startData) {
+                        updateCenterRealtimeStatus(startData);
+                        startCenterStatusPolling();
+                        return startData;
+                    }
+                );
             })
             .catch(function (err) {
                 updateCenterRealtimeStatus({ ok: false, error: formatCenterFetchError(err) });
@@ -240,6 +263,31 @@
             });
 
         return imuPipelineEnsurePromise;
+    }
+
+    function stopImuPipelineIfActive() {
+        return fetch(apiUrl('centerStatus', '/api/center/status/'), { credentials: 'same-origin' })
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (data) {
+                if (data && data.imu_only && data.running && !data.depth_capture_enabled) {
+                    return postCenterApi(apiUrl('centerStopImu', '/api/center/stop-imu/'));
+                }
+                return data;
+            })
+            .catch(function () {
+                return null;
+            });
+    }
+
+    function syncCenterServicesForControlMode() {
+        if (isImmersiveControlMode()) {
+            ensureCenterPipelineForImu().catch(function () {});
+            return;
+        }
+        stopCenterStatusPolling();
+        stopImuPipelineIfActive().catch(function () {});
     }
 
     function startCenterRealtime() {
@@ -604,6 +652,9 @@
     window.addEventListener('realm-action', function (e) {
         var d = e.detail;
         if (!d) return;
+        if (d.action === 'control-mode-changed') {
+            syncCenterServicesForControlMode();
+        }
         if (d.action === 'scan-start') {
             resetCenterMeshSession();
         }
@@ -625,13 +676,14 @@
                 stopCenterRealtime();
             });
         }
-        startCenterMeshPolling();
-        startCenterStatusPolling();
+        syncCenterServicesForControlMode();
     }
 
     window.CenterRealtimeMesh = {
         resetSession: resetCenterMeshSession,
         ensurePipelineForImu: ensureCenterPipelineForImu,
+        syncForControlMode: syncCenterServicesForControlMode,
+        stopImuOnly: stopImuPipelineIfActive,
         startMeshPolling: startCenterMeshPolling,
         isPlacementLocked: function () {
             return placementLocked;

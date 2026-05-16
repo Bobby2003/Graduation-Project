@@ -71,6 +71,28 @@ class CenterBridge:
         except Exception as exc:
             return {"ok": False, "error": repr(exc)}
 
+    def start_imu_tracking(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            st = _center_mod.start_imu_pipeline()
+            if isinstance(st, dict):
+                return _enrich_status_with_pipeline_debug(st)
+            return st
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
+    def stop_imu_tracking(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            st = _center_mod.stop_imu_pipeline()
+            if isinstance(st, dict):
+                return _enrich_status_with_pipeline_debug(st)
+            return st
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
     def stop_mapping(self) -> dict[str, Any]:
         if not _ensure_center():
             return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}

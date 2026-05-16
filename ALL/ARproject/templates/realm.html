@@ -320,6 +320,8 @@
                     saveRealm: "{% url 'realm_save_api' %}",
                     progressEvent: "{% url 'progress_event_api' %}",
                     centerStart: "{% url 'center_start_api' %}",
+                    centerStartImu: "{% url 'center_start_imu_api' %}",
+                    centerStopImu: "{% url 'center_stop_imu_api' %}",
                     centerStop: "{% url 'center_stop_api' %}",
                     centerStatus: "{% url 'center_status_api' %}",
                     centerResume: "{% url 'center_resume_api' %}",
@@ -443,10 +445,10 @@
     <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
     <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517c"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517c"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517d"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260516n"></script>
-    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517c"></script>
+    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517d"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {

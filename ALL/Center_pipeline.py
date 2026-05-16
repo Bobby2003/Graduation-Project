@@ -39,9 +39,10 @@ for path in (BASE_DIR, MESHFIX_DIR):
         sys.path.insert(0, path_str)
 
 PipelineConfig = importlib.import_module(f"{POINTCLOUD_PACKAGE}.config").PipelineConfig
-RealtimeMappingPipeline = importlib.import_module(
-    f"{POINTCLOUD_PACKAGE}.pipeline_api"
-).RealtimeMappingPipeline
+_pipeline_api_mod = importlib.import_module(f"{POINTCLOUD_PACKAGE}.pipeline_api")
+RealtimeMappingPipeline = _pipeline_api_mod.RealtimeMappingPipeline
+build_imu_world_initializer = _pipeline_api_mod.build_imu_world_initializer
+_imu_world_mod = importlib.import_module(f"{POINTCLOUD_PACKAGE}.imu.world_initializer")
 from Meshfix.mesh_refine_adapter_slim import o3d_to_trimesh, refine_mesh_in_memory
 from Material.material_engine_adapter import MaterialEngineAdapter
 
@@ -270,6 +271,17 @@ class CenterPipelineService:
         self._api_mesh_version = 0
         self._api_mesh_signature: str | None = None
 
+        # AR/VR 漫游：仅串口 IMU，不启深度相机 / TSDF
+        self._imu_only_mode = False
+        self._imu_only_stop = threading.Event()
+        self._imu_only_thread: threading.Thread | None = None
+        self._imu_initializer: Any | None = None
+        self._imu_recon_world: np.ndarray | None = None
+        self._imu_frame_id = 0
+        self._imu_pose_lock = threading.Lock()
+        self._latest_imu_pose: dict[str, Any] | None = None
+        self._imu_last_error: str | None = None
+
         for directory in (POINTCLOUD_MODEL_DIR, MESHFIX_OUTPUT_DIR, MATERIAL_OUTPUT_DIR):
             directory.mkdir(parents=True, exist_ok=True)
 
@@ -476,7 +488,157 @@ class CenterPipelineService:
 
     def is_running(self) -> bool:
         with self.lock:
+            if self._imu_only_mode:
+                return True
             return bool(self.pipeline is not None and self.pipeline.is_running())
+
+    def _stop_imu_only_unlocked(self) -> None:
+        """Caller holds self.lock."""
+        self._imu_only_stop.set()
+        thread = self._imu_only_thread
+        initializer = self._imu_initializer
+        self._imu_only_mode = False
+        self._imu_only_thread = None
+        self._imu_initializer = None
+        self._imu_recon_world = None
+        with self._imu_pose_lock:
+            self._latest_imu_pose = None
+        if thread is not None and thread.is_alive() and thread is not threading.current_thread():
+            thread.join(timeout=2.0)
+        if initializer is not None:
+            try:
+                initializer.close()
+            except Exception:
+                pass
+        self._imu_only_stop = threading.Event()
+
+    def _imu_pose_from_quaternion(self, initializer: Any, q_wxyz: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        R_from_quat = _imu_world_mod.quaternion_wxyz_to_rotation(q_wxyz)
+        if initializer.quaternion_convention == "imu_to_world":
+            R_world_imu = R_from_quat
+        else:
+            R_world_imu = R_from_quat.T
+
+        R_imu_cam = initializer.R_cam_imu.T
+        R_world_cam = _imu_world_mod._normalize_rotation(R_world_imu @ R_imu_cam)
+
+        R_recon = self._imu_recon_world
+        if R_recon is None:
+            mode = initializer.initial_alignment_mode
+            if mode == "imu_absolute_world":
+                R_recon = initializer.R_reconstruction_imu_world.copy()
+            elif mode == "align_initial_camera_to_forward":
+                R_target_cam = np.eye(3, dtype=np.float64)
+                R_recon = _imu_world_mod._normalize_rotation(R_target_cam @ R_world_cam.T)
+            else:
+                R_recon = np.eye(3, dtype=np.float64)
+            self._imu_recon_world = R_recon
+
+        R_reconstruction_imu = _imu_world_mod._normalize_rotation(R_recon @ R_world_imu)
+        R_reconstruction_camera = _imu_world_mod._normalize_rotation(R_recon @ R_world_cam)
+        T_world_to_imu = _imu_world_mod.make_transform(R_reconstruction_imu)
+        T_camera_to_world = _imu_world_mod.make_transform(R_reconstruction_camera)
+        return T_world_to_imu, T_camera_to_world
+
+    def _imu_only_loop(self) -> None:
+        initializer = self._imu_initializer
+        if initializer is None or not initializer.enabled:
+            with self.lock:
+                self._imu_last_error = "imu_disabled_in_config"
+            return
+
+        while not self._imu_only_stop.is_set():
+            try:
+                sample = initializer.provider.read_quaternion_sample(timeout_sec=0.12)
+            except Exception as exc:
+                with self.lock:
+                    self._imu_last_error = repr(exc)
+                time.sleep(0.05)
+                continue
+
+            if sample is None:
+                continue
+
+            try:
+                T_imu, T_cam = self._imu_pose_from_quaternion(initializer, sample.quaternion_wxyz)
+            except Exception as exc:
+                with self.lock:
+                    self._imu_last_error = repr(exc)
+                continue
+
+            with self.lock:
+                self._imu_frame_id += 1
+                frame_id = self._imu_frame_id
+                self._imu_last_error = None
+
+            payload = {
+                "status": "ok",
+                "tracking_success": True,
+                "tracking_mode": "imu_only",
+                "frame_id": frame_id,
+                "timestamp": sample.timestamp,
+                "imu_to_world": T_imu.tolist(),
+                "camera_to_world": T_cam.tolist(),
+                "coordinate_space": "reconstruction_world",
+                "imu_only": True,
+            }
+            with self._imu_pose_lock:
+                self._latest_imu_pose = payload
+
+    def start_imu_only(self) -> dict[str, Any]:
+        """仅启动串口 IMU 位姿流，供 AR/VR 漫游；不打开深度相机。"""
+        with self.lock:
+            if self.pipeline is not None and self.pipeline.is_running():
+                st = self.status()
+                return {**st, "ok": True, "imu_only": False, "message": "scanner_pipeline_already_running"}
+
+            if self._imu_only_mode:
+                st = self.status()
+                return {**st, "ok": True, "imu_only": True}
+
+            self._stop_imu_only_unlocked()
+            self._imu_frame_id = 0
+            self._imu_recon_world = None
+            self._imu_last_error = None
+
+            cfg = PipelineConfig()
+            initializer = build_imu_world_initializer(cfg, logger=None)
+            if not initializer.enabled:
+                return {
+                    "ok": False,
+                    "running": False,
+                    "imu_only": False,
+                    "error": "IMU world init disabled in PipelineConfig.imu.enable_world_init",
+                }
+            if initializer.provider is None:
+                return {
+                    "ok": False,
+                    "running": False,
+                    "imu_only": False,
+                    "error": "IMU serial provider not configured",
+                }
+
+            self._imu_initializer = initializer
+            self._imu_only_stop.clear()
+            self._imu_only_mode = True
+            self._imu_only_thread = threading.Thread(
+                target=self._imu_only_loop,
+                name="CenterImuOnlyLoop",
+                daemon=True,
+            )
+            self._imu_only_thread.start()
+
+        time.sleep(0.08)
+        self.emit_event({"type": "imu_only_started", "updated_at": utc_now_iso()})
+        st = self.status()
+        return {**st, "ok": True, "imu_only": True}
+
+    def stop_imu_only(self) -> dict[str, Any]:
+        with self.lock:
+            self._stop_imu_only_unlocked()
+        self.emit_event({"type": "imu_only_stopped", "updated_at": utc_now_iso()})
+        st = self.status()
+        return {**st, "ok": True}
 
     def start(self, input_mode: str = "scanner") -> dict[str, Any]:
         input_mode = str(input_mode).lower().strip()
@@ -484,6 +646,8 @@ class CenterPipelineService:
             raise ValueError("Only scanner input_mode is supported by this service entry")
 
         with self.lock:
+            self._stop_imu_only_unlocked()
+
             if self.pipeline is not None and self.pipeline.is_running():
                 return self.status()
 
@@ -510,6 +674,7 @@ class CenterPipelineService:
 
     def stop(self) -> dict[str, Any]:
         with self.lock:
+            self._stop_imu_only_unlocked()
             worker = self.worker
             pipeline = self.pipeline
 
@@ -533,8 +698,13 @@ class CenterPipelineService:
         with self.lock:
             pipeline = self.pipeline
             worker = self.worker
+            imu_only = bool(self._imu_only_mode)
+            scanner_running = bool(pipeline is not None and pipeline.is_running())
             status = {
-                "running": bool(pipeline is not None and pipeline.is_running()),
+                "running": scanner_running or imu_only,
+                "imu_only": imu_only,
+                "depth_capture_enabled": scanner_running,
+                "imu_last_error": self._imu_last_error,
                 "render_enabled": bool(pipeline.cfg.render.enabled) if pipeline is not None else False,
                 "white_model": copy.deepcopy(self.latest_white),
                 "material_scene": copy.deepcopy(self.latest_material_scene),
@@ -902,6 +1072,26 @@ class CenterPipelineService:
 
     def latest_pose(self) -> dict[str, Any]:
         with self.lock:
+            imu_only = self._imu_only_mode
+        if imu_only:
+            with self._imu_pose_lock:
+                snap = copy.deepcopy(self._latest_imu_pose) if self._latest_imu_pose else None
+            if snap is None:
+                err = None
+                with self.lock:
+                    err = self._imu_last_error
+                out = {
+                    "status": "not_ready",
+                    "tracking_success": False,
+                    "coordinate_space": "reconstruction_world",
+                    "imu_only": True,
+                }
+                if err:
+                    out["error"] = err
+                return out
+            return snap
+
+        with self.lock:
             pipeline = self.pipeline
         if pipeline is None:
             return {
@@ -1018,6 +1208,14 @@ def get_service() -> CenterPipelineService:
 
 def start_pipeline(input_mode: str = "scanner") -> dict[str, Any]:
     return service.start(input_mode=input_mode)
+
+
+def start_imu_pipeline() -> dict[str, Any]:
+    return service.start_imu_only()
+
+
+def stop_imu_pipeline() -> dict[str, Any]:
+    return service.stop_imu_only()
 
 
 def stop_pipeline() -> dict[str, Any]:

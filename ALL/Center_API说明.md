@@ -72,6 +72,8 @@ HTTP（Django，`login_required`，POST 需 CSRF token，与 `/api/center/start/
 
 `GET /api/center/pose-latest/`：对应 `center.get_pose_latest()`，返回 `imu_to_world` / `camera_to_world`（`reconstruction_world`）。AR/VR 沉浸页 `realm-imu-tracker.js` 轮询此接口驱动 Three 相机。
 
+`POST /api/center/start-imu/` / `POST /api/center/stop-imu/`：仅串口 IMU 位姿流（`center.start_imu_pipeline()`），不打开深度相机。进入 AR/VR 时前端自动调用；`POST /api/center/start/` 仍为完整扫描建图（深度相机 + TSDF）。
+
 `GET /api/center/status/` 扩展字段（不影响原有字段）：
 - `center_recovery_state`: `normal` | `hard_paused_lost` | `recovering` | `recovery_failed`
 - `consecutive_lost_frames`, `consecutive_success_frames`

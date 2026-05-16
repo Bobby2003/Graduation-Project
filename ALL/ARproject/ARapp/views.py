@@ -596,6 +596,21 @@ def center_start_api(request):
 
 @login_required
 @require_POST
+def center_start_imu_api(request):
+    """AR/VR 沉浸漫游：仅启动 IMU 位姿，不打开深度相机。"""
+    data = center_bridge.start_imu_tracking()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_POST
+def center_stop_imu_api(request):
+    data = center_bridge.stop_imu_tracking()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_POST
 def center_stop_api(request):
     data = center_bridge.stop_mapping()
     return JsonResponse(data, safe=False)
