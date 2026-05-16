@@ -10,6 +10,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
+from pathlib import Path
 
 _ALL_ROOT = Path(__file__).resolve().parents[1]
 _all_root_str = str(_ALL_ROOT)
@@ -142,9 +143,23 @@ class OrbbecCameraSDK:
             ])
 
         # 添加默认路径
+
+
+        PCAC_DIR = Path(__file__).resolve().parent
+
+        OPENNI_DLL_PATH = (
+                PCAC_DIR
+                / "Camera driver"
+                / "Orbbec_Win64-Release"
+                / "sdk"
+                / "libs"
+                / "OpenNI2.dll"
+        )
+
+        # 添加默认路径
         dll_search_paths.extend([
-            r"H:\School assessment\Design\奥比中光Win64-Release\sdk\libs\OpenNI2.dll",
-            "OpenNI2.dll",  # 从系统PATH加载
+            str(OPENNI_DLL_PATH),
+            "OpenNI2.dll",  # 从系统 PATH 加载
         ])
 
         for dll_path in dll_search_paths:
