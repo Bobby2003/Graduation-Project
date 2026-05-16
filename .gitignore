@@ -41,7 +41,7 @@ ALL/Pointcloud2mesh/logs/
 *.prof
 
 # Runtime model outputs
-Pointcloud2mesh/model/
+ALL/Pointcloud2mesh/model/
 ALL/Meshfix/outputs_realtime/
 ALL/Material/outputs/
 
