@@ -1,19 +1,30 @@
 /**
  * /realm/ — 轮询 GET /api/center/latest-mesh/，用内存 vertices/indices 更新 Three.BufferGeometry。
- * 依赖：window.scene、window.THREE（由 realm-main.js 暴露）
+ * 前几帧根据顶点包围盒（含深度/Y 底面）锁定缩放与位置，之后只追加几何、不再整体缩小。
  */
 (function () {
     var centerRealtimeMesh = null;
+    var centerMeshAnchor = null;
     var centerMeshVersion = null;
     var centerMeshPollingTimer = null;
-    /** 避免 800ms interval 在上一次 latest-mesh 未完成时再发请求（runserver 单线程会排队到数秒～挂起）。 */
     var centerMeshPollInFlight = false;
-    /** START 成功后延迟开启轮询的 timer，STOP 时需清除以防误开轮询 */
     var centerMeshPollDelayTimer = null;
     var centerStatusPollTimer = null;
     var centerStatusPollInFlight = false;
-    /** hard_paused_lost 时自动请求 resume，避免重复 POST */
     var centerAutoResumePending = false;
+
+    /** 用于锁定放置的采样帧数 */
+    var PLACEMENT_LOCK_SAMPLES = 3;
+    /** 至少多少顶点才参与校准（避免空 mesh） */
+    var MIN_CALIB_VERTICES = 120;
+    var TARGET_REALM_SIZE = 4.2;
+    var REALM_FLOOR_Y = 0;
+    var REALM_MESH_FLOOR_EPS = 0.008;
+
+    var placementLocked = false;
+    var lockedPlacement = null;
+    var calibrationSamples = [];
+
     var urls = (window.REALM_BOOTSTRAP && window.REALM_BOOTSTRAP.urls) || {};
 
     function apiUrl(name, fallback) {
@@ -48,14 +59,160 @@
         });
     }
 
+    function resetCenterMeshSession() {
+        removeCenterRealtimeMesh();
+        if (centerMeshAnchor && window.scene) {
+            window.scene.remove(centerMeshAnchor);
+        }
+        centerMeshAnchor = null;
+        placementLocked = false;
+        lockedPlacement = null;
+        calibrationSamples = [];
+        centerMeshVersion = null;
+        window.__centerMeshPlacementLocked = false;
+    }
+
+    function percentileSorted(sorted, p) {
+        if (!sorted.length) return 0;
+        var idx = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)));
+        return sorted[idx];
+    }
+
+    /**
+     * 从 reconstruction_world 顶点估计放置：缩放 + 落地板（用 Y 分位作深度底面）。
+     */
+    function computePlacementFromVertices(vertices) {
+        var n = Math.floor(vertices.length / 3);
+        if (n < 4) return null;
+
+        var minX = Infinity;
+        var maxX = -Infinity;
+        var minZ = Infinity;
+        var maxZ = -Infinity;
+        var ys = [];
+        var i;
+        for (i = 0; i < n; i++) {
+            var x = vertices[i * 3];
+            var y = vertices[i * 3 + 1];
+            var z = vertices[i * 3 + 2];
+            if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (z < minZ) minZ = z;
+            if (z > maxZ) maxZ = z;
+            ys.push(y);
+        }
+        if (!ys.length) return null;
+        ys.sort(function (a, b) {
+            return a - b;
+        });
+
+        var floorY = percentileSorted(ys, 0.08);
+        var maxY = ys[ys.length - 1];
+        var centerX = (minX + maxX) * 0.5;
+        var centerZ = (minZ + maxZ) * 0.5;
+        var sizeX = maxX - minX;
+        var sizeY = maxY - floorY;
+        var sizeZ = maxZ - minZ;
+        var maxDim = Math.max(sizeX, sizeY, sizeZ, 1e-6);
+        if (!Number.isFinite(maxDim) || maxDim < 1e-4) return null;
+
+        var scale = TARGET_REALM_SIZE / maxDim;
+        var position = new THREE.Vector3(
+            -centerX * scale,
+            REALM_FLOOR_Y + REALM_MESH_FLOOR_EPS - floorY * scale,
+            -centerZ * scale
+        );
+
+        return {
+            scale: scale,
+            position: position,
+            vertexCount: n,
+            floorY: floorY,
+            maxDim: maxDim,
+        };
+    }
+
+    function averagePlacement(samples) {
+        if (!samples.length) return null;
+        var scale = 0;
+        var px = 0;
+        var py = 0;
+        var pz = 0;
+        samples.forEach(function (s) {
+            scale += s.scale;
+            px += s.position.x;
+            py += s.position.y;
+            pz += s.position.z;
+        });
+        var n = samples.length;
+        return {
+            scale: scale / n,
+            position: new THREE.Vector3(px / n, py / n, pz / n),
+        };
+    }
+
+    function applyPlacementToAnchor(placement) {
+        if (!centerMeshAnchor || !placement) return;
+        centerMeshAnchor.scale.setScalar(placement.scale);
+        centerMeshAnchor.position.copy(placement.position);
+    }
+
+    function lockPlacementFromSamples() {
+        var avg = averagePlacement(calibrationSamples);
+        if (!avg) return;
+        lockedPlacement = avg;
+        placementLocked = true;
+        window.__centerMeshPlacementLocked = true;
+        applyPlacementToAnchor(lockedPlacement);
+        if (window.console && console.info) {
+            console.info('[CENTER] mesh placement locked', {
+                scale: lockedPlacement.scale.toFixed(4),
+                position: lockedPlacement.position,
+                samples: calibrationSamples.length,
+            });
+        }
+    }
+
+    function tryCalibratePlacement(vertices, vertexCount) {
+        if (placementLocked) return;
+        if (vertexCount < MIN_CALIB_VERTICES) return;
+
+        var sample = computePlacementFromVertices(vertices);
+        if (!sample) return;
+
+        calibrationSamples.push(sample);
+        if (calibrationSamples.length > PLACEMENT_LOCK_SAMPLES) {
+            calibrationSamples.shift();
+        }
+
+        if (!centerMeshAnchor) {
+            ensureMeshAnchor();
+        }
+
+        if (calibrationSamples.length >= PLACEMENT_LOCK_SAMPLES) {
+            lockPlacementFromSamples();
+        } else {
+            applyPlacementToAnchor(sample);
+        }
+    }
+
+    function ensureMeshAnchor() {
+        if (centerMeshAnchor || !window.scene || !window.THREE) return;
+        centerMeshAnchor = new THREE.Group();
+        centerMeshAnchor.name = 'CENTER_MESH_ANCHOR';
+        centerMeshAnchor.userData.isCenterMeshAnchor = true;
+        window.scene.add(centerMeshAnchor);
+    }
+
     function startCenterRealtime() {
+        resetCenterMeshSession();
         postCenterApi(apiUrl('centerStart', '/api/center/start/')).then(function (data) {
             updateCenterRealtimeStatus(data);
             if (centerMeshPollDelayTimer) {
                 clearTimeout(centerMeshPollDelayTimer);
                 centerMeshPollDelayTimer = null;
             }
-            // 首帧 OpenNI/Open3D 初始化期间避免立刻 latest-mesh 与后台争用，降低偶发原生崩溃概率。
             centerMeshPollDelayTimer = setTimeout(function () {
                 centerMeshPollDelayTimer = null;
                 startCenterMeshPolling();
@@ -77,6 +234,7 @@
         updateCenterRecoveryBanner({ center_recovery_state: 'normal' });
         postCenterApi(apiUrl('centerStop', '/api/center/stop/')).then(function (data) {
             updateCenterRealtimeStatus(data);
+            resetCenterMeshSession();
         }).catch(function (err) {
             updateCenterRealtimeStatus({ ok: false, error: formatCenterFetchError(err) });
         });
@@ -190,9 +348,7 @@
                     maybeAutoResumeCenter(data);
                 }
             })
-            .catch(function () {
-                /* 静默：mesh 轮询仍会更新主状态行 */
-            })
+            .catch(function () {})
             .finally(function () {
                 centerStatusPollInFlight = false;
             });
@@ -243,9 +399,10 @@
         var summary = data.summary || {};
         var hasMeshMeta = data.version != null || summary.vertices != null || summary.faces != null;
         var running = data.running ? 'RUNNING' : 'IDLE';
+        var lockTag = placementLocked ? ' · PLACE LOCKED' : calibrationSamples.length ? ' · CALIBRATING' : '';
         if (!data.mesh && data.message) {
             var line =
-                'CENTER: ' + running + ' · ' + data.message + '（点 START 后等几秒；无 mesh 时 TSDF 尚未出表面）';
+                'CENTER: ' + running + ' · ' + data.message + '（点 START 后等几秒；无 mesh 时 TSDF 尚未出表面）' + lockTag;
             if (data.hint) line += ' — ' + data.hint;
             if (data.progress) {
                 var p = data.progress;
@@ -260,27 +417,26 @@
                     (p.tracker_backend ? ' · ' + p.tracker_backend : '');
             }
             el.textContent = line;
-            if (data.diagnostics && window.console && console.debug) {
-                console.debug('[CENTER latest-mesh diagnostics]', data.diagnostics);
-            }
             return;
         }
         if (!hasMeshMeta) {
-            el.textContent =
-                'CENTER: ' +
-                running +
-                ' · 已启动（mesh 统计见轮询；若仍为「无 mesh」说明 TSDF 尚未融合出表面）';
+            el.textContent = 'CENTER: ' + running + ' · 已启动（mesh 统计见轮询）' + lockTag;
             return;
         }
         var version = data.version != null ? data.version : '-';
         var vCount = summary.vertices != null ? summary.vertices : '-';
         var fCount = summary.faces != null ? summary.faces : '-';
-        el.textContent = 'CENTER: ' + running + ' · V' + version + ' · ' + vCount + ' verts · ' + fCount + ' faces';
+        el.textContent =
+            'CENTER: ' + running + ' · V' + version + ' · ' + vCount + ' verts · ' + fCount + ' faces' + lockTag;
     }
 
     function removeCenterRealtimeMesh() {
         if (!centerRealtimeMesh) return;
-        if (window.scene) window.scene.remove(centerRealtimeMesh);
+        if (centerMeshAnchor) {
+            centerMeshAnchor.remove(centerRealtimeMesh);
+        } else if (window.scene) {
+            window.scene.remove(centerRealtimeMesh);
+        }
         centerRealtimeMesh.traverse(function (obj) {
             if (obj.geometry) obj.geometry.dispose();
             if (obj.material) {
@@ -296,56 +452,13 @@
         centerRealtimeMesh = null;
     }
 
-    /** 与 realm-main.js 中地板平面一致（addFloor 使用 y=0；网格在 0.01） */
-    var REALM_FLOOR_Y = 0;
-    /** 略抬高避免与地板 z-fight，同时保持 min.y >= REALM_FLOOR_Y */
-    var REALM_MESH_FLOOR_EPS = 0.008;
-
-    function normalizeCenterMeshToRealm(object3d) {
-        object3d.updateMatrixWorld(true);
-        var box = new THREE.Box3().setFromObject(object3d);
-        var size = new THREE.Vector3();
-        var center = new THREE.Vector3();
-        box.getSize(size);
-        box.getCenter(center);
-        var maxDim = Math.max(size.x, size.y, size.z);
-        if (!maxDim || !Number.isFinite(maxDim)) return;
-        var targetSize = 4.2;
-        var scale = targetSize / maxDim;
-        object3d.scale.setScalar(scale);
-        object3d.position.set(0, 0, 0);
-        object3d.updateMatrixWorld(true);
-        box.setFromObject(object3d);
-        var minY = box.min.y;
-        if (!Number.isFinite(minY)) return;
-        object3d.position.set(
-            -center.x * scale,
-            REALM_FLOOR_Y + REALM_MESH_FLOOR_EPS - minY,
-            -center.z * scale
-        );
-    }
-
-    function renderCenterMemoryMesh(meshPayload, meta) {
-        if (!window.THREE) {
-            console.error('[CENTER] THREE is not available.');
-            return;
-        }
-        if (!window.scene) {
-            console.error('[CENTER] window.scene is not available.');
-            return;
-        }
-
-        removeCenterRealtimeMesh();
-
+    function buildGeometryFromPayload(meshPayload) {
         var vertices = meshPayload.vertices || [];
         var indices = meshPayload.indices || [];
         var normals = meshPayload.normals || null;
         var colors = meshPayload.colors || null;
 
-        if (!vertices.length) {
-            console.warn('[CENTER] mesh has no vertices.');
-            return;
-        }
+        if (!vertices.length) return null;
 
         var geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -360,38 +473,107 @@
             geometry.computeVertexNormals();
         }
 
-        var material;
         if (colors && colors.length === vertices.length) {
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            material = new THREE.MeshStandardMaterial({
+        }
+
+        return { geometry: geometry, hasVertexColors: !!(colors && colors.length === vertices.length) };
+    }
+
+    function createMeshMaterial(hasVertexColors) {
+        if (hasVertexColors) {
+            return new THREE.MeshStandardMaterial({
                 vertexColors: true,
                 roughness: 0.75,
                 metalness: 0.05,
                 side: THREE.DoubleSide,
             });
-        } else {
-            material = new THREE.MeshStandardMaterial({
-                color: 0xb8d7ff,
-                roughness: 0.72,
-                metalness: 0.08,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.92,
-            });
+        }
+        return new THREE.MeshStandardMaterial({
+            color: 0xb8d7ff,
+            roughness: 0.72,
+            metalness: 0.08,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.92,
+        });
+    }
+
+    function updateExistingMeshGeometry(meshPayload) {
+        var built = buildGeometryFromPayload(meshPayload);
+        if (!built || !centerRealtimeMesh) return;
+
+        if (centerRealtimeMesh.geometry) {
+            centerRealtimeMesh.geometry.dispose();
+        }
+        centerRealtimeMesh.geometry = built.geometry;
+
+        var wantVc = built.hasVertexColors;
+        var mat = centerRealtimeMesh.material;
+        if (wantVc && (!mat || !mat.vertexColors)) {
+            if (mat && mat.dispose) mat.dispose();
+            centerRealtimeMesh.material = createMeshMaterial(true);
+        } else if (!wantVc && mat && mat.vertexColors) {
+            if (mat.dispose) mat.dispose();
+            centerRealtimeMesh.material = createMeshMaterial(false);
+        }
+    }
+
+    function renderCenterMemoryMesh(meshPayload, meta) {
+        if (!window.THREE) {
+            console.error('[CENTER] THREE is not available.');
+            return;
+        }
+        if (!window.scene) {
+            console.error('[CENTER] window.scene is not available.');
+            return;
         }
 
-        var mesh = new THREE.Mesh(geometry, material);
+        var vertices = meshPayload.vertices || [];
+        var vertexCount = Math.floor(vertices.length / 3);
+        if (!vertexCount) {
+            console.warn('[CENTER] mesh has no vertices.');
+            return;
+        }
+
+        tryCalibratePlacement(vertices, vertexCount);
+        ensureMeshAnchor();
+
+        if (placementLocked && lockedPlacement) {
+            applyPlacementToAnchor(lockedPlacement);
+        }
+
+        if (centerRealtimeMesh) {
+            updateExistingMeshGeometry(meshPayload);
+            return;
+        }
+
+        var built = buildGeometryFromPayload(meshPayload);
+        if (!built) return;
+
+        var mesh = new THREE.Mesh(built.geometry, createMeshMaterial(built.hasVertexColors));
         mesh.name = 'CENTER_MEMORY_REALTIME_MESH';
         mesh.userData.isCenterRealtimeMesh = true;
         mesh.userData.skipMaterialProtocol = true;
         mesh.userData.coordinateSpace = (meta && meta.coordinate_space) || 'reconstruction_world';
         mesh.renderOrder = 10;
-
-        normalizeCenterMeshToRealm(mesh);
+        mesh.scale.set(1, 1, 1);
+        mesh.position.set(0, 0, 0);
 
         centerRealtimeMesh = mesh;
-        window.scene.add(mesh);
+        centerMeshAnchor.add(mesh);
     }
+
+    window.addEventListener('realm-action', function (e) {
+        var d = e.detail;
+        if (!d) return;
+        if (d.action === 'scan-start') {
+            resetCenterMeshSession();
+        }
+        if (d.action === 'scan-stop') {
+            resetCenterMeshSession();
+        }
+    });
 
     function onReady() {
         var startBtn = document.getElementById('center-start-btn');
@@ -409,6 +591,16 @@
         startCenterMeshPolling();
         startCenterStatusPolling();
     }
+
+    window.CenterRealtimeMesh = {
+        resetSession: resetCenterMeshSession,
+        isPlacementLocked: function () {
+            return placementLocked;
+        },
+        getAnchor: function () {
+            return centerMeshAnchor;
+        },
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', onReady);
