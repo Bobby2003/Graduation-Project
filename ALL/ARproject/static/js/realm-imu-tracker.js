@@ -14,8 +14,8 @@
     var pollInFlight = false;
     var baselinePose = null;
     var refCameraMatrix = null;
-    var refCameraPosition = null;
     var lastStatus = '';
+    var smoothedPos = null;
     var smoothedQuat = null;
 
     var debugPanel = null;
@@ -285,55 +285,57 @@
         return null;
     }
 
-    function isValidQuat(q) {
-        return (
-            q &&
-            isFinite(q.x) &&
-            isFinite(q.y) &&
-            isFinite(q.z) &&
-            isFinite(q.w)
-        );
-    }
-
-    function quatFromRotationMatrix4(m4) {
-        var m3 = new THREE.Matrix3().setFromMatrix4(m4);
-        var q = new THREE.Quaternion();
-        q.setFromRotationMatrix(m3);
-        return q;
+    function quatToRotvec(q) {
+        q.normalize();
+        var w = Math.max(-1, Math.min(1, q.w));
+        var angle = 2 * Math.acos(w);
+        if (angle < 1e-8) {
+            return new THREE.Vector3(0, 0, 0);
+        }
+        var s = Math.sqrt(Math.max(0, 1 - w * w));
+        if (s < 1e-8) {
+            return new THREE.Vector3(q.x, q.y, q.z).normalize().multiplyScalar(angle);
+        }
+        return new THREE.Vector3(q.x / s, q.y / s, q.z / s).multiplyScalar(angle);
     }
 
     /**
-     * 参考相机系下的旋转增量 → Three YXZ（IMU Y→pitch, Z→yaw, X→roll）。
-     * 失败时返回 identity，避免 NaN 导致黑屏。
+     * 在「进入 AR 时」的相机朝向下分解增量旋转，再按 IMU→相机外参映射到 Three YXZ：
+     *   IMU X(roll)  → euler.z
+     *   IMU Y(pitch) → euler.x
+     *   IMU Z(yaw)   → euler.y
+     * （与 interactive_imu_camera_calibration.py ROTVEC_EXPECTED_ACTION_AXES 一致）
      */
     function remapImuDeltaForThree(deltaMat4, refMat4) {
-        try {
-            var refPos = new THREE.Vector3();
-            var refQ = new THREE.Quaternion();
-            var scl = new THREE.Vector3();
-            refMat4.decompose(refPos, refQ, scl);
+        var refRot = new THREE.Matrix4().copy(refMat4);
+        refRot.setPosition(0, 0, 0);
+        var refInv = refRot.clone().invert();
 
-            var deltaQ = quatFromRotationMatrix4(deltaMat4);
-            var invRef = refQ.clone().invert();
-            var localQ = invRef.clone().multiply(deltaQ).multiply(refQ);
+        var deltaRot = new THREE.Matrix4().copy(deltaMat4);
+        deltaRot.setPosition(0, 0, 0);
 
-            var e = new THREE.Euler(0, 0, 0, 'YXZ');
-            e.setFromQuaternion(localQ);
-            var out = new THREE.Quaternion();
-            out.setFromEuler(e);
-            if (!isValidQuat(out)) {
-                return new THREE.Quaternion(0, 0, 0, 1);
-            }
-            return out;
-        } catch (err) {
-            return new THREE.Quaternion(0, 0, 0, 1);
-        }
+        var localDelta = new THREE.Matrix4().multiplyMatrices(refInv, deltaRot);
+        localDelta.multiply(refRot);
+
+        var localQ = new THREE.Quaternion().setFromRotationMatrix(
+            new THREE.Matrix3().setFromMatrix4(localDelta)
+        );
+        var rv = quatToRotvec(localQ);
+
+        var pitch = rv.x;
+        var yaw = rv.y;
+        var roll = rv.z;
+
+        var e = new THREE.Euler(pitch, yaw, roll, 'YXZ');
+        var out = new THREE.Quaternion();
+        out.setFromEuler(e);
+        return out;
     }
 
     function resetTracking() {
         baselinePose = null;
         refCameraMatrix = null;
-        refCameraPosition = null;
+        smoothedPos = null;
         smoothedQuat = null;
         lastStatus = '';
         lastPayload = null;
@@ -361,11 +363,11 @@
         var cam = window.camera;
         if (!cam || !currentPose) return;
 
-        if (!baselinePose || !refCameraMatrix || !refCameraPosition) {
+        if (!baselinePose || !refCameraMatrix) {
             baselinePose = currentPose.clone();
             cam.updateMatrixWorld(true);
             refCameraMatrix = cam.matrixWorld.clone();
-            refCameraPosition = cam.position.clone();
+            smoothedPos = cam.position.clone();
             smoothedQuat = cam.quaternion.clone();
             setStatusHint('IMU 已校准 · 移动设备/相机可漫游场景');
             refreshDebugPanel(lastPayload, '');
@@ -373,29 +375,29 @@
         }
 
         var delta = new THREE.Matrix4().copy(baselinePose).invert().multiply(currentPose);
-        var deltaQuat = remapImuDeltaForThree(delta, refCameraMatrix);
+        var pos = new THREE.Vector3();
+        var quat = new THREE.Quaternion();
+        var scl = new THREE.Vector3();
+        delta.decompose(pos, quat, scl);
+        pos.multiplyScalar(POSITION_GAIN);
+        quat = remapImuDeltaForThree(delta, refCameraMatrix);
 
-        var refPos = new THREE.Vector3();
-        var refQ = new THREE.Quaternion();
-        var refScl = new THREE.Vector3();
-        refCameraMatrix.decompose(refPos, refQ, refScl);
+        var deltaPure = new THREE.Matrix4().compose(pos, quat, new THREE.Vector3(1, 1, 1));
+        var target = new THREE.Matrix4().copy(refCameraMatrix).multiply(deltaPure);
 
-        var targetQuat = refQ.clone().multiply(deltaQuat);
-        if (!isValidQuat(targetQuat)) {
-            return;
-        }
+        var targetPos = new THREE.Vector3();
+        var targetQuat = new THREE.Quaternion();
+        var targetScl = new THREE.Vector3();
+        target.decompose(targetPos, targetQuat, targetScl);
 
-        if (!smoothedQuat) {
-            smoothedQuat = refQ.clone();
-        }
+        if (!smoothedPos) smoothedPos = targetPos.clone();
+        if (!smoothedQuat) smoothedQuat = targetQuat.clone();
+
+        lerpVec3(smoothedPos, smoothedPos, targetPos, SMOOTH);
         smoothedQuat.slerp(targetQuat, SMOOTH);
-        if (!isValidQuat(smoothedQuat)) {
-            smoothedQuat = refQ.clone();
-        }
 
-        cam.position.copy(refCameraPosition);
-        cam.quaternion.copy(smoothedQuat);
         cam.rotation.order = 'YXZ';
+        cam.rotation.setFromQuaternion(smoothedQuat);
         cam.updateMatrixWorld(true);
     }
 
