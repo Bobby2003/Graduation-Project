@@ -241,7 +241,8 @@ class IMUWorldInitializer:
         sample = None
         try:
             sample = self.provider.read_quaternion_sample(timeout_sec=self.sample_timeout_sec)
-        except Exception as exc:
+        except Exception as \
+                exc:
             # Missing/wrong COM (pyserial SerialException), permission, unplugged, etc.
             self._log_warning(f"IMU serial/read error: {type(exc).__name__}: {exc!r}")
             fallback.reason = f"imu_serial_or_read_error:{type(exc).__name__}:{exc!r}"

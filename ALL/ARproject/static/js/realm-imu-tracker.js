@@ -1,7 +1,7 @@
 /**
- * AR/VR 沉浸位面：进入 gesture/vr 即拉起 Center 跟踪并轮询 get_pose_latest()，
- * 用 IMU（优先）/相机位姿驱动 Three 相机（无需先点「开始扫描」）。
- * 页面临时显示 IMU 连接与倾斜/移动调试信息（Center_pipeline.get_pose_latest）。
+ * AR/VR 沉浸位面：POST start-imu + 轮询 pose-latest。
+ * 使用 Center 下发的 camera_to_world（OpenCV 相机轴，已含 R_cam_imu），
+ * 转成 Three 相机系后做世界系相对旋转 Δ·ref 驱动画面。
  */
 (function () {
     'use strict';
@@ -98,7 +98,11 @@
     function eulerDegFromRows(rows) {
         if (!rows || typeof THREE === 'undefined') return null;
         var m = mat4FromRows(rows);
-        if (!m) return null;
+        return eulerDegFromMatrix(m);
+    }
+
+    function eulerDegFromMatrix(m) {
+        if (!m || typeof THREE === 'undefined') return null;
         var e = new THREE.Euler().setFromRotationMatrix(m, 'YXZ');
         return {
             pitch: THREE.MathUtils.radToDeg(e.x),
@@ -107,11 +111,9 @@
         };
     }
 
-    function deltaFromBaseline(currentRows) {
-        if (!baselinePose || !currentRows || typeof THREE === 'undefined') return null;
-        var cur = mat4FromRows(currentRows);
-        if (!cur) return null;
-        var delta = new THREE.Matrix4().copy(baselinePose).invert().multiply(cur);
+    function deltaFromBaselinePose(currentMat) {
+        if (!baselinePose || !currentMat || typeof THREE === 'undefined') return null;
+        var delta = new THREE.Matrix4().copy(currentMat).multiply(baselinePose.clone().invert());
         var pos = new THREE.Vector3();
         var quat = new THREE.Quaternion();
         var scl = new THREE.Vector3();
@@ -173,18 +175,19 @@
 
         var hasImu = !!(data.imu_to_world && data.imu_to_world.length >= 4);
         var hasCam = !!(data.camera_to_world && data.camera_to_world.length >= 4);
-        lines.push('【IMU 字段】');
-        lines.push('  imu_to_world: ' + (hasImu ? '✓ 有（Center 推导）' : '✗ 无'));
-        lines.push('  camera_to_world: ' + (hasCam ? '✓ 有' : '✗ 无'));
+        lines.push('【位姿字段】');
+        lines.push('  camera_to_world: ' + (hasCam ? '✓（AR 驱动）' : '✗ 无'));
+        lines.push('  imu_to_world: ' + (hasImu ? '✓' : '✗ 无'));
         lines.push('  坐标系: ' + (data.coordinate_space || 'reconstruction_world'));
 
-        var poseRows = hasImu ? data.imu_to_world : hasCam ? data.camera_to_world : null;
-        var src = hasImu ? 'imu_to_world' : hasCam ? 'camera_to_world' : null;
+        var poseRows = hasCam ? data.camera_to_world : hasImu ? data.imu_to_world : null;
+        var src = hasCam ? 'camera_to_world' : hasImu ? 'imu_to_world' : null;
 
         if (poseRows) {
+            var curPose = pickPoseMatrix(data);
             var t = translationFromRows(poseRows);
-            var rpy = eulerDegFromRows(poseRows);
-            lines.push('【当前位姿 · ' + src + '】');
+            var rpy = curPose ? eulerDegFromMatrix(curPose) : eulerDegFromRows(poseRows);
+            lines.push('【当前位姿 · ' + src + (curPose ? ' → Three' : '') + '】');
             if (t) {
                 lines.push(
                     '  平移(m): x=' +
@@ -207,7 +210,7 @@
                 lines.push('  （pitch≈俯仰  yaw≈偏航  roll≈横滚）');
             }
 
-            var d = deltaFromBaseline(poseRows);
+            var d = deltaFromBaselinePose(curPose);
             if (d) {
                 lines.push('【相对基准 · 设备移动量】');
                 lines.push(
@@ -278,10 +281,26 @@
         return m;
     }
 
+    /** OpenCV 相机 (x右 y下 z前) → Three 相机 (x右 y上 z后)：绕 X 转 180° */
+    var opencvCamToThree = null;
+
+    function getOpencvCamToThree() {
+        if (!opencvCamToThree) {
+            opencvCamToThree = new THREE.Matrix4().makeRotationX(Math.PI);
+        }
+        return opencvCamToThree;
+    }
+
+    /** T_three = T_opencv @ C，与后端 OpenCV camera_to_world 对齐 Three 默认相机 */
+    function cameraToWorldForThree(rows) {
+        var m = mat4FromRows(rows);
+        if (!m) return null;
+        return new THREE.Matrix4().multiplyMatrices(m, getOpencvCamToThree());
+    }
+
     function pickPoseMatrix(data) {
         if (!data) return null;
-        // 漫游用相机位姿；与 reconstruction_world / 桌面 YXZ 一致
-        if (data.camera_to_world) return mat4FromRows(data.camera_to_world);
+        if (data.camera_to_world) return cameraToWorldForThree(data.camera_to_world);
         if (data.imu_to_world) return mat4FromRows(data.imu_to_world);
         return null;
     }
@@ -297,18 +316,17 @@
     }
 
     /**
-     * 相对旋转映射到 Three YXZ（pitch=x, yaw=y, roll=z）。
-     * 修正 R_cam_imu 下常见的 yaw/roll 轴耦合：交换 euler.y 与 euler.z。
+     * 相对旋转 YXZ：pitch=x, yaw=y, roll=z。
+     * 实测：偏航(y)正确；俯仰(x)反了；左右翻(roll/z)符号需反。
      */
-    function remapImuDeltaQuaternion(quat) {
+    function correctDeviceDeltaQuaternion(quat) {
         if (!isValidQuaternion(quat)) {
             return quat;
         }
         var e = new THREE.Euler(0, 0, 0, 'YXZ');
         e.setFromQuaternion(quat);
-        var tmp = e.y;
-        e.y = e.z;
-        e.z = tmp;
+        e.x = -e.x;
+        e.z = -e.z;
         var out = new THREE.Quaternion();
         out.setFromEuler(e);
         return out;
@@ -374,19 +392,20 @@
         }
 
         var baselineInv = new THREE.Matrix4().copy(baselinePose).invert();
+        // Δ = T_curr · T_base⁻¹（重建世界系）；应用到 Three 相机用世界系左乘 Δ·ref
         var delta = new THREE.Matrix4().copy(currentPose).multiply(baselineInv);
         var pos = new THREE.Vector3();
         var quat = new THREE.Quaternion();
         var scl = new THREE.Vector3();
         delta.decompose(pos, quat, scl);
-        quat = remapImuDeltaQuaternion(quat);
+        quat = correctDeviceDeltaQuaternion(quat);
 
         var deltaRot = new THREE.Matrix4().compose(
             new THREE.Vector3(0, 0, 0),
             quat,
             new THREE.Vector3(1, 1, 1)
         );
-        var target = new THREE.Matrix4().copy(refCameraMatrix).multiply(deltaRot);
+        var target = new THREE.Matrix4().multiplyMatrices(deltaRot, refCameraMatrix);
 
         var targetPos = new THREE.Vector3();
         var targetQuat = new THREE.Quaternion();
