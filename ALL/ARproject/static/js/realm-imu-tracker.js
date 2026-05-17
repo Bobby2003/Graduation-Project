@@ -20,6 +20,7 @@
 
     var debugPanel = null;
     var debugBody = null;
+    var debugPanelVisible = false;
     var lastPollAt = 0;
     var lastHttpOk = false;
     var lastPayload = null;
@@ -243,6 +244,30 @@
         return lines.join('\n');
     }
 
+    function applyDebugPanelVisibility() {
+        if (!debugPanel) return;
+        debugPanel.hidden = !(debugPanelVisible && shouldTrackImu());
+    }
+
+    function toggleDebugPanel(forceOpen) {
+        ensureDebugPanel();
+        if (!shouldTrackImu()) {
+            debugPanelVisible = false;
+            applyDebugPanelVisibility();
+            return false;
+        }
+        debugPanelVisible =
+            typeof forceOpen === 'boolean' ? forceOpen : !debugPanelVisible;
+        applyDebugPanelVisibility();
+        if (debugPanelVisible && debugBody) {
+            debugBody.textContent = buildDebugText(
+                lastPayload,
+                lastNetworkError || null
+            );
+        }
+        return debugPanelVisible;
+    }
+
     function refreshDebugPanel(data, errMsg) {
         ensureDebugPanel();
         if (!debugPanel || !debugBody) return;
@@ -252,7 +277,9 @@
             return;
         }
 
-        debugPanel.hidden = false;
+        applyDebugPanelVisibility();
+        if (!debugPanelVisible) return;
+
         debugBody.textContent = buildDebugText(data || lastPayload, errMsg || lastNetworkError);
     }
 
@@ -564,7 +591,7 @@
         } else {
             stopPolling();
             resetTracking();
-            if (debugPanel) debugPanel.hidden = true;
+            applyDebugPanelVisibility();
             if (
                 window.CenterRealtimeMesh &&
                 typeof window.CenterRealtimeMesh.stopImuOnly === 'function'
@@ -586,6 +613,19 @@
         }
     });
 
+    window.addEventListener(
+        'keydown',
+        function (e) {
+            if (e.code !== 'KeyN' || e.repeat) return;
+            if (!isImmersive3DPage() || !shouldTrackImu()) return;
+            var tag = (e.target && e.target.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            e.preventDefault();
+            toggleDebugPanel();
+        },
+        true
+    );
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', syncTrackingState);
     } else {
@@ -602,5 +642,9 @@
         getLastPayload: function () {
             return lastPayload;
         },
+        isDebugPanelVisible: function () {
+            return debugPanelVisible;
+        },
+        toggleDebugPanel: toggleDebugPanel,
     };
 })();

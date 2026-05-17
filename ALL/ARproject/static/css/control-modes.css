@@ -30,7 +30,11 @@
 body.ar-immersive-3d[data-control-mode="gesture"] .realm-ui-chrome:not(.realm-immersive-keep),
 body.ar-immersive-3d[data-control-mode="vr"] .realm-ui-chrome:not(.realm-immersive-keep),
 body.ar-immersive-3d.realm-mode-gesture .realm-ui-chrome:not(.realm-immersive-keep),
-body.ar-immersive-3d.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep) {
+body.ar-immersive-3d.realm-mode-vr .realm-ui-chrome:not(.realm-immersive-keep),
+body.ar-immersive-3d[data-control-mode="gesture"] .realm-reconstruction-material-panel,
+body.ar-immersive-3d[data-control-mode="vr"] .realm-reconstruction-material-panel,
+body.ar-immersive-3d.realm-mode-gesture .realm-reconstruction-material-panel,
+body.ar-immersive-3d.realm-mode-vr .realm-reconstruction-material-panel {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517h">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517i">
     <script type="importmap">
     {
         "imports": {
@@ -395,7 +395,7 @@
             <div id="center-realtime-status" style="color:#aaa;font-size:10px;line-height:1.5;font-family:Rajdhani,sans-serif;">CENTER: IDLE</div>
         </div>
 
-        <details class="realm-ui-chrome realm-immersive-keep realm-reconstruction-material-panel"
+        <details class="realm-ui-chrome realm-reconstruction-material-panel"
             id="center-reconstruction-material-details"
             style="position:absolute;top:356px;right:24px;z-index:38;pointer-events:auto;max-width:min(360px,92vw);padding:10px 12px;background:rgba(5,8,12,0.88);border:1px solid rgba(188,0,255,0.28);backdrop-filter:blur(8px);font-family:Rajdhani,sans-serif;font-size:11px;letter-spacing:0.35px;line-height:1.45;color:rgba(255,255,255,0.82);">
             <summary style="cursor:pointer;font-family:Syncopate,sans-serif;font-size:10px;color:rgba(188,0,255,0.92);letter-spacing:1px;list-style:none;">重建材质 · 扫描分区 ▾</summary>
@@ -501,7 +501,7 @@
     <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517d"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>
-    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517m"></script>
+    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517n"></script>
     <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
@@ -513,8 +513,8 @@
             function syncControlHelp(mode) {
                 if (!helpEl) return;
                 if (mode === 'desktop') helpEl.textContent = HELP_DESKTOP;
-                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · 进入即 IMU 漫游 · 张开手掌打开菜单 · 「开始扫描」用于建模';
-                else helpEl.textContent = 'VR 立体模式：左右分屏 · 手机横屏放入眼镜 · 点「菜单」或切换桌面';
+                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · 进入即 IMU 漫游 · 张掌开菜单 · N 键 IMU 调试 · 「开始扫描」用于建模';
+                else helpEl.textContent = 'VR 立体模式：左右分屏 · 横屏放入眼镜 · 菜单或桌面 · N 键 IMU 调试';
             }
             window.syncControlHelp = syncControlHelp;
 
