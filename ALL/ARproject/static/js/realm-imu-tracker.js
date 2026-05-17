@@ -316,20 +316,28 @@
     }
 
     /**
-     * 相对旋转 YXZ：pitch=x, yaw=y, roll=z。
-     * 实测：偏航(y)正确；俯仰(x)反了；左右翻(roll/z)符号需反。
+     * 在「校准时刻相机」局部系里修正 Δ 旋转（YXZ：yaw=Y, pitch=X, roll=Z），
+     * 避免在世界系欧拉上直接改符号导致俯仰带左右偏航。
+     * pitch、roll 取反；yaw 保持。
      */
-    function correctDeviceDeltaQuaternion(quat) {
-        if (!isValidQuaternion(quat)) {
-            return quat;
+    function correctDeviceDeltaQuaternion(quatDelta, qRef) {
+        if (!isValidQuaternion(quatDelta)) {
+            return quatDelta;
         }
+        if (!qRef || !isValidQuaternion(qRef)) {
+            return quatDelta;
+        }
+
+        var qRefInv = qRef.clone().invert();
+        var qLocal = qRefInv.clone().multiply(quatDelta).multiply(qRef);
+
         var e = new THREE.Euler(0, 0, 0, 'YXZ');
-        e.setFromQuaternion(quat);
+        e.setFromQuaternion(qLocal);
         e.x = -e.x;
         e.z = -e.z;
-        var out = new THREE.Quaternion();
-        out.setFromEuler(e);
-        return out;
+
+        var qLocalFixed = new THREE.Quaternion().setFromEuler(e);
+        return qRef.clone().multiply(qLocalFixed).multiply(qRefInv);
     }
 
     function getCenterCsrfToken() {
@@ -398,7 +406,12 @@
         var quat = new THREE.Quaternion();
         var scl = new THREE.Vector3();
         delta.decompose(pos, quat, scl);
-        quat = correctDeviceDeltaQuaternion(quat);
+
+        var refPos = new THREE.Vector3();
+        var refQuat = new THREE.Quaternion();
+        var refScl = new THREE.Vector3();
+        refCameraMatrix.decompose(refPos, refQuat, refScl);
+        quat = correctDeviceDeltaQuaternion(quat, refQuat);
 
         var deltaRot = new THREE.Matrix4().compose(
             new THREE.Vector3(0, 0, 0),
