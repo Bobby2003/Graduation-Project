@@ -301,6 +301,7 @@
     function pickPoseMatrix(data) {
         if (!data) return null;
         if (data.camera_to_world) return cameraToWorldForThree(data.camera_to_world);
+        // imu 体轴系与相机 OpenCV 系不同，不可套 cameraToWorldForThree
         if (data.imu_to_world) return mat4FromRows(data.imu_to_world);
         return null;
     }
@@ -316,26 +317,19 @@
     }
 
     /**
-     * 在「校准时刻相机」局部系里修正 Δ 旋转（YXZ：yaw=Y, pitch=X, roll=Z），
-     * 避免在世界系欧拉上直接改符号导致俯仰带左右偏航。
-     * pitch、roll 取反；yaw 保持。
+     * 在校准相机朝向下，只对相对 Δ 的俯仰(X)、横滚(Z) 取反，偏航(Y) 不动。
+     * 解决 OpenCV→Three + 相对合成后「上下、左右倾」与设备反向，同时保持已正确的左右转头。
      */
-    function correctDeviceDeltaQuaternion(quatDelta, qRef) {
-        if (!isValidQuaternion(quatDelta)) {
+    function fixInvertedPitchRollDelta(quatDelta, qRef) {
+        if (!isValidQuaternion(quatDelta) || !isValidQuaternion(qRef)) {
             return quatDelta;
         }
-        if (!qRef || !isValidQuaternion(qRef)) {
-            return quatDelta;
-        }
-
         var qRefInv = qRef.clone().invert();
         var qLocal = qRefInv.clone().multiply(quatDelta).multiply(qRef);
-
         var e = new THREE.Euler(0, 0, 0, 'YXZ');
         e.setFromQuaternion(qLocal);
         e.x = -e.x;
         e.z = -e.z;
-
         var qLocalFixed = new THREE.Quaternion().setFromEuler(e);
         return qRef.clone().multiply(qLocalFixed).multiply(qRefInv);
     }
@@ -390,6 +384,8 @@
 
         if (!baselinePose || !refCameraMatrix) {
             baselinePose = currentPose.clone();
+            // 不要用 IMU 绝对姿态覆盖相机。currentPose 经 OpenCV→Three 后直接赋给 quat 会让默认相机（-Z 前向、Y 上）
+            // 与矩阵语义错位，出现「一上来朝后、上下颠倒」。只锁基线矩阵，画面仍以当前场景朝向为 q_ref。
             cam.updateMatrixWorld(true);
             refCameraMatrix = cam.matrixWorld.clone();
             smoothedPos = cam.position.clone();
@@ -400,7 +396,7 @@
         }
 
         var baselineInv = new THREE.Matrix4().copy(baselinePose).invert();
-        // Δ = T_curr · T_base⁻¹（重建世界系）；应用到 Three 相机用世界系左乘 Δ·ref
+        // Δ = T_curr · T_base⁻¹；与行后姿态 q_curr = q_delta · q_base 一致，目标画面 q = q_delta · q_ref
         var delta = new THREE.Matrix4().copy(currentPose).multiply(baselineInv);
         var pos = new THREE.Vector3();
         var quat = new THREE.Quaternion();
@@ -411,19 +407,17 @@
         var refQuat = new THREE.Quaternion();
         var refScl = new THREE.Vector3();
         refCameraMatrix.decompose(refPos, refQuat, refScl);
-        quat = correctDeviceDeltaQuaternion(quat, refQuat);
 
-        var deltaRot = new THREE.Matrix4().compose(
-            new THREE.Vector3(0, 0, 0),
-            quat,
-            new THREE.Vector3(1, 1, 1)
-        );
-        var target = new THREE.Matrix4().multiplyMatrices(deltaRot, refCameraMatrix);
+        if (!isValidQuaternion(quat) || !isValidQuaternion(refQuat)) {
+            return;
+        }
 
-        var targetPos = new THREE.Vector3();
-        var targetQuat = new THREE.Quaternion();
-        var targetScl = new THREE.Vector3();
-        target.decompose(targetPos, targetQuat, targetScl);
+        quat = fixInvertedPitchRollDelta(quat, refQuat);
+        if (!isValidQuaternion(quat)) {
+            return;
+        }
+
+        var targetQuat = quat.clone().multiply(refQuat);
 
         if (!smoothedQuat) {
             smoothedQuat = cam.quaternion.clone();
