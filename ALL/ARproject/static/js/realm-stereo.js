@@ -4,10 +4,12 @@
 (function () {
     'use strict';
 
-    var EYE_SEPARATION = 0.065;
+    /** 左右眼间距（米）。偏弱 0.04~0.05；默认 0.048；偏强 0.064~0.08 */
+    var EYE_SEPARATION = 0.048;
+    /** 零视差平面距离（米）。越大视差越弱、越易融合；过小会显得左右眼「分得太开」 */
+    var STEREO_CONVERGENCE = 5.5;
     var stereoCamL = null;
     var stereoCamR = null;
-    var _offVec = null;
     var _bufSize = null;
 
     /** Three r160 使用 getDrawingBufferSize，无 getDrawingBufferWidth */
@@ -52,9 +54,31 @@
         if (!stereoCamL) {
             stereoCamL = new THREE.PerspectiveCamera();
             stereoCamR = new THREE.PerspectiveCamera();
-            _offVec = new THREE.Vector3();
         }
         return true;
+    }
+
+    /**
+     * 平行立体：相机同位姿 + 离轴投影（非对称视锥）。
+     * 勿同时平移相机又用对称 updateProjectionMatrix，否则视差被放大、难以融合。
+     */
+    function applyOffAxisStereoFrustum(stereoCam, mainCam, eyeSign, eyeSeparation) {
+        var near = mainCam.near;
+        var far = mainCam.far;
+        var fovRad = THREE.MathUtils.degToRad(mainCam.fov);
+        var top = near * Math.tan(fovRad * 0.5);
+        var bottom = -top;
+        var halfW = top * stereoCam.aspect;
+        var left = -halfW;
+        var right = halfW;
+        var conv = Math.max(near * 2, STEREO_CONVERGENCE);
+        var shift = eyeSign * (eyeSeparation * 0.5) * near / conv;
+        left += shift;
+        right += shift;
+        stereoCam.projectionMatrix.makePerspective(left, right, top, bottom, near, far);
+        if (stereoCam.projectionMatrixInverse) {
+            stereoCam.projectionMatrixInverse.copy(stereoCam.projectionMatrix).invert();
+        }
     }
 
     function syncStereoCameras(camera, renderer) {
@@ -67,21 +91,23 @@
 
         var halfAspect = (w * 0.5) / h;
 
-        [stereoCamL, stereoCamR].forEach(function (cam) {
-            cam.fov = camera.fov;
-            cam.near = camera.near;
-            cam.far = camera.far;
-            cam.aspect = halfAspect;
-            cam.updateProjectionMatrix();
-        });
+        stereoCamL.fov = camera.fov;
+        stereoCamR.fov = camera.fov;
+        stereoCamL.near = camera.near;
+        stereoCamR.near = camera.near;
+        stereoCamL.far = camera.far;
+        stereoCamR.far = camera.far;
+        stereoCamL.aspect = halfAspect;
+        stereoCamR.aspect = halfAspect;
 
-        _offVec.set(EYE_SEPARATION * 0.5, 0, 0);
-        _offVec.applyQuaternion(camera.quaternion);
-
-        stereoCamL.position.copy(camera.position).sub(_offVec);
-        stereoCamR.position.copy(camera.position).add(_offVec);
+        stereoCamL.position.copy(camera.position);
+        stereoCamR.position.copy(camera.position);
         stereoCamL.quaternion.copy(camera.quaternion);
         stereoCamR.quaternion.copy(camera.quaternion);
+
+        applyOffAxisStereoFrustum(stereoCamL, camera, -1, EYE_SEPARATION);
+        applyOffAxisStereoFrustum(stereoCamR, camera, 1, EYE_SEPARATION);
+
         stereoCamL.updateMatrixWorld(true);
         stereoCamR.updateMatrixWorld(true);
         return true;
@@ -232,5 +258,6 @@
         applyStereoLayout: applyStereoLayout,
         getBufferSize: getBufferSize,
         EYE_SEPARATION: EYE_SEPARATION,
+        STEREO_CONVERGENCE: STEREO_CONVERGENCE,
     };
 })();
