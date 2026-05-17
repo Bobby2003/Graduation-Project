@@ -274,6 +274,14 @@ class ARGestureController {
         );
     }
 
+    isPortalHudPage() {
+        return !!(
+            document.querySelector('.ar-portal-stereo-source') ||
+            document.querySelector('.settings-container') ||
+            document.body?.classList?.contains('settings-page')
+        );
+    }
+
     /** 与 realm 一致：首页不启手势；位面 / 带模式切换的门户页 / autostart 页可启 */
     isGestureCapablePage() {
         if (this.isHomePage()) return false;
@@ -408,7 +416,7 @@ class ARGestureController {
 
         this.arActive = true;
 
-        if (this.gestureWidget) {
+        if (this.gestureWidget && !this.isPortalHudPage()) {
             this.gestureWidget.style.display = 'block';
         }
 

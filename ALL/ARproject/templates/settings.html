@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SETTINGS | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516k">
-    <link rel="stylesheet" href="{% static 'css/settings-theme.css' %}?v=20260517s">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517u">
+    <link rel="stylesheet" href="{% static 'css/settings-theme.css' %}?v=20260517t">
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <style>
         :root {
@@ -530,7 +530,7 @@
     </style>
     <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
 </head>
-<body class="ar-portal-page hud-scroll-root">
+<body class="ar-portal-page hud-scroll-root settings-page">
     <form style="display:none;" id="settings-csrf-form">{% csrf_token %}</form>
     <div class="top-nav">
         <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
@@ -546,7 +546,7 @@
         </div>
     </div>
 
-    <div class="settings-container">
+    <div class="settings-container ar-portal-stereo-source" id="settings-portal-stereo-root">
         <!-- 设备与链路（系统层） -->
         <div class="settings-group" id="devices">
             <div class="group-header">

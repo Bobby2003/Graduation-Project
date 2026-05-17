@@ -43,7 +43,12 @@ body.ar-portal-page .top-nav,
 body.ar-portal-page .settings-group,
 body.ar-portal-page .hud-panel,
 body.ar-portal-page .realm-ar-menu-panel {
+    background-color: var(--ui-panel-bg);
     background-color: color-mix(in srgb, var(--ui-panel-bg) calc(var(--hud-panel-opacity) * 100%), transparent);
+}
+
+body.ar-portal-page .ar-portal-stereo-scaler .settings-group {
+    background-color: var(--ui-panel-bg);
 }
 
 body.ui-scanlines-on::after {

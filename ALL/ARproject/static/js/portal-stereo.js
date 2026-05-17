@@ -120,6 +120,8 @@
 
         var selectors = [
 
+            '.ar-portal-stereo-source',
+
             'main',
 
             '.settings-container',
@@ -224,17 +226,23 @@
 
         mirrorObserver = new MutationObserver(scheduleMirrorRefresh);
 
-        mirrorObserver.observe(sourceEl, {
+        var observeOpts = {
 
             childList: true,
 
             subtree: true,
 
-            characterData: true,
+        };
 
-            attributes: true,
+        if (!sourceEl.classList || !sourceEl.classList.contains('ar-portal-stereo-source')) {
 
-        });
+            observeOpts.characterData = true;
+
+            observeOpts.attributes = true;
+
+        }
+
+        mirrorObserver.observe(sourceEl, observeOpts);
 
     }
 

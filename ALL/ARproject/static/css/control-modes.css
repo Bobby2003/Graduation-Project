@@ -405,6 +405,33 @@ body.realm-stereo-active[data-control-mode="vr"]:not(.ar-immersive-3d) header.to
     display: none !important;
 }
 
+/* 设置页立体分屏：仅内容区缩放，顶栏由掌菜 / NAV / M 键导航 */
+body.realm-stereo-active:not(.ar-immersive-3d) .ar-portal-stereo-scaler .settings-container,
+body.realm-stereo-active:not(.ar-immersive-3d) .ar-portal-stereo-scaler .settings-group,
+body.realm-stereo-active:not(.ar-immersive-3d) .ar-portal-stereo-scaler .setting-item,
+body.realm-stereo-active:not(.ar-immersive-3d) .ar-portal-stereo-scaler .save-section {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+body.settings-page.realm-stereo-active .ar-portal-stereo-scaler {
+    width: 100vw;
+    min-height: 100vh;
+    margin-top: 0;
+    padding-top: clamp(8px, 1.5vh, 16px);
+    padding-bottom: 48px;
+    box-sizing: border-box;
+}
+
+body.settings-page.realm-stereo-active[data-control-mode="gesture"] .top-nav,
+body.settings-page.realm-stereo-active[data-control-mode="vr"] .top-nav {
+    display: none !important;
+}
+
+body.settings-page.realm-stereo-active .ar-portal-stereo-stage {
+    -webkit-overflow-scrolling: touch;
+}
+
 body.ar-portal-page[data-control-mode="gesture"] .app-shell,
 body.ar-portal-page[data-control-mode="vr"] .app-shell {
     margin-top: 0 !important;
