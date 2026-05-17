@@ -85,10 +85,17 @@
         setMenuOpen(!menuOpen);
     };
 
+    function syncRealmMenuMirror() {
+        if (menuOpen && isImmersive() && window.ARStereoOverlaySync) {
+            window.ARStereoOverlaySync.syncById('realm-ar-menu');
+        }
+    }
+
     function hideMaterialGrid() {
         materialGridVisible = false;
         var grid = el('realm-ar-material-grid');
         if (grid) grid.classList.remove('is-visible');
+        syncRealmMenuMirror();
     }
 
     function showMaterialGrid() {
@@ -110,6 +117,7 @@
             });
         }
         grid.classList.add('is-visible');
+        syncRealmMenuMirror();
     }
 
     function applyMaterial(code) {

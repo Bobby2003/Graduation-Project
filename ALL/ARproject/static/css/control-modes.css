@@ -312,7 +312,8 @@ body.ar-immersive-3d.realm-mode-vr #realm-vr-menu-btn {
     color: #00ff88;
 }
 
-#realm-ar-material-grid {
+/* 类选择器：右眼镜像会 strip id，材质网格须靠 class 对齐样式 */
+.realm-ar-material-grid {
     display: none;
     flex-wrap: wrap;
     gap: 14px;
@@ -321,11 +322,11 @@ body.ar-immersive-3d.realm-mode-vr #realm-vr-menu-btn {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-#realm-ar-material-grid.is-visible {
+.realm-ar-material-grid.is-visible {
     display: flex;
 }
 
-#realm-ar-material-grid button {
+.realm-ar-material-grid button {
     flex: 1 1 calc(50% - 14px);
     min-width: 140px;
     min-height: 52px;
