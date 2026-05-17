@@ -654,7 +654,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>`r`n    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
+    {% include "partials/hud_controls_scripts.html" %}
     {% include "partials/ar_stereo_scripts.html" %}
     <script>
         // 装备卡片点击选择功能

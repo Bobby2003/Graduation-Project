@@ -335,7 +335,7 @@
         }
     </style>
 </head>
-<body class="ar-immersive-3d">
+<body class="ar-immersive-3d" data-ar-audio-bgm-gain="0.28">
     <form style="display:none;" id="realm-csrf-form">{% csrf_token %}</form>
     <script type="application/json" id="realm-private-json">{{ private_realm_json }}</script>
     <script>
@@ -458,8 +458,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
-    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
+    {% include "partials/hud_controls_scripts.html" %}
     <script src="{% static 'js/realm-immersive.js' %}?v=20260516j"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260516j"></script>

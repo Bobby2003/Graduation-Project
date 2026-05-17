@@ -211,7 +211,7 @@
     </div>
 
     <!-- 绝对核心：统一引入 AR 手势引擎 -->
-    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>`r`n    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
+    {% include "partials/hud_controls_scripts.html" %}
     {% include "partials/ar_stereo_scripts.html" %}
 </body>
 </html>

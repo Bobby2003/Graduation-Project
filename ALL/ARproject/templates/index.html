@@ -215,8 +215,7 @@
         <a href="{% url 'disclaimer' %}" style="color:#555;text-decoration:none;margin:0 10px;">免责</a>
     </footer>
 
-    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
-    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
+    {% include "partials/hud_controls_scripts.html" %}
     {% include "partials/ar_stereo_scripts.html" %}
 </body>
 </html>

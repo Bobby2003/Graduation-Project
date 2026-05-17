@@ -63,6 +63,19 @@
             box-shadow: 0 0 15px rgba(255,215,0,0.2);
         }
 
+        .field-hint {
+            margin: 8px 0 0;
+            padding: 0;
+            list-style: none;
+            font-size: 12px;
+            line-height: 1.55;
+            color: rgba(255, 215, 0, 0.55);
+        }
+        .field-hint li::before {
+            content: "▸ ";
+            color: rgba(255, 215, 0, 0.75);
+        }
+
         .btn-submit {
             width: 100%; padding: 15px;
             background: rgba(255, 215, 0, 0.05);
@@ -100,6 +113,9 @@
             <div class="input-group">
                 <label>NEW USER_ID</label>
                 <input type="text" name="username" placeholder="英文或数字" required autocomplete="off">
+                <ul class="field-hint">
+                    <li>仅支持字母、数字及 @ . + - _，最长 150 字符</li>
+                </ul>
             </div>
             <div class="input-group">
                 <label>COM_EMAIL</label>
@@ -107,7 +123,20 @@
             </div>
             <div class="input-group">
                 <label>NEW ENCRYPTION KEY</label>
-                <input type="password" name="password" placeholder="建议使用复杂组合" required>
+                <input type="password" name="password1" placeholder="建议使用复杂组合" required autocomplete="new-password">
+                <ul class="field-hint">
+                    <li>至少 8 个字符</li>
+                    <li>不能与用户名、邮箱过于相似</li>
+                    <li>不能使用常见弱密码（如 password、12345678）</li>
+                    <li>不能全部为数字</li>
+                </ul>
+            </div>
+            <div class="input-group">
+                <label>CONFIRM KEY</label>
+                <input type="password" name="password2" placeholder="再次输入密钥" required autocomplete="new-password">
+                <ul class="field-hint">
+                    <li>须与上方密钥完全一致</li>
+                </ul>
             </div>
             <button type="submit" class="btn-submit">写入安全协议 (REGISTER)</button>
         </form>
@@ -124,7 +153,7 @@
         {% endif %}
     </div>
 
-    <!-- 统一载入最新 AR 引擎 -->
+    {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/gesture.js' %}"></script>
 </body>
 </html>

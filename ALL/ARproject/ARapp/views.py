@@ -6,7 +6,10 @@ from collections import defaultdict
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib import messages
+
+from .forms import RealmRegisterForm
 from django.db.models import Q, Sum
 from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
@@ -122,7 +125,7 @@ def _mission_btn(um: UserMission):
 
 def user_register(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = RealmRegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
             UserProfile.objects.get_or_create(
@@ -130,9 +133,16 @@ def user_register(request):
             )
             ensure_user_missions(user)
             ensure_default_loadout(user)
+            messages.success(request, "注册成功，请使用新账号登录。")
             return redirect("login")
+        for err in form.non_field_errors():
+            messages.error(request, err)
+        for field in form:
+            for err in field.errors:
+                label = field.label or field.name
+                messages.error(request, f"{label}: {err}")
     else:
-        form = UserCreationForm()
+        form = RealmRegisterForm()
     return render(request, "register.html", {"form": form})
 
 

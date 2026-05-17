@@ -1,0 +1,20 @@
+{% load static %}
+<audio
+    id="ar-realm-bgm"
+    src="{% static 'audio/bgm/hud-ambient.ogg' %}"
+    loop
+    preload="auto"
+    autoplay
+    muted
+    playsinline
+    style="position:fixed;width:0;height:0;opacity:0;pointer-events:none"
+    aria-hidden="true"
+></audio>
+<script>
+window.AR_AUDIO_URLS = {
+    bgm: "{% static 'audio/bgm/hud-ambient.ogg' %}",
+    click: "{% static 'audio/sfx/btn-click.ogg' %}",
+    hover: "{% static 'audio/sfx/btn-hover.ogg' %}"
+};
+</script>
+<script src="{% static 'js/audio-manager.js' %}?v=20260517b"></script>

@@ -1,0 +1,94 @@
+/**
+ * HUD 终端滚动条 — 深色轨道 + 霓虹滑块，覆盖 WebKit / Firefox
+ * 在页面 <body> 或滚动容器上使用 class="hud-scroll"
+ */
+
+:root {
+    --hud-scroll-track: rgba(4, 8, 14, 0.92);
+    --hud-scroll-track-edge: rgba(0, 242, 255, 0.14);
+    --hud-scroll-thumb: rgba(0, 242, 255, 0.42);
+    --hud-scroll-thumb-active: rgba(0, 242, 255, 0.78);
+    --hud-scroll-glow: rgba(0, 242, 255, 0.45);
+    --hud-scroll-gold-thumb: rgba(255, 215, 0, 0.5);
+    --hud-scroll-gold-active: rgba(255, 215, 0, 0.85);
+}
+
+.hud-scroll,
+body.hud-scroll-root {
+    scrollbar-width: thin;
+    scrollbar-color: var(--hud-scroll-thumb) var(--hud-scroll-track);
+}
+
+.hud-scroll-gold {
+    scrollbar-color: var(--hud-scroll-gold-thumb) var(--hud-scroll-track);
+}
+
+.hud-scroll::-webkit-scrollbar,
+body.hud-scroll-root::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.hud-scroll::-webkit-scrollbar-track,
+body.hud-scroll-root::-webkit-scrollbar-track {
+    background: var(--hud-scroll-track);
+    border-left: 1px solid var(--hud-scroll-track-edge);
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+}
+
+.hud-scroll::-webkit-scrollbar-thumb,
+body.hud-scroll-root::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+        180deg,
+        var(--hud-scroll-thumb-active) 0%,
+        var(--hud-scroll-thumb) 45%,
+        rgba(0, 160, 180, 0.35) 100%
+    );
+    border: 1px solid rgba(0, 242, 255, 0.35);
+    border-radius: 1px;
+    box-shadow: 0 0 8px var(--hud-scroll-glow);
+}
+
+.hud-scroll::-webkit-scrollbar-thumb:hover,
+body.hud-scroll-root::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+        180deg,
+        var(--hud-scroll-thumb-active) 0%,
+        rgba(0, 242, 255, 0.65) 100%
+    );
+    box-shadow: 0 0 12px var(--hud-scroll-glow);
+}
+
+.hud-scroll::-webkit-scrollbar-thumb:active,
+body.hud-scroll-root::-webkit-scrollbar-thumb:active {
+    background: var(--hud-scroll-thumb-active);
+}
+
+/* 隐藏系统默认上下箭头 */
+.hud-scroll::-webkit-scrollbar-button,
+body.hud-scroll-root::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.hud-scroll::-webkit-scrollbar-corner,
+body.hud-scroll-root::-webkit-scrollbar-corner {
+    background: var(--hud-scroll-track);
+}
+
+/* 成就区等金色强调 */
+.hud-scroll-gold::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+        180deg,
+        var(--hud-scroll-gold-active) 0%,
+        var(--hud-scroll-gold-thumb) 100%
+    );
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
+}
+
+.hud-scroll-gold::-webkit-scrollbar-thumb:hover {
+    background: var(--hud-scroll-gold-active);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+}

@@ -94,7 +94,7 @@
         <a href="/" class="btn-home">↺ REBOOT SYSTEM</a>
     </div>
 
-    <!-- 同样引入手势引擎，确保即使在 404 也能用手势点回去 -->
+    {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/gesture.js' %}"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -682,7 +682,7 @@
                     <div class="slider-track">
                         <div class="slider-fill" style="width: 60%;"></div>
                     </div>
-                    <input type="range" value="60" min="0" max="100">
+                    <input type="range" value="60" min="0" max="100" data-ar-audio-master>
                 </div>
             </div>
 
@@ -692,18 +692,18 @@
                     <div class="setting-desc">界面背景音乐开关</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox">
+                    <input type="checkbox" data-ar-audio-bgm checked>
                     <span class="toggle-slider"></span>
                 </label>
             </div>
 
             <div class="setting-item">
                 <div class="setting-info">
-                    <div class="setting-name">通知提示音</div>
-                    <div class="setting-desc">任务完成、消息通知音效</div>
+                    <div class="setting-name">界面音效</div>
+                    <div class="setting-desc">按钮点击与悬停提示音</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" data-ar-audio-sfx checked>
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -761,8 +761,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/controls.js'' %}?v=20260516k"></script>
-    <script src="{% static 'js/gesture.js'' %}?v=20260516k"></script>
+    {% include "partials/hud_controls_scripts.html" %}
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/settings-device-status.js' %}?v=20260516j"></script>
     <script>
