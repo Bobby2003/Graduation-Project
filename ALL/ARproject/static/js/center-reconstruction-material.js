@@ -94,41 +94,63 @@
         placementSyncTimer = null;
     }
 
+    function getGltfLoaderConstructor() {
+        return window.__RealmGLTFLoader || (window.THREE && window.THREE.GLTFLoader);
+    }
+
+    /** head 里 type=module 的脚本为 deferred，可能比同步脚本晚挂到 window。 */
+    function waitForGltfLoaderConstructor() {
+        return new Promise(function (resolve, reject) {
+            var tries = 0;
+            var maxTries = 300;
+            function tick() {
+                var Ctor = getGltfLoaderConstructor();
+                if (Ctor) {
+                    resolve(Ctor);
+                    return;
+                }
+                if (++tries > maxTries) {
+                    reject(new Error('THREE.GLTF_LOADER_MISSING'));
+                    return;
+                }
+                setTimeout(tick, 20);
+            }
+            tick();
+        });
+    }
+
     function loadCenterMaterialGlb(glbUrl) {
         ensureMaterialSceneRoot();
         if (!materialRoot || !window.THREE) return Promise.reject(new Error('NO_SCENE'));
 
-        var LoaderCtor = window.THREE && window.THREE.GLTFLoader;
-        if (!LoaderCtor) {
-            return Promise.reject(new Error('THREE.GLTF_LOADER_MISSING'));
-        }
-
         clearMaterialGltfChildren();
 
-        return new Promise(function (resolve, reject) {
-            var loader = new LoaderCtor();
-            loader.load(
-                glbUrl,
-                function (gltf) {
-                    var rootScene = gltf.scene;
-                    rootScene.traverse(function (o) {
-                        if (o.isMesh) {
-                            o.renderOrder = 11;
-                            o.userData.isCenterReconstructionMaterialMesh = true;
-                            o.castShadow = true;
-                            o.receiveShadow = true;
-                        }
-                    });
-                    materialRoot.add(rootScene);
-                    syncMaterialLayerToMeshAnchor();
-                    startPlacementSync();
-                    resolve(rootScene);
-                },
-                undefined,
-                function (err) {
-                    reject(err);
-                }
-            );
+        return waitForGltfLoaderConstructor().then(function (LoaderCtor) {
+            return new Promise(function (resolve, reject) {
+                var loader = new LoaderCtor();
+                loader.load(
+                    glbUrl,
+                    function (gltf) {
+                        var rootScene = gltf.scene;
+                        rootScene.traverse(function (o) {
+                            if (o.isMesh) {
+                                o.renderOrder = 11;
+                                o.userData.isCenterReconstructionMaterialMesh = true;
+                                o.castShadow = true;
+                                o.receiveShadow = true;
+                            }
+                        });
+                        materialRoot.add(rootScene);
+                        syncMaterialLayerToMeshAnchor();
+                        startPlacementSync();
+                        resolve(rootScene);
+                    },
+                    undefined,
+                    function (err) {
+                        reject(err);
+                    }
+                );
+            });
         });
     }
 
@@ -324,7 +346,7 @@
                 console.warn('[CRM]', err);
                 setHint(
                     err && err.message === 'THREE.GLTF_LOADER_MISSING'
-                        ? '缺少 GLTF 加载脚本（THREE.GLTFLoader）'
+                        ? '缺少 GLTF 加载器：请确认浏览器支持 importmap，并已强刷页面'
                         : '加载 scene.glb 失败：' + (err && err.message ? err.message : err),
                     'bad'
                 );

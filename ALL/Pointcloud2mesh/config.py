@@ -113,7 +113,7 @@ class IMUConfig:
     required: bool = False
 
     # 串口通信参数，对应通信协议中的 0x7E 0x23 帧。
-    serial_port: str = "COM8"
+    serial_port: str = "COM7"
     serial_baudrate: int = 115200
     serial_timeout_sec: float = 0.05
     init_timeout_sec: float = 0.5
