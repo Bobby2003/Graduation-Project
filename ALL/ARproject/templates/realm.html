@@ -328,6 +328,8 @@
                     title: "{{ profile.display_title|escapejs }}"
                 },
                 realm: realm,
+                /** 扫描 mesh 落地高度（米）：模型底面相对地面 y=0 的默认高度 */
+                meshPlacement: { baseHeightM: 1.78 },
                 urls: {
                     saveRealm: "{% url 'realm_save_api' %}",
                     progressEvent: "{% url 'progress_event_api' %}",
@@ -498,7 +500,7 @@
     {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/stereo-overlay-sync.js' %}?v=20260517d"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517d"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517p"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>
     <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517n"></script>

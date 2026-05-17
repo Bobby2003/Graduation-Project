@@ -18,8 +18,18 @@
     /** 至少多少顶点才参与校准（避免空 mesh） */
     var MIN_CALIB_VERTICES = 120;
     var TARGET_REALM_SIZE = 4.2;
-    var REALM_FLOOR_Y = 0;
     var REALM_MESH_FLOOR_EPS = 0.008;
+
+    function readMeshBaseHeightM() {
+        var mp =
+            window.REALM_BOOTSTRAP &&
+            window.REALM_BOOTSTRAP.meshPlacement;
+        var h = mp && mp.baseHeightM;
+        if (typeof h === 'number' && Number.isFinite(h)) return h;
+        return 1.78;
+    }
+
+    var REALM_FLOOR_Y = readMeshBaseHeightM();
 
     var placementLocked = false;
     var lockedPlacement = null;
