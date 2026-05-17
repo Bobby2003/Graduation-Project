@@ -7,6 +7,18 @@
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517g">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        window.__RealmGLTFLoader = GLTFLoader;
+    </script>
     <style>
         :root {
             --neon: #00f2ff;
@@ -469,7 +481,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
     <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
     {% include "partials/hud_audio_scripts.html" %}
@@ -478,7 +489,7 @@
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>
     <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517h"></script>
-    <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm"></script>
+    <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {
