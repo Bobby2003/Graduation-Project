@@ -378,6 +378,22 @@
         });
     }
 
+    function readDefaultCameraPose() {
+        var cfg =
+            window.REALM_BOOTSTRAP &&
+            window.REALM_BOOTSTRAP.imuRecenter;
+        var pos = (cfg && cfg.cameraPosition) || [0, 1.7, 4.2];
+        var rot = (cfg && cfg.cameraRotation) || [0, 0, 0];
+        return {
+            x: Number(pos[0]) || 0,
+            y: Number(pos[1]) || 1.7,
+            z: Number(pos[2]) || 4.2,
+            rx: Number(rot[0]) || 0,
+            ry: Number(rot[1]) || 0,
+            rz: Number(rot[2]) || 0,
+        };
+    }
+
     function resetTracking() {
         baselinePose = null;
         refCameraMatrix = null;
@@ -386,6 +402,20 @@
         lastStatus = '';
         lastPayload = null;
         refreshDebugPanel(null, lastNetworkError);
+    }
+
+    function recenterImuView() {
+        resetTracking();
+        var cam = window.camera;
+        var pose = readDefaultCameraPose();
+        if (cam && typeof THREE !== 'undefined') {
+            cam.position.set(pose.x, pose.y, pose.z);
+            cam.rotation.set(pose.rx, pose.ry, pose.rz, 'YXZ');
+            cam.quaternion.setFromEuler(cam.rotation);
+            cam.updateMatrixWorld(true);
+        }
+        setStatusHint('✌ 视角已回正 · 等待 IMU 重新校准…');
+        refreshDebugPanel(lastPayload, lastNetworkError);
     }
 
     function setStatusHint(text) {
@@ -613,6 +643,13 @@
         }
     });
 
+    window.addEventListener('ar-gesture', function (e) {
+        var d = e.detail;
+        if (!d || d.action !== 'imu-recenter') return;
+        if (!shouldTrackImu()) return;
+        recenterImuView();
+    });
+
     window.addEventListener(
         'keydown',
         function (e) {
@@ -646,5 +683,6 @@
             return debugPanelVisible;
         },
         toggleDebugPanel: toggleDebugPanel,
+        recenterView: recenterImuView,
     };
 })();

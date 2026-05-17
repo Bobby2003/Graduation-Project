@@ -92,6 +92,20 @@ function isFist(lm) {
     return bent >= 4;
 }
 
+/** ✌ 剪刀手：食指+中指伸展，无名指+小指弯曲（用于 IMU 回正） */
+function isPeaceSign(lm) {
+    if (!lm || lm.length < 21) return false;
+    if (isOpenPalm(lm) || isFist(lm) || isPinch(lm)) return false;
+    const indexUp = lm[8].y < lm[6].y;
+    const middleUp = lm[12].y < lm[10].y;
+    const ringDown = lm[16].y > lm[14].y;
+    const pinkyDown = lm[20].y > lm[18].y;
+    const spread =
+        lmHypot(lm[8].x - lm[12].x, lm[8].y - lm[12].y) >
+        lmHypot(lm[5].x - lm[9].x, lm[5].y - lm[9].y) * 0.35;
+    return indexUp && middleUp && ringDown && pinkyDown && spread;
+}
+
 class ARGestureController {
     constructor() {
         this.statusText =
@@ -117,6 +131,10 @@ class ARGestureController {
         this._lastWsSend = 0;
         this._openPalmFrames = 0;
         this._palmMenuOpen = false;
+        this._peaceHoldStart = null;
+        this._peaceRecenterCooldown = 0;
+        this._peaceHoldLastHint = null;
+        this._peaceHoldMs = 2000;
 
         this.selectors =
             'a, button, input, .realm-card, .market-card, .btn-action, .loot-item, .rank-item, .btn-link, ' +
@@ -263,8 +281,14 @@ class ARGestureController {
         this.statusText.style.color = '#8892b0';
     }
 
+    handTrackingAllowedForMode(mode) {
+        if (!this.isGestureCapablePage()) return false;
+        if (mode === 'gesture') return true;
+        return mode === 'vr' && this.isImmersive3DPage();
+    }
+
     maybeStartGestureForMode(mode) {
-        if (mode !== 'gesture' || !this.isGestureCapablePage()) return;
+        if (!this.handTrackingAllowedForMode(mode)) return;
         this.startAR().catch((e) => {
             console.error('[AR System] 手势模式启动失败:', e);
             this.showRealmGestureToast('摄像头启动失败，请允许权限');
@@ -280,12 +304,13 @@ class ARGestureController {
                 return;
             }
             this.syncGestureStatusLabel(d.mode);
-            if (d.mode === 'gesture') {
-                this.maybeStartGestureForMode('gesture');
+            if (this.handTrackingAllowedForMode(d.mode)) {
+                this.maybeStartGestureForMode(d.mode);
             } else {
                 this.stopAR();
                 this._palmMenuOpen = false;
                 this._openPalmFrames = 0;
+                this._peaceHoldStart = null;
             }
         });
 
@@ -305,8 +330,8 @@ class ARGestureController {
             this.syncGestureStatusLabel(stored);
             queueMicrotask(() => {
                 const m = this.getStoredControlMode();
-                if (m === 'gesture') {
-                    this.maybeStartGestureForMode('gesture');
+                if (this.handTrackingAllowedForMode(m)) {
+                    this.maybeStartGestureForMode(m);
                 }
             });
             return;
@@ -344,20 +369,23 @@ class ARGestureController {
 
         const mode = this.getStoredControlMode();
         const autostart = document.body?.dataset?.arGestureAutostart === '1';
-        if (mode !== 'gesture' && !autostart) {
-            console.log('[AR System] startAR skipped (control mode is not gesture)');
+        if (!this.handTrackingAllowedForMode(mode) && !autostart) {
+            console.log('[AR System] startAR skipped (control mode has no hand tracking)');
             return;
+        }
+
+        const bootstrap = window.REALM_BOOTSTRAP || {};
+        const recenterCfg = bootstrap.imuRecenter || {};
+        if (typeof recenterCfg.peaceHoldMs === 'number' && recenterCfg.peaceHoldMs > 500) {
+            this._peaceHoldMs = recenterCfg.peaceHoldMs;
         }
 
         console.log('[AR System] startAR begin', {
             wasm: WASM_BASE,
             esm: TASKS_ESM,
             immersive: this.isImmersive3DPage(),
+            mode,
         });
-
-        if (this.isImmersive3DPage() && window.ARRealmControls && window.ARRealmControls.getMode() !== 'gesture') {
-            window.ARRealmControls.setMode('gesture');
-        }
 
         this.arActive = true;
 
@@ -379,7 +407,7 @@ class ARGestureController {
             console.log('[AR System] startAR success');
             this.showRealmGestureToast(
                 this.isImmersive3DPage()
-                    ? 'AR 就绪 · 任意手张开掌打开菜单 · M 键备用'
+                    ? '就绪 · 张掌开菜单 · ✌ 保持 2s 回正 IMU · M 键菜单'
                     : 'AR 就绪 · 指向悬停 · 捏合点击（立体分屏已开启）'
             );
         } catch (e) {
@@ -574,6 +602,7 @@ class ARGestureController {
         let pointer = null;
         let palmOpen = false;
         let palmFist = false;
+        let peaceSign = false;
 
         const n = result.landmarks?.length || 0;
 
@@ -581,6 +610,7 @@ class ARGestureController {
             const lm = result.landmarks[i];
             if (isOpenPalm(lm)) palmOpen = true;
             if (isFist(lm)) palmFist = true;
+            if (isPeaceSign(lm)) peaceSign = true;
         }
 
         for (let i = 0; i < n; i++) {
@@ -624,7 +654,7 @@ class ARGestureController {
             }
         }
 
-        return { right: rightGesture, left: leftGesture, scroll, pointer, palmOpen, palmFist };
+        return { right: rightGesture, left: leftGesture, scroll, pointer, palmOpen, palmFist, peaceSign };
     }
 
     maybeSendWs(payload) {
@@ -691,12 +721,53 @@ class ARGestureController {
         }
 
         this.handlePalmMenuGestures(data);
+        this.handlePeaceSignRecenter(data);
+    }
+
+    handlePeaceSignRecenter(data) {
+        const mode = this.getStoredControlMode();
+        if (mode !== 'gesture' && mode !== 'vr') {
+            this._peaceHoldStart = null;
+            return;
+        }
+        if (!this.isImmersive3DPage()) {
+            this._peaceHoldStart = null;
+            return;
+        }
+
+        const now = performance.now();
+        if (data.peaceSign) {
+            if (!this._peaceHoldStart) {
+                this._peaceHoldStart = now;
+            }
+            const held = now - this._peaceHoldStart;
+            if (held >= this._peaceHoldMs) {
+                if (now - this._peaceRecenterCooldown > 1800) {
+                    this._peaceRecenterCooldown = now;
+                    this._peaceHoldStart = null;
+                    window.dispatchEvent(
+                        new CustomEvent('ar-gesture', { detail: { action: 'imu-recenter' } })
+                    );
+                    this.showRealmGestureToast('视角已回正 · IMU 已重置');
+                }
+            } else {
+                const left = Math.ceil((this._peaceHoldMs - held) / 1000);
+                if (left !== this._peaceHoldLastHint) {
+                    this._peaceHoldLastHint = left;
+                    this.showRealmGestureToast('保持 ✌ ' + left + 's 回正视角…');
+                }
+            }
+        } else {
+            this._peaceHoldStart = null;
+            this._peaceHoldLastHint = null;
+        }
     }
 
     handlePalmMenuGestures(data) {
         const mode = this.getStoredControlMode();
         if (mode !== 'gesture' && mode !== 'vr') {
             this._openPalmFrames = 0;
+            this._peaceHoldStart = null;
             return;
         }
 

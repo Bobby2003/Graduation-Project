@@ -330,6 +330,12 @@
                 realm: realm,
                 /** 扫描 mesh 落地高度（米）：模型底面相对地面 y=0 的默认高度 */
                 meshPlacement: { baseHeightM: 1.78 },
+                /** AR/VR：✌ 保持 peaceHoldMs 后回正相机并清空 IMU 基准 */
+                imuRecenter: {
+                    peaceHoldMs: 2000,
+                    cameraPosition: [0, 1.7, 4.2],
+                    cameraRotation: [0, 0, 0],
+                },
                 urls: {
                     saveRealm: "{% url 'realm_save_api' %}",
                     progressEvent: "{% url 'progress_event_api' %}",
@@ -496,14 +502,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
-    <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260517q"></script>
     {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/stereo-overlay-sync.js' %}?v=20260517d"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
     <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517p"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>
-    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517n"></script>
+    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517q"></script>
     <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
@@ -515,8 +521,8 @@
             function syncControlHelp(mode) {
                 if (!helpEl) return;
                 if (mode === 'desktop') helpEl.textContent = HELP_DESKTOP;
-                else if (mode === 'gesture') helpEl.textContent = 'AR 立体模式：左右分屏 · 进入即 IMU 漫游 · 张掌开菜单 · N 键 IMU 调试 · 「开始扫描」用于建模';
-                else helpEl.textContent = 'VR 立体模式：左右分屏 · 横屏放入眼镜 · 菜单或桌面 · N 键 IMU 调试';
+                else if (mode === 'gesture') helpEl.textContent = 'AR 立体：IMU 漫游 · 张掌菜单 · ✌ 保持 2s 回正视角 · N 调试 · 开始扫描建模';
+                else helpEl.textContent = 'VR 立体：横屏眼镜 · 菜单/桌面 · ✌ 保持 2s 回正 IMU · N 调试';
             }
             window.syncControlHelp = syncControlHelp;
 
