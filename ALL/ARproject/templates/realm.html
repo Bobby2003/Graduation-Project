@@ -445,7 +445,7 @@
 
         <div id="realm-immersive-hint" class="realm-immersive-keep" aria-live="polite"></div>
 
-        <div id="realm-ar-menu" class="ar-stereo-overlay-menu" aria-hidden="true" aria-label="AR 管理菜单">
+        <div id="realm-ar-menu" class="ar-stereo-overlay-menu" aria-hidden="true" aria-label="AR 管理菜单" data-dashboard-href="{% url 'dashboard' %}">
             <div class="ar-stereo-overlay-row">
                 <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--left">
                     <div class="ar-stereo-overlay-backdrop" data-overlay-backdrop></div>
@@ -458,6 +458,7 @@
                                 <button type="button" data-ar-action="scan-start" class="is-primary">开始扫描</button>
                                 <button type="button" data-ar-action="scan-stop">停止扫描</button>
                                 <button type="button" data-ar-action="desktop">返回桌面模式</button>
+                                <button type="button" data-ar-action="dashboard">个人终端</button>
                                 <button type="button" data-ar-action="close">关闭菜单</button>
                             </div>
                             <div id="realm-ar-material-grid" aria-label="材质协议"></div>

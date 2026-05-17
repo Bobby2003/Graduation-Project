@@ -175,6 +175,14 @@
                 setMenuOpen(false);
                 showToast('已切换桌面模式 · WASD 可移动');
                 break;
+            case 'dashboard': {
+                var menuEl = el('realm-ar-menu');
+                var href =
+                    (menuEl && menuEl.getAttribute('data-dashboard-href')) || '/dashboard/';
+                setMenuOpen(false);
+                window.location.href = href;
+                break;
+            }
             case 'close':
                 setMenuOpen(false);
                 break;
