@@ -292,6 +292,14 @@
 
         mirrorScaler = null;
 
+        if (document.body && !isImmersive3DPage()) {
+            document.body.classList.remove('realm-stereo-active');
+        }
+
+        if (window.ARPortalPalmMenu && typeof window.ARPortalPalmMenu.updateChrome === 'function') {
+            window.ARPortalPalmMenu.updateChrome();
+        }
+
     }
 
 
@@ -404,11 +412,17 @@
 
         document.body.appendChild(host);
 
-
+        if (document.body) {
+            document.body.classList.add('realm-stereo-active');
+        }
 
         refreshMirror();
 
         connectMirrorObserver();
+
+        if (window.ARPortalPalmMenu && typeof window.ARPortalPalmMenu.updateChrome === 'function') {
+            window.ARPortalPalmMenu.updateChrome();
+        }
 
     }
 

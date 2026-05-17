@@ -54,6 +54,10 @@
     function setMenuOpen(open) {
         menuOpen = !!open;
 
+        if (window.__arGesture) {
+            window.__arGesture._palmMenuOpen = menuOpen;
+        }
+
         var menu = el('realm-ar-menu');
         if (!menu) {
             console.warn('[REALM MENU] #realm-ar-menu not found');
@@ -63,37 +67,17 @@
         menu.classList.toggle('is-open', menuOpen);
         menu.setAttribute('aria-hidden', menuOpen ? 'false' : 'true');
 
-        if (menuOpen) {
-            menu.style.setProperty('display', 'flex', 'important');
-            menu.style.setProperty('visibility', 'visible', 'important');
-            menu.style.setProperty('opacity', '1', 'important');
-            menu.style.setProperty('z-index', '99999', 'important');
-            menu.style.setProperty('pointer-events', 'auto', 'important');
-        } else {
-            menu.style.setProperty('display', 'none', 'important');
+        if (document.body) {
+            document.body.classList.toggle('ar-palm-nav-stereo', menuOpen && (getMode() === 'gesture' || getMode() === 'vr'));
+        }
+
+        if (menuOpen && window.ARStereoOverlaySync) {
+            window.ARStereoOverlaySync.syncById('realm-ar-menu');
         }
 
         if (!menuOpen) {
             hideMaterialGrid();
         }
-
-        var cs = getComputedStyle(menu);
-        console.log('[REALM MENU] setMenuOpen', {
-            open: menuOpen,
-            className: menu.className,
-            ariaHidden: menu.getAttribute('aria-hidden'),
-            display: cs.display,
-            visibility: cs.visibility,
-            opacity: cs.opacity,
-            zIndex: cs.zIndex,
-            bodyMode: document.body.dataset.controlMode,
-            bodyClass: document.body.className,
-            mode:
-                window.ARRealmControls &&
-                typeof window.ARRealmControls.getMode === 'function'
-                    ? window.ARRealmControls.getMode()
-                    : null,
-        });
     }
 
     window.setRealmARMenuOpen = setMenuOpen;
@@ -211,8 +195,16 @@
             });
         });
 
+        menu.querySelectorAll('[data-overlay-backdrop]').forEach(function (backdrop) {
+            backdrop.addEventListener('click', function () {
+                setMenuOpen(false);
+            });
+        });
+
         menu.addEventListener('click', function (e) {
-            if (e.target === menu) setMenuOpen(false);
+            if (e.target === menu || e.target.classList.contains('ar-stereo-overlay-row')) {
+                setMenuOpen(false);
+            }
         });
     }
 
@@ -249,7 +241,8 @@
 
         window.addEventListener('ar-gesture', function (e) {
             var d = e.detail;
-            if (!d || getMode() !== 'gesture') return;
+            var m = getMode();
+            if (!d || (m !== 'gesture' && m !== 'vr')) return;
             if (d.action === 'open-palm-menu') setMenuOpen(true);
             if (d.action === 'close-palm-menu') setMenuOpen(false);
         });

@@ -445,18 +445,29 @@
 
         <div id="realm-immersive-hint" class="realm-immersive-keep" aria-live="polite"></div>
 
-        <div id="realm-ar-menu" aria-hidden="true" aria-label="AR 管理菜单">
-            <div class="realm-ar-menu-panel" role="dialog">
-                <h3>位面管理</h3>
-                <p class="realm-ar-menu-sub">张开左手掌打开 · 握拳或 Esc 关闭 · 右手捏合可点按钮</p>
-                <div class="realm-ar-menu-actions">
-                    <button type="button" data-ar-action="materials">材质替换</button>
-                    <button type="button" data-ar-action="scan-start" class="is-primary">开始扫描</button>
-                    <button type="button" data-ar-action="scan-stop">停止扫描</button>
-                    <button type="button" data-ar-action="desktop">返回桌面模式</button>
-                    <button type="button" data-ar-action="close">关闭菜单</button>
+        <div id="realm-ar-menu" class="ar-stereo-overlay-menu" aria-hidden="true" aria-label="AR 管理菜单">
+            <div class="ar-stereo-overlay-row">
+                <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--left">
+                    <div class="ar-stereo-overlay-backdrop" data-overlay-backdrop></div>
+                    <div class="ar-stereo-overlay-content" data-overlay-content="source" role="dialog" aria-modal="true">
+                        <div class="realm-ar-menu-panel ar-realm-ar-menu-panel">
+                            <h3 class="ar-palm-nav-title">位面管理</h3>
+                            <p class="ar-palm-nav-sub">张掌开 · 握拳关 · 捏合选择</p>
+                            <div class="realm-ar-menu-actions">
+                                <button type="button" data-ar-action="materials">材质替换</button>
+                                <button type="button" data-ar-action="scan-start" class="is-primary">开始扫描</button>
+                                <button type="button" data-ar-action="scan-stop">停止扫描</button>
+                                <button type="button" data-ar-action="desktop">返回桌面模式</button>
+                                <button type="button" data-ar-action="close">关闭菜单</button>
+                            </div>
+                            <div id="realm-ar-material-grid" aria-label="材质协议"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="realm-ar-material-grid" aria-label="材质协议"></div>
+                <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--right" aria-hidden="true">
+                    <div class="ar-stereo-overlay-backdrop"></div>
+                    <div class="ar-stereo-overlay-content" data-overlay-content="mirror"></div>
+                </div>
             </div>
         </div>
 
@@ -484,7 +495,8 @@
     <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
     <script src="{% static 'js/gesture.js' %}?v=20260516n"></script>
     {% include "partials/hud_audio_scripts.html" %}
-    <script src="{% static 'js/realm-immersive.js' %}?v=20260517c"></script>
+    <script src="{% static 'js/stereo-overlay-sync.js' %}?v=20260517d"></script>
+    <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
     <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517d"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>

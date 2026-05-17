@@ -1,0 +1,51 @@
+{% load static %}
+{# 门户页 AR/VR：双屏掌菜导航（无滚动条 · 大按钮） #}
+<div id="ar-portal-stereo-chrome" class="ar-portal-stereo-chrome" hidden>
+    <div class="ar-stereo-overlay-row ar-portal-chrome-row">
+        <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--left">
+            <button type="button" id="ar-vr-nav-btn" class="ar-vr-nav-btn" hidden aria-label="打开导航菜单" aria-expanded="false">
+                ☰ NAV
+            </button>
+            <div id="ar-portal-gesture-hint" class="ar-portal-gesture-hint" aria-live="polite" hidden></div>
+        </div>
+        <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--right" aria-hidden="true">
+            <button type="button" class="ar-vr-nav-btn ar-vr-nav-btn--mirror" tabindex="-1" hidden>☰ NAV</button>
+            <div class="ar-portal-gesture-hint ar-portal-gesture-hint--mirror" hidden></div>
+        </div>
+    </div>
+</div>
+
+<div id="ar-palm-nav-menu" class="ar-stereo-overlay-menu" aria-hidden="true" aria-label="AR 导航菜单">
+    <div class="ar-stereo-overlay-row">
+        <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--left">
+            <div class="ar-stereo-overlay-backdrop" data-overlay-backdrop></div>
+            <div class="ar-stereo-overlay-content ar-palm-nav-panel-wrap" data-overlay-content="source" role="dialog" aria-modal="true">
+                <div class="realm-ar-menu-panel ar-palm-nav-panel">
+                    <h3 class="ar-palm-nav-title">神经链路</h3>
+                    <p class="ar-palm-nav-sub">张掌开 · 握拳关 · 捏合选择</p>
+                    <nav class="ar-palm-nav-links" role="navigation" aria-label="站点导航">
+                        {% if request.resolver_match %}
+                            {% include "partials/hud_nav_links_snippet.html" with active_key=request.resolver_match.url_name %}
+                        {% else %}
+                            {% include "partials/hud_nav_links_snippet.html" with active_key="" %}
+                        {% endif %}
+                    </nav>
+                    <div class="ar-palm-nav-footer">
+                        <a href="/" class="ar-palm-nav-home">◄ 主网关</a>
+                        <p class="ar-palm-mode-label">接入模式</p>
+                        <div class="control-mode-switcher ar-palm-mode-switcher" title="控制模式" role="group" aria-label="接入模式">
+                            <button type="button" class="mode-btn" data-mode="desktop">⌨ 桌面</button>
+                            <button type="button" class="mode-btn" data-mode="gesture">🖐 AR</button>
+                            <button type="button" class="mode-btn" data-mode="vr">🥽 VR</button>
+                        </div>
+                        <button type="button" class="ar-palm-nav-close" data-ar-palm-close>关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ar-stereo-overlay-eye ar-stereo-overlay-eye--right" aria-hidden="true">
+            <div class="ar-stereo-overlay-backdrop"></div>
+            <div class="ar-stereo-overlay-content ar-palm-nav-panel-wrap" data-overlay-content="mirror"></div>
+        </div>
+    </div>
+</div>

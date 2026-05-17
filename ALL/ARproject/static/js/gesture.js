@@ -120,7 +120,8 @@ class ARGestureController {
 
         this.selectors =
             'a, button, input, .realm-card, .market-card, .btn-action, .loot-item, .rank-item, .btn-link, ' +
-            '#realm-ar-menu button, [data-ar-action], #realm-vr-menu-btn, .mode-btn';
+            '#realm-ar-menu button, #ar-palm-nav-menu a, #ar-palm-nav-menu button, [data-ar-action], ' +
+            '#realm-vr-menu-btn, #ar-vr-nav-btn, .mode-btn';
 
         this.createCursor();
         this.wireToggle();
@@ -694,26 +695,23 @@ class ARGestureController {
 
     handlePalmMenuGestures(data) {
         const mode = this.getStoredControlMode();
-        if (mode !== 'gesture' || !this.isImmersive3DPage()) {
+        if (mode !== 'gesture' && mode !== 'vr') {
             this._openPalmFrames = 0;
             return;
         }
 
         const palmOpen = !!(data.palmOpen || data.left === 'open');
         const palmFist = !!(data.palmFist || data.left === 'fist');
+        const menuLabel = this.isImmersive3DPage() ? '管理菜单' : '导航菜单';
 
         if (palmOpen) {
             this._openPalmFrames += 1;
             if (!this._palmMenuOpen && this._openPalmFrames >= 3) {
                 this._palmMenuOpen = true;
-                console.log('[AR System] dispatch open-palm-menu', {
-                    palmOpen: palmOpen,
-                    frames: this._openPalmFrames,
-                });
                 window.dispatchEvent(
                     new CustomEvent('ar-gesture', { detail: { action: 'open-palm-menu' } })
                 );
-                this.showRealmGestureToast('已打开管理菜单');
+                this.showRealmGestureToast('已打开' + menuLabel);
             }
         } else {
             this._openPalmFrames = Math.max(0, this._openPalmFrames - 1);

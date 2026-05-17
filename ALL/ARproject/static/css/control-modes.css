@@ -250,30 +250,7 @@ body.ar-immersive-3d.realm-mode-vr #realm-vr-menu-btn {
     border-radius: 8px;
 }
 
-#realm-ar-menu {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: rgba(2, 4, 8, 0.55);
-    backdrop-filter: blur(6px);
-    pointer-events: auto;
-}
-
-#realm-ar-menu.is-open {
-    display: flex;
-}
-
-body.ar-immersive-3d.realm-mode-gesture #realm-ar-menu.is-open,
-body.ar-immersive-3d.realm-mode-vr #realm-ar-menu.is-open,
-body.ar-immersive-3d[data-control-mode="gesture"] #realm-ar-menu.is-open,
-body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-menu.is-open {
-    display: flex !important;
-}
-
-.realm-ar-menu-panel {
+.realm-ar-menu-panel:not(.ar-realm-ar-menu-panel) {
     width: min(520px, 94vw);
     max-height: min(88vh, 720px);
     overflow-y: auto;
@@ -300,21 +277,23 @@ body.ar-immersive-3d[data-control-mode="vr"] #realm-ar-menu.is-open {
     line-height: 1.55;
 }
 
-.realm-ar-menu-actions {
+.ar-realm-ar-menu-panel .realm-ar-menu-actions {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: clamp(8px, 1.5vmin, 12px);
+    overflow: hidden;
 }
 
-.realm-ar-menu-actions button {
+.ar-realm-ar-menu-panel .realm-ar-menu-actions button {
     width: 100%;
-    min-height: 56px;
-    padding: 18px 22px;
+    min-height: clamp(48px, 9vmin, 64px);
+    padding: clamp(12px, 2vmin, 18px);
     border: 2px solid rgba(0, 242, 255, 0.4);
     background: rgba(0, 242, 255, 0.08);
     color: #d4f8ff;
     font-family: 'Syncopate', sans-serif;
-    font-size: 15px;
+    font-size: clamp(12px, 2.4vmin, 16px);
+    font-weight: 700;
     letter-spacing: 1.5px;
     cursor: pointer;
     border-radius: 10px;
@@ -409,10 +388,339 @@ body.realm-stereo-active:not(.ar-immersive-3d) {
     background: #000;
 }
 
-body.realm-stereo-active:not(.ar-immersive-3d) .top-nav,
-body.realm-stereo-active:not(.ar-immersive-3d) header.top-nav {
-    z-index: 300 !important;
-    pointer-events: auto !important;
+/* 门户页 AR/VR：隐藏顶栏，由掌菜 / VR 按钮弹窗导航 */
+body[data-control-mode="gesture"]:not(.ar-immersive-3d) .top-nav,
+body[data-control-mode="vr"]:not(.ar-immersive-3d) .top-nav,
+body[data-control-mode="gesture"]:not(.ar-immersive-3d) .ar-navbar,
+body[data-control-mode="vr"]:not(.ar-immersive-3d) .ar-navbar,
+body.realm-stereo-active[data-control-mode="gesture"]:not(.ar-immersive-3d) .top-nav,
+body.realm-stereo-active[data-control-mode="vr"]:not(.ar-immersive-3d) .top-nav,
+body.realm-stereo-active[data-control-mode="gesture"]:not(.ar-immersive-3d) header.top-nav,
+body.realm-stereo-active[data-control-mode="vr"]:not(.ar-immersive-3d) header.top-nav {
+    display: none !important;
+}
+
+body.ar-portal-page[data-control-mode="gesture"] .app-shell,
+body.ar-portal-page[data-control-mode="vr"] .app-shell {
+    margin-top: 0 !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding-top: var(--shell-pad, 0.75rem) !important;
+}
+
+/* ── AR/VR 双屏 HTML 弹窗（门户导航 + 位面菜单共用）── */
+.ar-stereo-overlay-menu,
+#realm-ar-menu.ar-stereo-overlay-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: none;
+    pointer-events: none;
+}
+
+.ar-stereo-overlay-menu.is-open,
+#realm-ar-menu.ar-stereo-overlay-menu.is-open {
+    display: block !important;
+    pointer-events: auto;
+}
+
+.ar-stereo-overlay-row {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.ar-stereo-overlay-eye {
+    position: relative;
+    flex: 0 0 50%;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: clamp(4px, 1vmin, 10px);
+    overflow: hidden;
+}
+
+.ar-stereo-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 4, 8, 0.62);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+}
+
+.ar-stereo-overlay-content {
+    position: relative;
+    z-index: 2;
+    width: 96%;
+    max-width: 100%;
+    max-height: 96%;
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+.ar-stereo-overlay-eye--right {
+    pointer-events: none;
+}
+
+body:not(.realm-stereo-active) .ar-stereo-overlay-eye--right,
+body[data-control-mode="desktop"] .ar-stereo-overlay-eye--right {
+    display: none !important;
+}
+
+body:not(.realm-stereo-active) .ar-stereo-overlay-eye--left,
+body[data-control-mode="desktop"] .ar-stereo-overlay-eye--left {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+/* 掌菜面板：无滚动条 · 大按钮网格 */
+.ar-palm-nav-panel,
+.realm-ar-menu-panel.ar-palm-nav-panel {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden !important;
+    padding: clamp(10px, 2vmin, 18px) clamp(10px, 2.2vmin, 16px);
+    box-sizing: border-box;
+}
+
+.ar-palm-nav-title,
+.realm-ar-menu-panel.ar-palm-nav-panel .ar-palm-nav-title {
+    margin: 0 0 clamp(4px, 0.8vmin, 8px);
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(14px, 3.2vmin, 22px);
+    letter-spacing: clamp(2px, 0.6vw, 4px);
+    color: #00f2ff;
+    text-align: center;
+    width: 100%;
+}
+
+.ar-palm-nav-footer {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.2vmin, 10px);
+    overflow: hidden;
+    align-items: stretch;
+    width: 100%;
+}
+
+.ar-palm-nav-sub {
+    margin: 0 0 clamp(8px, 1.5vmin, 12px);
+    font-size: clamp(9px, 1.8vmin, 12px);
+    color: #8ab;
+    text-align: center;
+    line-height: 1.35;
+}
+
+.ar-palm-nav-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(6px, 1.2vmin, 10px);
+    margin: 0 0 clamp(8px, 1.5vmin, 12px);
+    overflow: hidden;
+}
+
+.ar-palm-nav-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(48px, 10vmin, 72px);
+    padding: clamp(8px, 1.5vmin, 12px) clamp(6px, 1.2vmin, 10px);
+    border: 2px solid rgba(0, 242, 255, 0.45);
+    background: rgba(0, 242, 255, 0.1);
+    color: #e8fcff;
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(11px, 2.4vmin, 15px);
+    font-weight: 700;
+    letter-spacing: clamp(0.5px, 0.2vw, 1.5px);
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+    border-radius: clamp(8px, 1.5vmin, 12px);
+    box-sizing: border-box;
+    overflow: hidden;
+    word-break: keep-all;
+}
+
+.ar-palm-nav-links a:hover,
+.ar-palm-nav-links a.active,
+.ar-palm-nav-links a.ar-hover {
+    background: rgba(0, 242, 255, 0.28);
+    color: #fff;
+    border-color: rgba(0, 242, 255, 0.85);
+    box-shadow: 0 0 18px rgba(0, 242, 255, 0.35);
+}
+
+.ar-palm-nav-links a.active {
+    border-color: rgba(0, 255, 136, 0.65);
+    color: #00ff88;
+}
+
+.ar-palm-nav-home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(40px, 7vmin, 52px);
+    padding: clamp(8px, 1.2vmin, 12px);
+    color: #ffd700;
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(10px, 2vmin, 13px);
+    letter-spacing: 1px;
+    text-decoration: none;
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    border-radius: 8px;
+    background: rgba(255, 215, 0, 0.06);
+}
+
+.ar-palm-mode-label {
+    margin: 0 0 clamp(6px, 1vmin, 8px);
+    text-align: center;
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(8px, 1.6vmin, 10px);
+    letter-spacing: 2px;
+    color: rgba(0, 242, 255, 0.65);
+}
+
+.ar-palm-mode-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(6px, 1.2vmin, 10px);
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    justify-items: center;
+    align-items: stretch;
+}
+
+.ar-palm-mode-switcher .mode-btn {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    min-height: clamp(44px, 8vmin, 56px);
+    font-size: clamp(10px, 2vmin, 13px) !important;
+    padding: clamp(8px, 1.2vmin, 12px) clamp(4px, 0.8vmin, 8px) !important;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.ar-palm-nav-close {
+    width: 100%;
+    min-height: clamp(44px, 8vmin, 56px);
+    border: 2px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ddd;
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(11px, 2.2vmin, 14px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.ar-palm-nav-close:hover,
+.ar-palm-nav-close.ar-hover {
+    border-color: rgba(0, 242, 255, 0.5);
+    color: #fff;
+    background: rgba(0, 242, 255, 0.12);
+}
+
+.ar-palm-nav-panel *,
+.ar-palm-nav-panel-wrap * {
+    scrollbar-width: none;
+}
+
+.ar-palm-nav-panel *::-webkit-scrollbar,
+.ar-palm-nav-panel-wrap *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* 双屏底部控件（每眼各一份） */
+.ar-portal-stereo-chrome {
+    position: fixed;
+    inset: 0;
+    z-index: 10045;
+    pointer-events: none;
+}
+
+.ar-portal-stereo-chrome[hidden] {
+    display: none !important;
+}
+
+.ar-portal-chrome-row {
+    height: 100%;
+}
+
+.ar-portal-chrome-row .ar-stereo-overlay-eye--left {
+    pointer-events: none;
+}
+
+.ar-portal-chrome-row .ar-vr-nav-btn {
+    position: absolute;
+    right: clamp(6px, 3vw, 14px);
+    bottom: max(clamp(8px, 2vmin, 14px), env(safe-area-inset-bottom));
+    z-index: 2;
+    pointer-events: auto;
+    min-width: clamp(64px, 14vw, 88px);
+    min-height: clamp(44px, 9vmin, 56px);
+    padding: clamp(8px, 1.5vmin, 12px) clamp(12px, 2.5vmin, 18px);
+    border: 2px solid rgba(0, 242, 255, 0.6);
+    background: rgba(8, 14, 24, 0.94);
+    color: #00f2ff;
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(11px, 2.4vmin, 14px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 10px;
+    box-shadow: 0 0 22px rgba(0, 242, 255, 0.25);
+}
+
+.ar-portal-chrome-row .ar-vr-nav-btn:hover,
+.ar-portal-chrome-row .ar-vr-nav-btn.ar-hover {
+    background: rgba(0, 242, 255, 0.18);
+    color: #fff;
+}
+
+.ar-portal-chrome-row .ar-vr-nav-btn[hidden] {
+    display: none !important;
+}
+
+.ar-portal-chrome-row .ar-portal-gesture-hint {
+    position: absolute;
+    left: 50%;
+    bottom: max(clamp(8px, 2vmin, 14px), env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 1;
+    max-width: 92%;
+    padding: clamp(6px, 1.2vmin, 10px) clamp(10px, 2vmin, 14px);
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(8px, 1.6vmin, 11px);
+    letter-spacing: 1px;
+    color: rgba(0, 242, 255, 0.85);
+    background: rgba(5, 8, 14, 0.88);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    border-radius: 6px;
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.ar-portal-chrome-row .ar-portal-gesture-hint[hidden] {
+    display: none !important;
+}
+
+body[data-control-mode="desktop"] .ar-portal-stereo-chrome {
+    display: none !important;
 }
 
 /* 左栏真实 DOM + 右栏同步镜像（兼容 Edge，不用 drop-shadow） */
