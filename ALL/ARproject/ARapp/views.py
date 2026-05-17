@@ -3,7 +3,9 @@ import secrets
 import time
 from collections import defaultdict
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -38,6 +40,15 @@ from .realm_catalog import (
     merged_private_realm,
 )
 from .center_bridge import center_bridge
+from .user_settings import (
+    AVATAR_PRESETS,
+    DEPTH_DRIVER_CHOICES,
+    DEPTH_RANGE_CHOICES,
+    THEME_CHOICES,
+    format_user_public_id,
+    get_ui_settings,
+    save_ui_settings,
+)
 from .models import (
     Achievement,
     EquipmentItem,
@@ -499,9 +510,136 @@ def equipment_equip(request):
     return redirect(reverse("progress_hub") + "?tab=equipment")
 
 
+@login_required
 def settings_page(request):
     """Settings page — must not be named ``settings`` (shadows ``django.conf.settings``)."""
-    return render(request, "settings.html")
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    ui = get_ui_settings(profile)
+    return render(
+        request,
+        "settings.html",
+        {
+            "profile": profile,
+            "user_public_id": format_user_public_id(request.user),
+            "ui_settings": ui,
+            "ui_settings_json": mark_safe(json.dumps(ui, ensure_ascii=False)),
+            "avatar_presets_json": mark_safe(json.dumps(AVATAR_PRESETS, ensure_ascii=False)),
+            "depth_driver_choices": DEPTH_DRIVER_CHOICES,
+            "depth_range_choices": DEPTH_RANGE_CHOICES,
+            "theme_choices": THEME_CHOICES,
+        },
+    )
+
+
+@login_required
+@require_POST
+def settings_save_api(request):
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "invalid_json"}, status=400)
+    if not isinstance(body, dict):
+        return JsonResponse({"ok": False, "error": "invalid_body"}, status=400)
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    ui = save_ui_settings(profile, body)
+    return JsonResponse({"ok": True, "ui_settings": ui})
+
+
+@login_required
+@require_POST
+def settings_change_password_api(request):
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "invalid_json"}, status=400)
+
+    old_password = body.get("old_password") or ""
+    new_password = body.get("new_password") or ""
+    confirm = body.get("confirm_password") or ""
+
+    if not request.user.check_password(old_password):
+        return JsonResponse({"ok": False, "error": "当前密码不正确"}, status=400)
+    if not new_password:
+        return JsonResponse({"ok": False, "error": "新密码不能为空"}, status=400)
+    if new_password != confirm:
+        return JsonResponse({"ok": False, "error": "两次输入的新密码不一致"}, status=400)
+
+    try:
+        validate_password(new_password, request.user)
+    except ValidationError as exc:
+        return JsonResponse(
+            {"ok": False, "error": "；".join(exc.messages)},
+            status=400,
+        )
+
+    request.user.set_password(new_password)
+    request.user.save(update_fields=["password"])
+    update_session_auth_hash(request, request.user)
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_GET
+def settings_export_api(request):
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    ui = get_ui_settings(profile)
+    inventory = list(
+        UserInventory.objects.filter(user=request.user)
+        .select_related("loot")
+        .values("quantity", "loot__name", "loot__rarity")
+    )
+    achievements = list(
+        UserAchievement.objects.filter(user=request.user)
+        .select_related("achievement")
+        .values("unlocked_at", "achievement__name", "achievement__code")
+    )
+    payload = {
+        "exported_at": timezone.now().isoformat(),
+        "user": {
+            "username": request.user.username,
+            "email": request.user.email,
+            "public_id": format_user_public_id(request.user),
+        },
+        "profile": {
+            "level": profile.level,
+            "exp": profile.exp,
+            "combat_power": profile.combat_power,
+            "credits": profile.credits,
+            "display_title": profile.display_title,
+            "realm_visibility": profile.realm_visibility,
+        },
+        "ui_settings": ui,
+        "private_realm": merged_private_realm(profile),
+        "inventory": inventory,
+        "achievements": achievements,
+    }
+    response = JsonResponse(payload, json_dumps_params={"ensure_ascii": False, "indent": 2})
+    filename = f"ar_realm_export_{request.user.username}.json"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+@require_POST
+def settings_delete_account_api(request):
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "invalid_json"}, status=400)
+
+    password = body.get("password") or ""
+    confirm_username = (body.get("confirm_username") or "").strip()
+
+    if confirm_username != request.user.username:
+        return JsonResponse({"ok": False, "error": "用户名确认不一致"}, status=400)
+    if not request.user.check_password(password):
+        return JsonResponse({"ok": False, "error": "密码不正确"}, status=400)
+
+    user = request.user
+    logout(request)
+    user.delete()
+    return JsonResponse({"ok": True, "redirect": reverse("login")})
 
 
 def _desktop_realm_bootstrap_context(request, force_room_template=None):

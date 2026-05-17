@@ -49,10 +49,29 @@ function lmHypot(dx, dy) {
     return Math.hypot(dx, dy);
 }
 
+function getGestureSensitivity() {
+    try {
+        if (globalThis.ARUserSettings && typeof globalThis.ARUserSettings.get === 'function') {
+            var v = globalThis.ARUserSettings.get().gesture_sensitivity;
+            if (typeof v === 'number' && Number.isFinite(v)) return Math.max(0, Math.min(100, v));
+        }
+    } catch (e) { /* ignore */ }
+    return 70;
+}
+
+/** 灵敏度越高，阈值越宽松 */
+function pinchThresholdScale() {
+    return 0.38 - (getGestureSensitivity() / 100) * 0.18;
+}
+
+function palmExtendRatio() {
+    return 1.14 - (getGestureSensitivity() / 100) * 0.1;
+}
+
 /** @param {{x:number,y:number,z?:number}[]} lm */
 function isPinch(lm) {
     const ps = lmHypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y);
-    return ps > 1e-5 && lmHypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) < ps * 0.25;
+    return ps > 1e-5 && lmHypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) < ps * pinchThresholdScale();
 }
 
 function isPointing(lm) {
@@ -77,7 +96,7 @@ function isOpenPalm(lm) {
         const base = bases[i];
         const dTip = lmHypot(lm[tip].x - lm[0].x, lm[tip].y - lm[0].y);
         const dBase = lmHypot(lm[base].x - lm[0].x, lm[base].y - lm[0].y);
-        if (dTip > dBase * 1.08) extended++;
+        if (dTip > dBase * palmExtendRatio()) extended++;
     }
     return extended >= 4;
 }

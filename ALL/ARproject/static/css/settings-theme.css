@@ -1,0 +1,81 @@
+/* 全局 UI 偏好（由 settings-apply.js 根据 data-ui-theme / body 类名应用） */
+:root {
+    --hud-panel-opacity: 0.85;
+    --ui-neon: #00f2ff;
+    --ui-purple: #bc00ff;
+    --ui-bg-deep: #050608;
+    --ui-panel-bg: rgba(10, 15, 25, 0.85);
+}
+
+html[data-ui-theme="cyberpunk"] {
+    --ui-neon: #00f2ff;
+    --ui-purple: #bc00ff;
+    --ui-bg-deep: #050608;
+}
+
+html[data-ui-theme="dark_matrix"] {
+    --ui-neon: #00ff88;
+    --ui-purple: #1a3d1a;
+    --ui-bg-deep: #020403;
+    --ui-panel-bg: rgba(4, 12, 8, 0.9);
+}
+
+html[data-ui-theme="neon_night"] {
+    --ui-neon: #ff2bd6;
+    --ui-purple: #6b2dff;
+    --ui-bg-deep: #0a0514;
+    --ui-panel-bg: rgba(18, 8, 28, 0.88);
+}
+
+html[data-ui-theme="minimal_gray"] {
+    --ui-neon: #b8c0cc;
+    --ui-purple: #888;
+    --ui-bg-deep: #121418;
+    --ui-panel-bg: rgba(24, 26, 30, 0.92);
+}
+
+body.ar-portal-page,
+body.hud-scroll-root {
+    background-color: var(--ui-bg-deep);
+}
+
+body.ar-portal-page .top-nav,
+body.ar-portal-page .settings-group,
+body.ar-portal-page .hud-panel,
+body.ar-portal-page .realm-ar-menu-panel {
+    background-color: color-mix(in srgb, var(--ui-panel-bg) calc(var(--hud-panel-opacity) * 100%), transparent);
+}
+
+body.ui-scanlines-on::after {
+    content: '';
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0) 0,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 0, 0, 0.08) 3px,
+        rgba(0, 0, 0, 0.08) 4px
+    );
+    opacity: 0.35;
+}
+
+body.ui-particles-on::before {
+    content: '';
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(0, 242, 255, 0.35), transparent),
+        radial-gradient(1px 1px at 80% 40%, rgba(188, 0, 255, 0.25), transparent),
+        radial-gradient(1px 1px at 40% 70%, rgba(0, 255, 136, 0.2), transparent);
+    animation: ui-particles-drift 18s linear infinite;
+}
+
+@keyframes ui-particles-drift {
+    from { transform: translateY(0); }
+    to { transform: translateY(-12px); }
+}
