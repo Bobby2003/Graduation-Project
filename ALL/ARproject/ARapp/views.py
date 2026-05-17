@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.db.models import Q, Sum
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -654,6 +654,134 @@ def center_latest_mesh_api(request):
 def center_pose_latest_api(request):
     data = center_bridge.get_pose_latest()
     return JsonResponse(data, safe=False)
+
+
+def _center_material_version_param(request) -> tuple[int | None, str | None]:
+    """Returns (version_or_none_for_latest, None) or (_, error_code)."""
+    raw = request.GET.get("version")
+    if raw is None or raw == "":
+        return None, None
+    try:
+        return int(raw), None
+    except (TypeError, ValueError):
+        return None, "INVALID_VERSION"
+
+
+@login_required
+@require_GET
+def center_material_targets_api(request):
+    data = center_bridge.get_material_targets()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_GET
+def center_material_library_api(request):
+    data = center_bridge.get_material_library()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_GET
+def center_material_status_api(request):
+    data = center_bridge.get_material_status()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_GET
+def center_material_scene_latest_api(request):
+    data = center_bridge.get_material_scene_latest()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@require_POST
+def center_material_change_api(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
+
+    if not isinstance(payload, dict):
+        return JsonResponse({"ok": False, "error": "INVALID_PAYLOAD"}, status=400)
+
+    segment_key = payload.get("segment_key")
+    material_id = payload.get("material_id")
+    if not isinstance(segment_key, str) or not segment_key.strip():
+        return JsonResponse({"ok": False, "error": "INVALID_SEGMENT_KEY"}, status=400)
+    if not isinstance(material_id, str) or not material_id.strip():
+        return JsonResponse({"ok": False, "error": "INVALID_MATERIAL_ID"}, status=400)
+
+    tiling_raw = payload.get("tiling", 1.0)
+    try:
+        tiling = float(tiling_raw)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "INVALID_TILING"}, status=400)
+
+    data = center_bridge.change_material(segment_key.strip(), material_id.strip(), tiling=tiling)
+    status_code = 200
+    if data.get("ok") is False:
+        if data.get("error") == "MATERIAL_CHANGE_FAILED":
+            status_code = 400
+    return JsonResponse(data, safe=False, status=status_code)
+
+
+@login_required
+@require_GET
+def center_material_scene_glb(request):
+    ver, ver_err = _center_material_version_param(request)
+    if ver_err:
+        return JsonResponse({"ok": False, "error": ver_err}, status=400)
+    try:
+        path = center_bridge.get_material_scene_file_path(ver)
+    except (KeyError, FileNotFoundError) as exc:
+        return JsonResponse(
+            {"ok": False, "error": "MATERIAL_SCENE_FILE_NOT_FOUND", "message": str(exc)},
+            status=404,
+        )
+    except RuntimeError as exc:
+        return JsonResponse(
+            {"ok": False, "error": "CENTER_IMPORT_FAILED", "message": str(exc)},
+            status=503,
+        )
+
+    if not path.is_file():
+        return JsonResponse({"ok": False, "error": "MATERIAL_SCENE_FILE_MISSING"}, status=404)
+
+    name = f"center_material_scene_{ver or 'latest'}.glb"
+    return FileResponse(path.open("rb"), as_attachment=False, filename=name, content_type="model/gltf-binary")
+
+
+@login_required
+@require_GET
+def center_material_segment_download(request, segment_key: str):
+    ver, ver_err = _center_material_version_param(request)
+    if ver_err:
+        return JsonResponse({"ok": False, "error": ver_err}, status=400)
+    try:
+        path = center_bridge.get_material_segment_file_path(segment_key, ver)
+    except RuntimeError as exc:
+        return JsonResponse(
+            {"ok": False, "error": "CENTER_UNAVAILABLE", "message": str(exc)},
+            status=503,
+        )
+    except ValueError as exc:
+        return JsonResponse(
+            {"ok": False, "error": "INVALID_SEGMENT_KEY", "message": str(exc)},
+            status=400,
+        )
+    except KeyError as exc:
+        return JsonResponse(
+            {"ok": False, "error": "MATERIAL_SEGMENT_NOT_FOUND", "message": str(exc)},
+            status=404,
+        )
+
+    if not path.is_file():
+        return JsonResponse({"ok": False, "error": "MATERIAL_SEGMENT_FILE_MISSING"}, status=404)
+
+    safe_name = segment_key.replace("/", "__") + ".glb"
+    return FileResponse(path.open("rb"), as_attachment=False, filename=safe_name, content_type="model/gltf-binary")
 
 
 @login_required

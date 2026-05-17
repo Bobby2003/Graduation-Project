@@ -36,8 +36,7 @@ desktop.ini
 # Logs / profiling
 *.log
 logs/
-ALL/pointcloud2mesh/logs/
-ALL/Pointcloud2mesh/logs/
+ALL/Pointcloud2mesh/log/
 *.prof
 
 # Runtime model outputs
