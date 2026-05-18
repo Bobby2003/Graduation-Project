@@ -63,6 +63,17 @@ def _center_env_int(name: str, default: int) -> int:
         return int(default)
 
 
+def _center_env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, str(default)).strip())
+    except Exception:
+        return float(default)
+
+
+# Realm 扫描 mesh 底面默认高度（米），与前端 eyeHeightM 一致
+REALM_DEFAULT_MESH_BASE_HEIGHT_M = _center_env_float("CENTER_MESH_BASE_HEIGHT_M", 1.7)
+
+
 def recommended_view_distance_from_mesh(mesh: o3d.geometry.TriangleMesh | None) -> float | None:
     """
     Rough camera distance hint from reconstructed mesh vertices (meters).
@@ -97,12 +108,14 @@ def _mesh_floor_y_percentile(vertices: np.ndarray, pct: float = 8.0) -> float:
 def compute_metric_mesh_placement(
     vertices: np.ndarray,
     *,
-    floor_y_target: float = 0.0,
+    floor_y_target: float | None = None,
     room_center_xz: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, Any] | None:
     """
-  从 reconstruction_world 顶点（米）估计锚点放置：scale=1，底面对齐 floor_y_target，XZ 居中到 room_center。
+    从 reconstruction_world 顶点（米）估计锚点放置：scale=1，底面对齐 floor_y_target，XZ 居中到 room_center。
     """
+    if floor_y_target is None:
+        floor_y_target = REALM_DEFAULT_MESH_BASE_HEIGHT_M
     if vertices.size == 0:
         return None
     v = np.asarray(vertices, dtype=np.float64)
@@ -319,7 +332,7 @@ class CenterPipelineService:
         self._placement_mesh_samples: list[dict[str, Any]] = []
         self._placement_locked: dict[str, Any] | None = None
         self._placement_reference_camera: list[list[float]] | None = None
-        self._placement_floor_y_target = 0.0
+        self._placement_floor_y_target = REALM_DEFAULT_MESH_BASE_HEIGHT_M
 
         # AR/VR 漫游：仅串口 IMU，不启深度相机 / TSDF
         self._imu_only_mode = False

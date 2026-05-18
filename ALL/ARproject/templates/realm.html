@@ -320,20 +320,23 @@
             var el = document.getElementById('realm-private-json');
             var realm = {};
             try { realm = JSON.parse(el.textContent); } catch (e) {}
+            var realmEyeHeightM = 1.7;
             window.REALM_BOOTSTRAP = {
                 mode: "realm",
                 debugAllowed: {{ debug_allowed|yesno:"true,false" }},
+                /** 默认站立眼高（米），与相机 Y、WASD/IMU 漫游一致 */
+                eyeHeightM: realmEyeHeightM,
                 user: {
                     username: "{{ user.username|escapejs }}",
                     title: "{{ profile.display_title|escapejs }}"
                 },
                 realm: realm,
-                /** 扫描 mesh：真实尺寸（米）；桌面模式底面对齐 floorY，AR/VR 保持 reconstruction 原点 */
-                meshPlacement: { floorY: 0, useMetricScale: true, lockSamples: 3 },
+                /** 扫描 mesh 底面默认高度（米），与 eyeHeightM 一致 */
+                meshPlacement: { floorY: realmEyeHeightM, useMetricScale: true, lockSamples: 3 },
                 /** AR/VR：✌ 保持 peaceHoldMs 后回正相机并清空 IMU 基准 */
                 imuRecenter: {
                     peaceHoldMs: 2000,
-                    cameraPosition: [0, 1.7, 4.2],
+                    cameraPosition: [0, realmEyeHeightM, 4.2],
                     cameraRotation: [0, 0, 0],
                 },
                 urls: {
@@ -354,6 +357,12 @@
                     centerMaterialChange: "{% url 'center_material_change_api' %}",
                     centerMaterialSceneGlb: "{% url 'center_material_scene_glb' %}",
                 }
+            };
+            window.readRealmEyeHeightM = function () {
+                var b = window.REALM_BOOTSTRAP || {};
+                var h = b.eyeHeightM;
+                if (typeof h === 'number' && Number.isFinite(h)) return h;
+                return 1.7;
             };
         })();
     </script>
@@ -506,10 +515,10 @@
     {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/stereo-overlay-sync.js' %}?v=20260517d"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517q"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517w"></script>
     {% include "partials/ar_stereo_scripts.html" %}
-    <script src="{% static 'js/realm/realm-main.js' %}?v=20260517g"></script>
-    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517q"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260517v"></script>
+    <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517v"></script>
     <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};

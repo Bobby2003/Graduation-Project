@@ -28,6 +28,16 @@
 
     var urls = (window.REALM_BOOTSTRAP && window.REALM_BOOTSTRAP.urls) || {};
 
+    function readEyeHeightM() {
+        if (typeof window.readRealmEyeHeightM === 'function') {
+            return window.readRealmEyeHeightM();
+        }
+        var b = window.REALM_BOOTSTRAP || {};
+        var h = b.eyeHeightM;
+        if (typeof h === 'number' && Number.isFinite(h)) return h;
+        return 1.7;
+    }
+
     function apiUrl(name, fallback) {
         return urls[name] || fallback;
     }
@@ -366,11 +376,12 @@
         var cfg =
             window.REALM_BOOTSTRAP &&
             window.REALM_BOOTSTRAP.imuRecenter;
-        var pos = (cfg && cfg.cameraPosition) || [0, 1.7, 4.2];
+        var eyeY = readEyeHeightM();
+        var pos = (cfg && cfg.cameraPosition) || [0, eyeY, 4.2];
         var rot = (cfg && cfg.cameraRotation) || [0, 0, 0];
         return {
             x: Number(pos[0]) || 0,
-            y: Number(pos[1]) || 1.7,
+            y: Number(pos[1]) || eyeY,
             z: Number(pos[2]) || 4.2,
             rx: Number(rot[0]) || 0,
             ry: Number(rot[1]) || 0,
@@ -473,6 +484,7 @@
         cam.quaternion.copy(smoothedQuat);
         cam.rotation.order = 'YXZ';
         cam.rotation.setFromQuaternion(cam.quaternion);
+        cam.position.y = readEyeHeightM();
         cam.updateMatrixWorld(true);
     }
 
@@ -619,6 +631,10 @@
         if (!d) return;
         if (d.action === 'control-mode-changed') {
             resetTracking();
+            if (shouldTrackImu() && window.camera) {
+                var pose = readDefaultCameraPose();
+                window.camera.position.set(pose.x, pose.y, pose.z);
+            }
             syncTrackingState();
         }
         if (d.action === 'scan-start' || d.action === 'scan-stop') {

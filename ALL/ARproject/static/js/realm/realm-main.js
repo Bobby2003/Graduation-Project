@@ -15,6 +15,20 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
     var realm = bootstrap.realm || {};
     var persistentRoomTemplateForSave = bootstrap.persistentRoomTemplate || null;
 
+    function readEyeHeightM() {
+        if (typeof window.readRealmEyeHeightM === 'function') {
+            return window.readRealmEyeHeightM();
+        }
+        var h = bootstrap.eyeHeightM;
+        if (typeof h === 'number' && Number.isFinite(h)) return h;
+        return 1.7;
+    }
+
+    function applyPlayerEyeHeight(cam) {
+        if (!cam) return;
+        cam.position.y = readEyeHeightM();
+    }
+
     var PROTOCOL_DEF = {
         cyber_neon: { name: '赛博霓虹', wall: 0x102033, floor: 0x071822, emissive: 0x00f2ff },
         wasteland_rust: { name: '废土铁锈', wall: 0x5a3824, floor: 0x2e2219, emissive: 0xff7a1a },
@@ -473,12 +487,13 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
     }
 
     function setDefaultCameraForTemplate(key) {
+        var eyeY = readEyeHeightM();
         if (key === 'starship_cabin') {
-            camera.position.set(0, 1.7, 6.5);
+            camera.position.set(0, eyeY, 6.5);
         } else if (key === 'cyber_apartment') {
-            camera.position.set(0, 1.7, 3.8);
+            camera.position.set(0, eyeY, 3.8);
         } else {
-            camera.position.set(0, 1.7, 4.2);
+            camera.position.set(0, eyeY, 4.2);
         }
     }
 
@@ -1245,7 +1260,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
 
         camera.position.x = Math.max(cameraMoveBounds.xMin, Math.min(cameraMoveBounds.xMax, camera.position.x));
         camera.position.z = Math.max(cameraMoveBounds.zMin, Math.min(cameraMoveBounds.zMax, camera.position.z));
-        camera.position.y = 1.7;
+        applyPlayerEyeHeight(camera);
     }
 
     function updateDebugHud(now) {
@@ -1299,7 +1314,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             typeof window.RealmStereo.cameraPoseIsFinite === 'function' &&
             !window.RealmStereo.cameraPoseIsFinite(camera)
         ) {
-            camera.position.set(0, 1.7, 4.2);
+            setDefaultCameraForTemplate(activeRoomTemplateKey);
             camera.rotation.set(0, 0, 0, 'YXZ');
             camera.updateMatrixWorld(true);
         }
@@ -1350,6 +1365,13 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             if (!d || d.action !== 'control-mode-changed') return;
             if (d.mode !== 'desktop') {
                 releaseDesktopPointer();
+            }
+            if (camera) {
+                if (d.mode === 'desktop') {
+                    setDefaultCameraForTemplate(activeRoomTemplateKey);
+                } else {
+                    applyPlayerEyeHeight(camera);
+                }
             }
             if (window.RealmStereo && typeof window.RealmStereo.applyStereoLayout === 'function') {
                 window.RealmStereo.applyStereoLayout(d.mode);
@@ -1506,7 +1528,6 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         scene.background = new THREE.Color(0x050608);
 
         camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.08, 120);
-        camera.position.set(0, 1.7, 4.2);
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1523,6 +1544,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
 
         createLights();
         createRoom();
+        setDefaultCameraForTemplate(activeRoomTemplateKey);
         applyMaterialPack(state.material_pack, { silent: true });
         applyLighting();
         bindKeys();
