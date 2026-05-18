@@ -249,21 +249,75 @@
         applyStereoLayout();
     }
 
-    /** 立体分屏：归一化坐标 → 左右眼屏幕像素（手势光点双份显示） */
-    function mapRelToStereoScreens(relX, relY) {
-        var vw = window.innerWidth;
-        var vh = window.innerHeight;
-        var eyeW = vw * 0.5;
-        var y = relY * vh;
-        var x = Math.max(0, Math.min(1, relX)) * eyeW;
+    var CURSOR_INSET = 0.06;
+
+    function clampEyeRel(v) {
+        var n = Math.max(0, Math.min(1, Number(v) || 0));
+        return CURSOR_INSET + n * (1 - 2 * CURSOR_INSET);
+    }
+
+    /** 当前 #realm-stereo-frame 在屏幕上的左右半屏矩形（与 67% 画框对齐） */
+    function getStereoLayout() {
+        var frame = document.getElementById('realm-stereo-frame');
+        if (!frame || !isStereoMode()) return null;
+        var fr = frame.getBoundingClientRect();
+        if (fr.width < 8 || fr.height < 8) return null;
+        var halfW = fr.width * 0.5;
         return {
-            left: { x: x, y: y },
-            right: { x: eyeW + x, y: y },
+            frame: fr,
+            left: { left: fr.left, top: fr.top, width: halfW, height: fr.height },
+            right: { left: fr.left + halfW, top: fr.top, width: halfW, height: fr.height },
         };
     }
 
-    /** 点击命中：取所在半屏，映射到左眼内容坐标 */
+    function pointInEyeFromRel(layout, relX, relY, eye) {
+        var t = clampEyeRel(relX);
+        var u = clampEyeRel(relY);
+        var panel = eye === 'right' ? layout.right : layout.left;
+        return {
+            x: panel.left + t * panel.width,
+            y: panel.top + u * panel.height,
+            relX: t,
+            relY: u,
+        };
+    }
+
+    /** 立体分屏：归一化坐标 → 左右眼屏幕像素（基于画框，非整窗 50%） */
+    function mapRelToStereoScreens(relX, relY) {
+        var layout = getStereoLayout();
+        if (!layout) {
+            var vw = window.innerWidth;
+            var vh = window.innerHeight;
+            var eyeW = vw * 0.5;
+            var t = clampEyeRel(relX);
+            var u = clampEyeRel(relY);
+            return {
+                left: { x: t * eyeW, y: u * vh },
+                right: { x: eyeW + t * eyeW, y: u * vh },
+            };
+        }
+        var l = pointInEyeFromRel(layout, relX, relY, 'left');
+        var r = pointInEyeFromRel(layout, relX, relY, 'right');
+        return { left: { x: l.x, y: l.y }, right: { x: r.x, y: r.y } };
+    }
+
+    /** 点击命中：映射到左眼半屏内容坐标 */
     function mapScreenToContentPoint(screenX, screenY) {
+        var layout = getStereoLayout();
+        if (layout) {
+            var mid = layout.left.left + layout.left.width;
+            var panel = screenX >= mid ? layout.right : layout.left;
+            var relInEye = (screenX - panel.left) / panel.width;
+            var relY = (screenY - panel.top) / panel.height;
+            relInEye = Math.max(0, Math.min(1, relInEye));
+            relY = Math.max(0, Math.min(1, relY));
+            return {
+                x: screenX,
+                y: screenY,
+                relX: relInEye,
+                relY: relY,
+            };
+        }
         var vw = window.innerWidth;
         var vh = window.innerHeight;
         var eyeW = vw * 0.5;
@@ -285,6 +339,8 @@
         cameraPoseIsFinite: cameraPoseIsFinite,
         applyStereoLayout: applyStereoLayout,
         getBufferSize: getBufferSize,
+        getStereoLayout: getStereoLayout,
+        clampEyeRel: clampEyeRel,
         mapRelToStereoScreens: mapRelToStereoScreens,
         mapScreenToContentPoint: mapScreenToContentPoint,
         EYE_SEPARATION: EYE_SEPARATION,

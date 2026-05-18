@@ -10,6 +10,8 @@ const TASKS_ESM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/
 const HAND_MODEL_URL =
     'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
+const STEREO_CURSOR_INSET = 0.06;
+
 const cursorStyles = `
     #ar-cursor,
     #ar-cursor-right {
@@ -38,6 +40,10 @@ const cursorStyles = `
         background-color: transparent !important;
         border: 3px solid #fff !important;
         box-shadow: 0 0 20px rgba(255,255,255,0.8), inset 0 0 15px rgba(255,255,255,0.5) !important;
+    }
+    .realm-stereo-cursor-host #ar-cursor,
+    .realm-stereo-cursor-host #ar-cursor-right {
+        position: absolute;
     }
 `;
 
@@ -225,14 +231,49 @@ class ARGestureController {
         return this.isPortalStereoActive() || this.isRealmStereoActive();
     }
 
+    clampStereoRel(v) {
+        if (window.RealmStereo && typeof window.RealmStereo.clampEyeRel === 'function') {
+            return window.RealmStereo.clampEyeRel(v);
+        }
+        var n = Math.max(0, Math.min(1, Number(v) || 0));
+        return STEREO_CURSOR_INSET + n * (1 - 2 * STEREO_CURSOR_INSET);
+    }
+
+    ensureRealmStereoCursorHosts() {
+        var leftHost = document.getElementById('realm-cursor-host-left');
+        var rightHost = document.getElementById('realm-cursor-host-right');
+        if (!this.isRealmStereoActive() || !leftHost || !rightHost) {
+            if (this.cursor && this.cursor.parentNode !== document.body) {
+                document.body.appendChild(this.cursor);
+            }
+            if (this.cursorRight && this.cursorRight.parentNode !== document.body) {
+                document.body.appendChild(this.cursorRight);
+            }
+            return false;
+        }
+        leftHost.appendChild(this.cursor);
+        rightHost.appendChild(this.cursorRight);
+        return true;
+    }
+
     mapPointerForInteraction(screenX, screenY) {
         if (this.isPortalStereoActive() && window.PortalStereo.mapScreenToContentPoint) {
             const m = window.PortalStereo.mapScreenToContentPoint(screenX, screenY);
             return { x: m.x, y: m.y, relX: m.relX, relY: m.relY };
         }
-        if (this.isRealmStereoActive() && window.RealmStereo.mapScreenToContentPoint) {
-            const m = window.RealmStereo.mapScreenToContentPoint(screenX, screenY);
-            return { x: m.x, y: m.y, relX: m.relX, relY: m.relY };
+        if (this.isRealmStereoActive() && window.RealmStereo.getStereoLayout) {
+            const layout = window.RealmStereo.getStereoLayout();
+            if (layout) {
+                const m = window.RealmStereo.mapScreenToContentPoint(screenX, screenY);
+                const t = this.clampStereoRel(m.relX);
+                const u = this.clampStereoRel(m.relY);
+                return {
+                    x: layout.left.left + t * layout.left.width,
+                    y: layout.left.top + u * layout.left.height,
+                    relX: m.relX,
+                    relY: m.relY,
+                };
+            }
         }
         const vw = window.innerWidth;
         const vh = window.innerHeight;
@@ -240,11 +281,24 @@ class ARGestureController {
     }
 
     placeCursors(screenX, screenY, relX, relY) {
+        if (this.ensureRealmStereoCursorHosts()) {
+            const t = this.clampStereoRel(relX);
+            const u = this.clampStereoRel(relY);
+            const pct = function (v) {
+                return v * 100 + '%';
+            };
+            this.cursor.style.display = 'block';
+            this.cursor.style.left = pct(t);
+            this.cursor.style.top = pct(u);
+            this.cursorRight.style.display = 'block';
+            this.cursorRight.style.left = pct(t);
+            this.cursorRight.style.top = pct(u);
+            return;
+        }
+
         var mapFn = null;
         if (this.isPortalStereoActive() && window.PortalStereo.mapRelToStereoScreens) {
             mapFn = window.PortalStereo.mapRelToStereoScreens.bind(window.PortalStereo);
-        } else if (this.isRealmStereoActive() && window.RealmStereo.mapRelToStereoScreens) {
-            mapFn = window.RealmStereo.mapRelToStereoScreens.bind(window.RealmStereo);
         }
         if (mapFn) {
             const pts = mapFn(relX, relY);
@@ -372,6 +426,7 @@ class ARGestureController {
                 return;
             }
             this.syncGestureStatusLabel(d.mode);
+            this.ensureRealmStereoCursorHosts();
             if (this.handTrackingAllowedForMode(d.mode)) {
                 this.maybeStartGestureForMode(d.mode);
             } else {
@@ -768,11 +823,28 @@ class ARGestureController {
             const vh = window.innerHeight;
             const relX = data.pointer.x;
             const relY = data.pointer.y;
-            const screenX = Math.round(relX * vw);
-            const screenY = Math.round(relY * vh);
-            const mapped = this.mapPointerForInteraction(screenX, screenY);
+            var mapped;
+            if (this.isRealmStereoActive() && window.RealmStereo && window.RealmStereo.getStereoLayout) {
+                var layout = window.RealmStereo.getStereoLayout();
+                var t = this.clampStereoRel(relX);
+                var u = this.clampStereoRel(relY);
+                if (layout) {
+                    mapped = {
+                        x: layout.left.left + t * layout.left.width,
+                        y: layout.left.top + u * layout.left.height,
+                        relX: relX,
+                        relY: relY,
+                    };
+                } else {
+                    mapped = { x: relX * vw, y: relY * vh, relX: relX, relY: relY };
+                }
+            } else {
+                const screenX = Math.round(relX * vw);
+                const screenY = Math.round(relY * vh);
+                mapped = this.mapPointerForInteraction(screenX, screenY);
+            }
 
-            this.placeCursors(screenX, screenY, mapped.relX, mapped.relY);
+            this.placeCursors(mapped.x, mapped.y, mapped.relX, mapped.relY);
 
             this.lastX = Math.round(mapped.x);
             this.lastY = Math.round(mapped.y);

@@ -70,28 +70,34 @@ body.ar-immersive-3d.realm-stereo-active #realm-canvas-root canvas {
     height: 100% !important;
 }
 
-/* VR/AR 立体：整页缩放到约 67%，避免需手动浏览器缩放才能完整放入头显视窗 */
+/* VR/AR 立体：固定 67% 画框居中，左右眼各 50% 宽（与 WebGL SBS 一致） */
 body.ar-immersive-3d.realm-stereo-active {
     overflow: hidden;
 }
 
 body.ar-immersive-3d.realm-stereo-active .realm-viewport {
-    --realm-fit-scale: 0.67;
-    width: calc(100vw / var(--realm-fit-scale));
-    height: calc(100vh / var(--realm-fit-scale));
-    max-width: none;
-    max-height: none;
-    transform: scale(var(--realm-fit-scale));
-    transform-origin: top left;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
 }
 
-/* 手势光点在 body 上，不随 viewport 缩放，保持与左右眼半屏对齐 */
-body.ar-immersive-3d.realm-stereo-active #ar-cursor,
-body.ar-immersive-3d.realm-stereo-active #ar-cursor-right {
-    z-index: 2147483647;
+body.ar-immersive-3d.realm-stereo-active .realm-stereo-frame {
+    display: block !important;
+    width: 67vw;
+    height: 67vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 1px rgba(0, 242, 255, 0.12), 0 8px 40px rgba(0, 0, 0, 0.55);
 }
 
-body.ar-immersive-3d.realm-stereo-active .realm-viewport::after {
+body.ar-immersive-3d.realm-stereo-active .realm-stereo-frame::after {
     content: '';
     position: absolute;
     top: 0;
@@ -99,7 +105,7 @@ body.ar-immersive-3d.realm-stereo-active .realm-viewport::after {
     left: 50%;
     width: 2px;
     margin-left: -1px;
-    z-index: 3;
+    z-index: 4;
     pointer-events: none;
     background: linear-gradient(
         to bottom,
@@ -111,12 +117,29 @@ body.ar-immersive-3d.realm-stereo-active .realm-viewport::after {
     box-shadow: 0 0 12px rgba(0, 242, 255, 0.2);
 }
 
-/* 手机 VR：横屏全宽 SBS */
-body.ar-immersive-3d.realm-stereo-mobile .realm-viewport {
-    width: 100vw;
-    height: 100vh;
-    max-width: 100vw;
-    max-height: 100vh;
+body.ar-immersive-3d.realm-stereo-active #ar-cursor,
+body.ar-immersive-3d.realm-stereo-active #ar-cursor-right {
+    z-index: 10;
+}
+
+body.ar-immersive-3d:not(.realm-stereo-active) .realm-stereo-frame {
+    display: block !important;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    transform: none;
+    box-shadow: none;
+}
+
+body.ar-immersive-3d:not(.realm-stereo-active) .realm-stereo-eye {
+    display: none;
+}
+
+/* 手机 VR：横屏仍用 67% 画框（勿覆盖为 100vw 全屏） */
+body.ar-immersive-3d.realm-stereo-mobile.realm-stereo-active .realm-stereo-frame {
+    width: min(67vw, 100vw);
+    height: min(67vh, 100vh);
 }
 
 @media (max-width: 896px) and (orientation: portrait) {

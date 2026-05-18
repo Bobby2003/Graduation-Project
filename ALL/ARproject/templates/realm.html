@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517x">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517y">
     <script type="importmap">
     {
         "imports": {
@@ -49,6 +49,55 @@
             width: 100vw;
             height: 100vh;
             position: relative;
+            overflow: hidden;
+        }
+        /* 立体分屏外框：默认铺满；AR/VR 时由 control-modes 缩到 67% 并居中 */
+        .realm-stereo-frame {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .realm-stereo-frame[hidden] {
+            display: none !important;
+        }
+        body:not(.realm-stereo-active) .realm-stereo-frame {
+            width: 100%;
+            height: 100%;
+        }
+        .realm-stereo-frame #realm-canvas-root {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+        .realm-stereo-eye {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 6;
+            overflow: hidden;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+        .realm-stereo-eye--left {
+            left: 0;
+            border-right: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        .realm-stereo-eye--right {
+            right: 0;
+            border-left: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        .realm-stereo-cursor-host {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
         }
         .world-grid { display: none; }
         .crosshair {
@@ -368,7 +417,15 @@
     </script>
 
     <div class="realm-viewport">
-        <div id="realm-canvas-root" aria-label="Desktop Realm 3D viewport"></div>
+        <div id="realm-stereo-frame" class="realm-stereo-frame">
+            <div id="realm-canvas-root" aria-label="Desktop Realm 3D viewport"></div>
+            <div class="realm-stereo-eye realm-stereo-eye--left" aria-hidden="true">
+                <div id="realm-cursor-host-left" class="realm-stereo-cursor-host"></div>
+            </div>
+            <div class="realm-stereo-eye realm-stereo-eye--right" aria-hidden="true">
+                <div id="realm-cursor-host-right" class="realm-stereo-cursor-host"></div>
+            </div>
+        </div>
 
         <div class="realm-immersive-bar realm-immersive-keep" role="navigation" aria-label="沉浸模式切换">
             <div class="control-mode-switcher">
@@ -511,7 +568,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="{% static 'js/controls.js' %}?v=20260516n"></script>
-    <script src="{% static 'js/gesture.js' %}?v=20260517x"></script>
+    <script src="{% static 'js/gesture.js' %}?v=20260517y"></script>
     {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/stereo-overlay-sync.js' %}?v=20260517d"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
