@@ -212,12 +212,26 @@ class ARGestureController {
         );
     }
 
+    isRealmStereoActive() {
+        return (
+            this.isImmersive3DPage() &&
+            window.RealmStereo &&
+            typeof window.RealmStereo.isStereoMode === 'function' &&
+            window.RealmStereo.isStereoMode()
+        );
+    }
+
+    isDualEyeCursorMode() {
+        return this.isPortalStereoActive() || this.isRealmStereoActive();
+    }
+
     mapPointerForInteraction(screenX, screenY) {
-        if (
-            this.isPortalStereoActive() &&
-            window.PortalStereo.mapScreenToContentPoint
-        ) {
+        if (this.isPortalStereoActive() && window.PortalStereo.mapScreenToContentPoint) {
             const m = window.PortalStereo.mapScreenToContentPoint(screenX, screenY);
+            return { x: m.x, y: m.y, relX: m.relX, relY: m.relY };
+        }
+        if (this.isRealmStereoActive() && window.RealmStereo.mapScreenToContentPoint) {
+            const m = window.RealmStereo.mapScreenToContentPoint(screenX, screenY);
             return { x: m.x, y: m.y, relX: m.relX, relY: m.relY };
         }
         const vw = window.innerWidth;
@@ -226,8 +240,14 @@ class ARGestureController {
     }
 
     placeCursors(screenX, screenY, relX, relY) {
+        var mapFn = null;
         if (this.isPortalStereoActive() && window.PortalStereo.mapRelToStereoScreens) {
-            const pts = window.PortalStereo.mapRelToStereoScreens(relX, relY);
+            mapFn = window.PortalStereo.mapRelToStereoScreens.bind(window.PortalStereo);
+        } else if (this.isRealmStereoActive() && window.RealmStereo.mapRelToStereoScreens) {
+            mapFn = window.RealmStereo.mapRelToStereoScreens.bind(window.RealmStereo);
+        }
+        if (mapFn) {
+            const pts = mapFn(relX, relY);
             this.cursor.style.display = 'block';
             this.cursor.style.left = Math.round(pts.left.x) + 'px';
             this.cursor.style.top = Math.round(pts.left.y) + 'px';
@@ -744,8 +764,12 @@ class ARGestureController {
 
     handleData(data) {
         if (data.right === 'point' && data.pointer) {
-            const screenX = Math.round(data.pointer.x * window.innerWidth);
-            const screenY = Math.round(data.pointer.y * window.innerHeight);
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const relX = data.pointer.x;
+            const relY = data.pointer.y;
+            const screenX = Math.round(relX * vw);
+            const screenY = Math.round(relY * vh);
             const mapped = this.mapPointerForInteraction(screenX, screenY);
 
             this.placeCursors(screenX, screenY, mapped.relX, mapped.relY);

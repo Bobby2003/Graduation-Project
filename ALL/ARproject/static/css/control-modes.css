@@ -70,6 +70,27 @@ body.ar-immersive-3d.realm-stereo-active #realm-canvas-root canvas {
     height: 100% !important;
 }
 
+/* VR/AR 立体：整页缩放到约 67%，避免需手动浏览器缩放才能完整放入头显视窗 */
+body.ar-immersive-3d.realm-stereo-active {
+    overflow: hidden;
+}
+
+body.ar-immersive-3d.realm-stereo-active .realm-viewport {
+    --realm-fit-scale: 0.67;
+    width: calc(100vw / var(--realm-fit-scale));
+    height: calc(100vh / var(--realm-fit-scale));
+    max-width: none;
+    max-height: none;
+    transform: scale(var(--realm-fit-scale));
+    transform-origin: top left;
+}
+
+/* 手势光点在 body 上，不随 viewport 缩放，保持与左右眼半屏对齐 */
+body.ar-immersive-3d.realm-stereo-active #ar-cursor,
+body.ar-immersive-3d.realm-stereo-active #ar-cursor-right {
+    z-index: 2147483647;
+}
+
 body.ar-immersive-3d.realm-stereo-active .realm-viewport::after {
     content: '';
     position: absolute;

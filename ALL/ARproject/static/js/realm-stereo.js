@@ -249,6 +249,34 @@
         applyStereoLayout();
     }
 
+    /** 立体分屏：归一化坐标 → 左右眼屏幕像素（手势光点双份显示） */
+    function mapRelToStereoScreens(relX, relY) {
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var eyeW = vw * 0.5;
+        var y = relY * vh;
+        var x = Math.max(0, Math.min(1, relX)) * eyeW;
+        return {
+            left: { x: x, y: y },
+            right: { x: eyeW + x, y: y },
+        };
+    }
+
+    /** 点击命中：取所在半屏，映射到左眼内容坐标 */
+    function mapScreenToContentPoint(screenX, screenY) {
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var eyeW = vw * 0.5;
+        var relInEye = screenX >= eyeW ? (screenX - eyeW) / eyeW : screenX / eyeW;
+        relInEye = Math.max(0, Math.min(1, relInEye));
+        return {
+            x: relInEye * eyeW,
+            y: screenY,
+            relX: relInEye,
+            relY: screenY / vh,
+        };
+    }
+
     window.RealmStereo = {
         isStereoMode: isStereoMode,
         isMobileViewport: isMobileViewport,
@@ -257,6 +285,8 @@
         cameraPoseIsFinite: cameraPoseIsFinite,
         applyStereoLayout: applyStereoLayout,
         getBufferSize: getBufferSize,
+        mapRelToStereoScreens: mapRelToStereoScreens,
+        mapScreenToContentPoint: mapScreenToContentPoint,
         EYE_SEPARATION: EYE_SEPARATION,
         STEREO_CONVERGENCE: STEREO_CONVERGENCE,
     };
