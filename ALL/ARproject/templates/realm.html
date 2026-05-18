@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517y">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517z">
     <script type="importmap">
     {
         "imports": {
@@ -51,22 +51,13 @@
             position: relative;
             overflow: hidden;
         }
-        /* 立体分屏外框：默认铺满；AR/VR 时由 control-modes 缩到 67% 并居中 */
+        /* 立体分屏外框：始终铺满 viewport（桌面 / AR / VR 全屏） */
         .realm-stereo-frame {
             position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            inset: 0;
             width: 100%;
             height: 100%;
             box-sizing: border-box;
-        }
-        .realm-stereo-frame[hidden] {
-            display: none !important;
-        }
-        body:not(.realm-stereo-active) .realm-stereo-frame {
-            width: 100%;
-            height: 100%;
         }
         .realm-stereo-frame #realm-canvas-root {
             position: absolute;
@@ -369,10 +360,14 @@
             var el = document.getElementById('realm-private-json');
             var realm = {};
             try { realm = JSON.parse(el.textContent); } catch (e) {}
+            var realmRoomHeightM = 6;
+            var realmMeshBaseHeightM = 1.65;
             var realmEyeHeightM = 1.7;
             window.REALM_BOOTSTRAP = {
                 mode: "realm",
                 debugAllowed: {{ debug_allowed|yesno:"true,false" }},
+                /** 位面房间净高（米）：墙/天花板 */
+                roomHeightM: realmRoomHeightM,
                 /** 默认站立眼高（米），与相机 Y、WASD/IMU 漫游一致 */
                 eyeHeightM: realmEyeHeightM,
                 user: {
@@ -380,8 +375,8 @@
                     title: "{{ profile.display_title|escapejs }}"
                 },
                 realm: realm,
-                /** 扫描 mesh 底面默认高度（米），与 eyeHeightM 一致 */
-                meshPlacement: { floorY: realmEyeHeightM, useMetricScale: true, lockSamples: 3 },
+                /** 扫描 mesh 底面默认高度（米），165cm */
+                meshPlacement: { floorY: realmMeshBaseHeightM, useMetricScale: true, lockSamples: 3 },
                 /** AR/VR：✌ 保持 peaceHoldMs 后回正相机并清空 IMU 基准 */
                 imuRecenter: {
                     peaceHoldMs: 2000,
@@ -412,6 +407,18 @@
                 var h = b.eyeHeightM;
                 if (typeof h === 'number' && Number.isFinite(h)) return h;
                 return 1.7;
+            };
+            window.readRealmMeshBaseHeightM = function () {
+                var b = window.REALM_BOOTSTRAP || {};
+                var mp = b.meshPlacement;
+                if (mp && typeof mp.floorY === 'number' && Number.isFinite(mp.floorY)) return mp.floorY;
+                return 1.65;
+            };
+            window.readRealmRoomHeightM = function () {
+                var b = window.REALM_BOOTSTRAP || {};
+                var h = b.roomHeightM;
+                if (typeof h === 'number' && Number.isFinite(h)) return h;
+                return 6;
             };
         })();
     </script>
@@ -574,7 +581,7 @@
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
     <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517w"></script>
     {% include "partials/ar_stereo_scripts.html" %}
-    <script src="{% static 'js/realm/realm-main.js' %}?v=20260517v"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260518b"></script>
     <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517v"></script>
     <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
     <script>

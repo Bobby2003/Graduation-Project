@@ -71,7 +71,7 @@ def _center_env_float(name: str, default: float) -> float:
 
 
 # Realm 扫描 mesh 底面默认高度（米），与前端 eyeHeightM 一致
-REALM_DEFAULT_MESH_BASE_HEIGHT_M = _center_env_float("CENTER_MESH_BASE_HEIGHT_M", 1.7)
+REALM_DEFAULT_MESH_BASE_HEIGHT_M = _center_env_float("CENTER_MESH_BASE_HEIGHT_M", 1.65)
 
 
 def recommended_view_distance_from_mesh(mesh: o3d.geometry.TriangleMesh | None) -> float | None:

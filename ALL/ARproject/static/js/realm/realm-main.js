@@ -24,6 +24,19 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         return 1.7;
     }
 
+    function readRoomHeightM() {
+        if (typeof window.readRealmRoomHeightM === 'function') {
+            return window.readRealmRoomHeightM();
+        }
+        var h = bootstrap.roomHeightM;
+        if (typeof h === 'number' && Number.isFinite(h)) return h;
+        return 6;
+    }
+
+    function roomWallCenterY() {
+        return readRoomHeightM() * 0.5;
+    }
+
     function applyPlayerEyeHeight(cam) {
         if (!cam) return;
         cam.position.y = readEyeHeightM();
@@ -295,7 +308,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         var geo = new THREE.PlaneGeometry(width, depth);
         var mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x1a1f26 }));
         mesh.rotation.x = Math.PI / 2;
-        mesh.position.set(cx || 0, y || 4, cz || 0);
+        mesh.position.set(cx || 0, y != null ? y : readRoomHeightM(), cz || 0);
         addMeshToRoom(mesh, 'ceilings');
         return mesh;
     }
@@ -317,6 +330,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
     }
 
     function createPortalAt(ringZ) {
+        var portalY = Math.min(readEyeHeightM(), readRoomHeightM() * 0.45);
         var ringGeo = new THREE.TorusGeometry(1.1, 0.05, 16, 100);
         var ringMat = new THREE.MeshStandardMaterial({
             color: 0x00f2ff,
@@ -324,7 +338,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             emissiveIntensity: 1.4,
         });
         var ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.position.set(0, 2, ringZ);
+        ring.position.set(0, portalY, ringZ);
         addMeshToRoom(ring, 'trims');
 
         var coreGeo = new THREE.CircleGeometry(0.95, 64);
@@ -335,17 +349,22 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             side: THREE.DoubleSide,
         });
         var core = new THREE.Mesh(coreGeo, coreMat);
-        core.position.set(0, 2, ringZ + 0.02);
+        core.position.set(0, portalY, ringZ + 0.02);
         core.userData.skipMaterialProtocol = true;
         addMeshToRoom(core, 'props');
     }
 
     function createBasicRoomLayout() {
+        var wallH = readRoomHeightM();
+        var wallY = roomWallCenterY();
+        var pillarH = Math.max(2.5, wallH - 0.4);
+        var pillarY = pillarH * 0.5;
+
         addFloor(12, 12, 0, 0);
-        addWall(12, 4, 0, 2, -6, 0);
-        addWall(12, 4, -6, 2, 0, Math.PI / 2);
-        addWall(12, 4, 6, 2, 0, -Math.PI / 2);
-        addCeiling(12, 12, 4, 0, 0);
+        addWall(12, wallH, 0, wallY, -6, 0);
+        addWall(12, wallH, -6, wallY, 0, Math.PI / 2);
+        addWall(12, wallH, 6, wallY, 0, -Math.PI / 2);
+        addCeiling(12, 12, wallH, 0, 0);
 
         var grid = new THREE.GridHelper(12, 24, 0x00f2ff, 0x153344);
         grid.position.y = 0.01;
@@ -359,8 +378,8 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             emissive: 0x001020,
             emissiveIntensity: 0.2,
         });
-        [[-4, 1.6, -2], [4, 1.6, -2], [-4, 1.6, 2], [4, 1.6, 2]].forEach(function (p) {
-            var geo = new THREE.CylinderGeometry(0.12, 0.15, 3.2, 12);
+        [[-4, pillarY, -2], [4, pillarY, -2], [-4, pillarY, 2], [4, pillarY, 2]].forEach(function (p) {
+            var geo = new THREE.CylinderGeometry(0.12, 0.15, pillarH, 12);
             var m = new THREE.Mesh(geo, pillarMat.clone());
             m.position.set(p[0], p[1], p[2]);
             addMeshToRoom(m, 'walls');
@@ -390,15 +409,19 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
     ];
 
     function createCyberApartmentRoom() {
+        var wallH = readRoomHeightM();
+        var wallY = roomWallCenterY();
+        var trimY = wallH * 0.7;
+
         addFloor(14, 10, 0, 0);
-        addCeiling(14, 10, 4, 0, 0);
+        addCeiling(14, 10, wallH, 0, 0);
 
-        addWall(3.8, 4, -5.1, 2, -5, 0);
-        addWall(3.8, 4, 5.1, 2, -5, 0);
-        addWall(10, 4, -7, 2, 0, Math.PI / 2);
-        addWall(10, 4, 7, 2, 0, -Math.PI / 2);
+        addWall(3.8, wallH, -5.1, wallY, -5, 0);
+        addWall(3.8, wallH, 5.1, wallY, -5, 0);
+        addWall(10, wallH, -7, wallY, 0, Math.PI / 2);
+        addWall(10, wallH, 7, wallY, 0, -Math.PI / 2);
 
-        var winGeo = new THREE.PlaneGeometry(6, 2.6);
+        var winGeo = new THREE.PlaneGeometry(6, wallH * 0.65);
         var winMat = new THREE.MeshBasicMaterial({
             color: 0x00aaff,
             transparent: true,
@@ -406,7 +429,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             side: THREE.DoubleSide,
         });
         var win = new THREE.Mesh(winGeo, winMat);
-        win.position.set(0, 2.3, -5.02);
+        win.position.set(0, wallH * 0.58, -5.02);
         addMeshToRoom(win, 'glass');
 
         CYBER_WINDOW_LIGHTS.forEach(function (row) {
@@ -426,8 +449,8 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         platform.position.set(-3.5, 0.15, 2.4);
         addMeshToRoom(platform, 'props');
 
-        addTrimBox(0.08, 0.08, 10, -6.92, 2.8, 0, 0x00f2ff, 'trims');
-        addTrimBox(0.08, 0.08, 10, 6.92, 2.8, 0, 0xbc00ff, 'trims');
+        addTrimBox(0.08, 0.08, 10, -6.92, trimY, 0, 0x00f2ff, 'trims');
+        addTrimBox(0.08, 0.08, 10, 6.92, trimY, 0, 0xbc00ff, 'trims');
 
         var grid = new THREE.GridHelper(14, 28, 0x00f2ff, 0x153344);
         grid.position.y = 0.01;
@@ -439,12 +462,17 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
     }
 
     function createStarshipCabinRoom() {
-        addFloor(8, 16, 0, 0);
-        addCeiling(8, 16, 4, 0, 0);
+        var wallH = readRoomHeightM();
+        var wallY = roomWallCenterY();
+        var trimY = wallH * 0.675;
+        var doorY = wallH * 0.5;
 
-        addWall(16, 4, -4, 2, 0, Math.PI / 2);
-        addWall(16, 4, 4, 2, 0, -Math.PI / 2);
-        addWall(8, 4, 0, 2, -8, 0);
+        addFloor(8, 16, 0, 0);
+        addCeiling(8, 16, wallH, 0, 0);
+
+        addWall(16, wallH, -4, wallY, 0, Math.PI / 2);
+        addWall(16, wallH, 4, wallY, 0, -Math.PI / 2);
+        addWall(8, wallH, 0, wallY, -8, 0);
 
         var doorRingGeo = new THREE.TorusGeometry(1.05, 0.06, 16, 80);
         var doorRingMat = new THREE.MeshStandardMaterial({
@@ -453,7 +481,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             emissiveIntensity: 1.0,
         });
         var doorRing = new THREE.Mesh(doorRingGeo, doorRingMat);
-        doorRing.position.set(0, 2, -7.92);
+        doorRing.position.set(0, doorY, -7.92);
         addMeshToRoom(doorRing, 'trims');
 
         var doorCoreGeo = new THREE.CircleGeometry(0.95, 64);
@@ -464,14 +492,14 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
             side: THREE.DoubleSide,
         });
         var doorCore = new THREE.Mesh(doorCoreGeo, doorCoreMat);
-        doorCore.position.set(0, 2, -7.9);
+        doorCore.position.set(0, doorY, -7.9);
         doorCore.userData.skipMaterialProtocol = true;
         addMeshToRoom(doorCore, 'props');
 
         var z;
         for (z = -6; z <= 6; z += 3) {
-            addTrimBox(0.08, 0.08, 1.5, -3.92, 2.7, z, 0x99ccff, 'trims');
-            addTrimBox(0.08, 0.08, 1.5, 3.92, 2.7, z, 0x99ccff, 'trims');
+            addTrimBox(0.08, 0.08, 1.5, -3.92, trimY, z, 0x99ccff, 'trims');
+            addTrimBox(0.08, 0.08, 1.5, 3.92, trimY, z, 0x99ccff, 'trims');
         }
 
         addTrimBox(0.12, 0.03, 13, 0, 0.035, 0, 0x99ccff, 'trims');
@@ -499,15 +527,18 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
 
     function adjustLightsForRoom(key) {
         if (!roomObjects.pointBack || !roomObjects.pointMain) return;
+        var h = readRoomHeightM();
+        var mid = h * 0.5;
+        var high = h * 0.8;
         if (key === 'starship_cabin') {
-            roomObjects.pointBack.position.set(0, 2, -7);
-            roomObjects.pointMain.position.set(0, 3.2, 0);
+            roomObjects.pointBack.position.set(0, mid, -7);
+            roomObjects.pointMain.position.set(0, high, 0);
         } else if (key === 'cyber_apartment') {
-            roomObjects.pointBack.position.set(0, 2, -4.5);
-            roomObjects.pointMain.position.set(0, 3.2, 1);
+            roomObjects.pointBack.position.set(0, mid, -4.5);
+            roomObjects.pointMain.position.set(0, high, 1);
         } else {
-            roomObjects.pointBack.position.set(0, 2, -5);
-            roomObjects.pointMain.position.set(0, 3.2, 2);
+            roomObjects.pointBack.position.set(0, mid, -5);
+            roomObjects.pointMain.position.set(0, high, 2);
         }
     }
 

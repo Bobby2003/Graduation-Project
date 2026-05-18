@@ -45,11 +45,12 @@
         if (floorY == null && mp.baseHeightM != null) floorY = mp.baseHeightM;
 
         if (typeof floorY !== 'number' || !Number.isFinite(floorY)) {
-            if (typeof window.readRealmEyeHeightM === 'function') {
+            if (typeof window.readRealmMeshBaseHeightM === 'function') {
+                floorY = window.readRealmMeshBaseHeightM();
+            } else if (typeof window.readRealmEyeHeightM === 'function') {
                 floorY = window.readRealmEyeHeightM();
             } else {
-                var b = window.REALM_BOOTSTRAP || {};
-                floorY = typeof b.eyeHeightM === 'number' ? b.eyeHeightM : 1.7;
+                floorY = 1.65;
             }
         }
 
