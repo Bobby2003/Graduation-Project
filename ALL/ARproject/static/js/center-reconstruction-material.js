@@ -364,6 +364,10 @@
 
         if (!detailsEl || !applyBtn || !targetSelectEl || !librarySelectEl) return;
 
+        window.addEventListener('center-mesh-anchor-changed', function () {
+            syncMaterialLayerToMeshAnchor();
+        });
+
         detailsEl.addEventListener('toggle', onDetailsToggle);
 
         targetSelectEl.addEventListener('change', function () {

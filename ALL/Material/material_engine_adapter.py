@@ -8,6 +8,9 @@ import trimesh
 
 
 MODULE_DIR = Path(__file__).resolve().parent
+
+# 可选：专用贴图根目录（默认使用 Material 下的数字子文件夹 1/, 2/, …）
+PBR_MATERIAL_ROOT_ENV = "CENTER_PBR_MATERIAL_ROOT"
 LEGACY_ENGINE_CANDIDATES = (
     MODULE_DIR / "material_pipeline.py",
     MODULE_DIR / "material_pipeline_接口版.py",
@@ -121,6 +124,67 @@ class MaterialEngineAdapter:
                 "segment_types": sorted(meta["segment_types"]),
             }
 
+    def register_pbr_styles_from_disk(self, library_root: Path | str | None = None) -> int:
+        """
+        从磁盘加载 style_<n> PBR 套装（与 FastAPI 示例一致：<n>/<n>_albedo.jpg …）。
+        覆盖同名 style_* 在 engine.material_library 中的条目，并更新 material_metadata。
+        """
+        import os
+
+        env_root = os.environ.get(PBR_MATERIAL_ROOT_ENV, "").strip()
+        if env_root:
+            root = Path(env_root).expanduser().resolve()
+        elif library_root is not None:
+            root = Path(library_root).resolve()
+        else:
+            root = MODULE_DIR.resolve()
+
+        registered = 0
+        if not root.is_dir():
+            return 0
+
+        digit_dirs = sorted(
+            [p for p in root.iterdir() if p.is_dir() and p.name.isdigit()],
+            key=lambda p: int(p.name),
+        )
+        for mat_dir in digit_dirs:
+            i = int(mat_dir.name)
+            material_id = f"style_{i}"
+            albedo = mat_dir / f"{i}_albedo.jpg"
+            normal = mat_dir / f"{i}_normal.jpg"
+            ao = mat_dir / f"{i}_ao.jpg"
+            rough = mat_dir / f"{i}_roughness.jpg"
+            metal = mat_dir / f"{i}_metallic.jpg"
+            if not albedo.is_file():
+                continue
+            ok = self.engine.register_pbr_material(
+                material_id=material_id,
+                albedo_path=str(albedo),
+                normal_path=str(normal),
+                ao_path=str(ao),
+                rough_path=str(rough),
+                metal_path=str(metal),
+            )
+            if not ok:
+                continue
+            registered += 1
+            meta_base = self.DEFAULT_MATERIALS.get(material_id, {})
+            fallback_color = meta_base.get("color", [180, 180, 180, 255])
+            self.material_metadata[material_id] = {
+                "material_id": material_id,
+                "name": meta_base.get("name", f"风格 {i}"),
+                "type": "pbr",
+                "preview_color": fallback_color,
+                "preview_url": None,
+                "segment_types": sorted(
+                    meta_base.get(
+                        "segment_types",
+                        {"floor", "ceiling", "walls", "doors", "others"},
+                    )
+                ),
+            }
+        return registered
+
     def load_from_mesh(self, mesh: trimesh.Trimesh) -> bool:
         ok = self.engine.load_from_mesh(mesh.copy())
         if ok:
@@ -200,6 +264,68 @@ class MaterialEngineAdapter:
         if mesh is None or mesh.is_empty or mesh.vertices is None or len(mesh.vertices) == 0:
             return None
         return np.asarray(mesh.bounds, dtype=float).tolist()
+
+    def _weighted_mean_face_normal(self, mesh: trimesh.Trimesh) -> np.ndarray | None:
+        if mesh is None or mesh.is_empty:
+            return None
+        try:
+            mesh.fix_normals()
+        except Exception:
+            pass
+        fn = np.asarray(mesh.face_normals, dtype=np.float64)
+        if fn.size == 0 or fn.ndim != 2 or fn.shape[1] != 3:
+            return None
+        n_face = fn.shape[0]
+        ta = getattr(mesh, 'triangles_area', None)
+        if ta is None:
+            areas = np.ones(n_face, dtype=np.float64)
+        else:
+            areas = np.asarray(ta, dtype=np.float64).reshape(-1)
+        if areas.size != n_face:
+            areas = np.ones(n_face, dtype=np.float64)
+        total = float(np.sum(areas))
+        if total < 1e-18:
+            return None
+        w = areas / total
+        v = np.sum(fn * w[:, np.newaxis], axis=0)
+        norm = float(np.linalg.norm(v))
+        if norm < 1e-12:
+            return None
+        return v / norm
+
+    def get_semantic_horizontal_up_hint(self) -> list[float] | None:
+        """
+        用语义 floor / ceiling 三角面的面积加权法线估计竖直朝上方向（重建坐标），供前端锚点回正。
+        """
+        ey = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        hints: list[np.ndarray] = []
+
+        floor_m = self.engine.segments.get("floor")
+        nf = self._weighted_mean_face_normal(floor_m) if floor_m is not None else None
+        if nf is not None:
+            if float(np.dot(nf, ey)) < 0.0:
+                nf = -nf
+            hints.append(nf)
+
+        ceil_m = self.engine.segments.get("ceiling")
+        nc = self._weighted_mean_face_normal(ceil_m) if ceil_m is not None else None
+        if nc is not None:
+            room_up = -nc
+            if float(np.dot(room_up, ey)) < 0.0:
+                room_up = -room_up
+            hints.append(room_up)
+
+        if not hints:
+            return None
+
+        combined = np.sum(hints, axis=0)
+        norm = float(np.linalg.norm(combined))
+        if norm < 1e-12:
+            return None
+        up = combined / norm
+        if float(np.dot(up, ey)) < 0.0:
+            up = -up
+        return [float(up[0]), float(up[1]), float(up[2])]
 
     def get_material_targets(
         self,

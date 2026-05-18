@@ -286,6 +286,7 @@ class ModelProcessingWorker:
 
         material_mesh = refined_mesh if refined_mesh is not None else processing_mesh
         material_adapter = MaterialEngineAdapter()
+        material_adapter.register_pbr_styles_from_disk(MATERIAL_DIR)
         if not material_adapter.load_from_mesh(o3d_to_trimesh(material_mesh)):
             raise RuntimeError("Material segmentation failed")
 
@@ -310,6 +311,7 @@ class CenterPipelineService:
         self.material_versions: dict[int, dict[str, Any]] = {}
         self.worker_error: str | None = None
         self.last_stop_result: dict[str, Any] | None = None
+        self._semantic_horizontal_up: list[float] | None = None
         self._event_queues: list[queue.Queue] = []
 
         self._center_recovery_state: str = "normal"
@@ -1113,6 +1115,10 @@ class CenterPipelineService:
                 "summary": {"vertices": 0, "faces": 0},
                 "diagnostics": json_safe(diag),
             }
+            with self.lock:
+                sup0 = copy.deepcopy(self._semantic_horizontal_up)
+            if sup0 is not None:
+                payload["semantic_horizontal_up"] = sup0
             if running and isinstance(diag, dict):
                 ms = diag.get("mapping_stats") if isinstance(diag.get("mapping_stats"), dict) else {}
                 ts = diag.get("tracking_stats") if isinstance(diag.get("tracking_stats"), dict) else {}
@@ -1152,7 +1158,7 @@ class CenterPipelineService:
         if nv > max_vertices:
             with self._api_mesh_lock:
                 ver = self._api_mesh_version
-            return {
+            out_large: dict[str, Any] = {
                 "ok": True,
                 "too_large": True,
                 "running": running,
@@ -1162,6 +1168,11 @@ class CenterPipelineService:
                 "coordinate_space": "reconstruction_world",
                 "summary": {"vertices": nv, "faces": nf, "max_vertices": max_vertices},
             }
+            with self.lock:
+                sup1 = copy.deepcopy(self._semantic_horizontal_up)
+            if sup1 is not None:
+                out_large["semantic_horizontal_up"] = sup1
+            return out_large
 
         v_np = np.asarray(work.vertices, dtype=np.float32)
         t_np = np.asarray(work.triangles, dtype=np.int32)
@@ -1212,6 +1223,10 @@ class CenterPipelineService:
         }
         if placement is not None:
             out_mesh["placement"] = placement
+        with self.lock:
+            sup2 = copy.deepcopy(self._semantic_horizontal_up)
+        if sup2 is not None:
+            out_mesh["semantic_horizontal_up"] = sup2
         return out_mesh
 
     def export_white_mesh(self, mesh: o3d.geometry.TriangleMesh) -> dict[str, Any]:
@@ -1305,6 +1320,11 @@ class CenterPipelineService:
             version = self.material_version
 
         exported = self._export_material_files(adapter, version)
+        semantic_up = None
+        try:
+            semantic_up = adapter.get_semantic_horizontal_up_hint()
+        except Exception:
+            semantic_up = None
         scene_meta = {
             "status": "ready",
             "version": version,
@@ -1325,6 +1345,7 @@ class CenterPipelineService:
                 "segment_paths": exported["segment_paths"],
                 "targets": exported["targets"],
             }
+            self._semantic_horizontal_up = semantic_up
 
         self.emit_event({"type": "material_updated", "version": version, "updated_at": scene_meta["updated_at"]})
         return scene_meta

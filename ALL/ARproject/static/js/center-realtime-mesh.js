@@ -80,6 +80,8 @@
 
     var lastPlacementMeta = null;
 
+    var lastSemanticHorizontalUp = null;
+
 
 
     var urls = (window.REALM_BOOTSTRAP && window.REALM_BOOTSTRAP.urls) || {};
@@ -201,6 +203,8 @@
         calibrationSamples = [];
 
         lastPlacementMeta = null;
+
+        lastSemanticHorizontalUp = null;
 
         centerMeshVersion = null;
 
@@ -423,6 +427,566 @@
         centerMeshAnchor.scale.setScalar(placement.scale);
 
         centerMeshAnchor.position.copy(placement.position);
+
+    }
+
+
+
+    /**
+
+     * 用网格 Y 方向两端带状区域内的三角形法线估计地面外法线（网格局部坐标），兼容地面在 ymin 或 ymax 一侧；
+
+     * 三角形样本不足时用顶点法线回退。
+
+     */
+
+    function estimateFloorUpNormalFromGeometry(geometry) {
+
+        if (!geometry || !geometry.attributes || !geometry.attributes.position) {
+
+            return null;
+
+        }
+
+        var pos = geometry.attributes.position;
+
+        var arr = pos.array;
+
+        var itemSize = pos.itemSize || 3;
+
+        var nv = pos.count;
+
+        if (!nv || arr.length < nv * itemSize) {
+
+            return null;
+
+        }
+
+        var ymin = Infinity;
+
+        var ymax = -Infinity;
+
+        var i;
+
+        var y;
+
+        for (i = 0; i < nv; i++) {
+
+            y = arr[i * itemSize + 1];
+
+            if (y < ymin) ymin = y;
+
+            if (y > ymax) ymax = y;
+
+        }
+
+        var span = ymax - ymin;
+
+        var band = Math.max(span * 0.42, 0.18);
+
+        var yBotMax = ymin + band;
+
+        var yTopMin = ymax - band;
+
+        function triNormal(ix0, ix1, ix2) {
+
+            var o0 = ix0 * itemSize;
+
+            var o1 = ix1 * itemSize;
+
+            var o2 = ix2 * itemSize;
+
+            var ax = arr[o1] - arr[o0];
+
+            var ay = arr[o1 + 1] - arr[o0 + 1];
+
+            var az = arr[o1 + 2] - arr[o0 + 2];
+
+            var bx = arr[o2] - arr[o0];
+
+            var by = arr[o2 + 1] - arr[o0 + 1];
+
+            var bz = arr[o2 + 2] - arr[o0 + 2];
+
+            var cx = ay * bz - az * by;
+
+            var cy = az * bx - ax * bz;
+
+            var cz = ax * by - ay * bx;
+
+            var len = Math.sqrt(cx * cx + cy * cy + cz * cz);
+
+            if (len < 1e-12) {
+
+                return null;
+
+            }
+
+            return [cx / len, cy / len, cz / len];
+
+        }
+
+        function centroidY(ix0, ix1, ix2) {
+
+            return (
+
+                arr[ix0 * itemSize + 1] +
+
+                arr[ix1 * itemSize + 1] +
+
+                arr[ix2 * itemSize + 1]
+
+            ) / 3;
+
+        }
+
+        function accumulateBand(bottomBand) {
+
+            var nx = 0;
+
+            var ny = 0;
+
+            var nz = 0;
+
+            var triCount = 0;
+
+            var indexAttr = geometry.index;
+
+            var ii;
+
+            if (indexAttr && indexAttr.array && indexAttr.array.length >= 3) {
+
+                var ia = indexAttr.array;
+
+                for (ii = 0; ii + 2 < ia.length; ii += 3) {
+
+                    var i0 = ia[ii];
+
+                    var i1 = ia[ii + 1];
+
+                    var i2 = ia[ii + 2];
+
+                    var cy = centroidY(i0, i1, i2);
+
+                    if (bottomBand) {
+
+                        if (cy > yBotMax) continue;
+
+                    } else {
+
+                        if (cy < yTopMin) continue;
+
+                    }
+
+                    var nn = triNormal(i0, i1, i2);
+
+                    if (!nn) continue;
+
+                    nx += nn[0];
+
+                    ny += nn[1];
+
+                    nz += nn[2];
+
+                    triCount++;
+
+                }
+
+            } else {
+
+                for (ii = 0; ii + 2 < nv; ii += 3) {
+
+                    var t0 = ii;
+
+                    var t1 = ii + 1;
+
+                    var t2 = ii + 2;
+
+                    var cy2 = centroidY(t0, t1, t2);
+
+                    if (bottomBand) {
+
+                        if (cy2 > yBotMax) continue;
+
+                    } else {
+
+                        if (cy2 < yTopMin) continue;
+
+                    }
+
+                    var nn2 = triNormal(t0, t1, t2);
+
+                    if (!nn2) continue;
+
+                    nx += nn2[0];
+
+                    ny += nn2[1];
+
+                    nz += nn2[2];
+
+                    triCount++;
+
+                }
+
+            }
+
+            return { nx: nx, ny: ny, nz: nz, triCount: triCount };
+
+        }
+
+        function accToVector(acc) {
+
+            if (!acc || acc.triCount < 1) {
+
+                return null;
+
+            }
+
+            var lenN = Math.sqrt(acc.nx * acc.nx + acc.ny * acc.ny + acc.nz * acc.nz);
+
+            if (lenN < 1e-9) {
+
+                return null;
+
+            }
+
+            var nx = acc.nx / lenN;
+
+            var ny = acc.ny / lenN;
+
+            var nz = acc.nz / lenN;
+
+            if (ny < 0) {
+
+                nx = -nx;
+
+                ny = -ny;
+
+                nz = -nz;
+
+            }
+
+            return new THREE.Vector3(nx, ny, nz);
+
+        }
+
+        var botAcc = accumulateBand(true);
+
+        var topAcc = accumulateBand(false);
+
+        var vBot = accToVector(botAcc);
+
+        var vTop = accToVector(topAcc);
+
+        var chosen = null;
+
+        if (vBot && vTop) {
+
+            chosen = botAcc.triCount >= topAcc.triCount ? vBot : vTop;
+
+        } else {
+
+            chosen = vBot || vTop;
+
+        }
+
+        if (!chosen && geometry.attributes.normal) {
+
+            var nrm = geometry.attributes.normal;
+
+            var nar = nrm.array;
+
+            var sbx = 0;
+
+            var sby = 0;
+
+            var sbz = 0;
+
+            var sbn = 0;
+
+            var stx = 0;
+
+            var sty = 0;
+
+            var stz = 0;
+
+            var stn = 0;
+
+            var j;
+
+            for (j = 0; j < nv; j++) {
+
+                var o = j * itemSize;
+
+                var yv = arr[o + 1];
+
+                var vnx = nar[o];
+
+                var vny = nar[o + 1];
+
+                var vnz = nar[o + 2];
+
+                if (yv <= yBotMax) {
+
+                    sbx += vnx;
+
+                    sby += vny;
+
+                    sbz += vnz;
+
+                    sbn++;
+
+                }
+
+                if (yv >= yTopMin) {
+
+                    stx += vnx;
+
+                    sty += vny;
+
+                    stz += vnz;
+
+                    stn++;
+
+                }
+
+            }
+
+            var fb = sbn >= 3 ? accToVector({ nx: sbx, ny: sby, nz: sbz, triCount: sbn }) : null;
+
+            var ft = stn >= 3 ? accToVector({ nx: stx, ny: sty, nz: stz, triCount: stn }) : null;
+
+            if (fb && ft) {
+
+                chosen = sbn >= stn ? fb : ft;
+
+            } else {
+
+                chosen = fb || ft;
+
+            }
+
+        }
+
+        return chosen;
+
+    }
+
+
+
+    function quaternionRotateVectorToVector(a, b) {
+
+        var v1 = a.clone().normalize();
+
+        var v2 = b.clone().normalize();
+
+        var axis = new THREE.Vector3().crossVectors(v1, v2);
+
+        var ax = axis.lengthSq();
+
+        var dot = THREE.MathUtils.clamp(v1.dot(v2), -1, 1);
+
+        if (ax < 1e-10) {
+
+            if (dot > 0.99999) {
+
+                return new THREE.Quaternion();
+
+            }
+
+            var orth = new THREE.Vector3(1, 0, 0);
+
+            if (Math.abs(v1.dot(orth)) > 0.85) {
+
+                orth.set(0, 1, 0);
+
+            }
+
+            axis.crossVectors(v1, orth).normalize();
+
+            return new THREE.Quaternion().setFromAxisAngle(axis, Math.PI);
+
+        }
+
+        axis.normalize();
+
+        return new THREE.Quaternion().setFromAxisAngle(axis, Math.acos(dot));
+
+    }
+
+
+
+    function cacheSemanticHorizontalUp(meta) {
+
+        if (
+
+            !meta ||
+
+            !Array.isArray(meta.semantic_horizontal_up) ||
+
+            meta.semantic_horizontal_up.length !== 3
+
+        ) {
+
+            return;
+
+        }
+
+        var a = meta.semantic_horizontal_up;
+
+        var sx = Number(a[0]);
+
+        var sy = Number(a[1]);
+
+        var sz = Number(a[2]);
+
+        if (!Number.isFinite(sx) || !Number.isFinite(sy) || !Number.isFinite(sz)) {
+
+            return;
+
+        }
+
+        lastSemanticHorizontalUp = [sx, sy, sz];
+
+    }
+
+
+
+    function resolveCenterRealtimeGeometry() {
+
+        if (
+
+            centerRealtimeMesh &&
+
+            centerRealtimeMesh.geometry &&
+
+            centerRealtimeMesh.geometry.attributes &&
+
+            centerRealtimeMesh.geometry.attributes.position
+
+        ) {
+
+            return centerRealtimeMesh.geometry;
+
+        }
+
+        if (!centerMeshAnchor) {
+
+            return null;
+
+        }
+
+        var found = null;
+
+        centerMeshAnchor.traverse(function (o) {
+
+            if (found) return;
+
+            if (!o.isMesh || !o.geometry || !o.geometry.attributes || !o.geometry.attributes.position) {
+
+                return;
+
+            }
+
+            if (o.userData && o.userData.isCenterRealtimeMesh) {
+
+                found = o.geometry;
+
+            }
+
+        });
+
+        if (found) {
+
+            return found;
+
+        }
+
+        centerMeshAnchor.traverse(function (o) {
+
+            if (found) return;
+
+            if (o.isMesh && o.geometry && o.geometry.attributes && o.geometry.attributes.position) {
+
+                found = o.geometry;
+
+            }
+
+        });
+
+        return found;
+
+    }
+
+
+
+    function alignCenterMeshAnchorUpright() {
+
+        if (!centerMeshAnchor || typeof THREE === 'undefined') {
+
+            return false;
+
+        }
+
+        var geom = resolveCenterRealtimeGeometry();
+
+        var nLocal = null;
+
+        if (lastSemanticHorizontalUp && lastSemanticHorizontalUp.length === 3) {
+
+            var sx = Number(lastSemanticHorizontalUp[0]);
+
+            var sy = Number(lastSemanticHorizontalUp[1]);
+
+            var sz = Number(lastSemanticHorizontalUp[2]);
+
+            if (Number.isFinite(sx) && Number.isFinite(sy) && Number.isFinite(sz)) {
+
+                nLocal = new THREE.Vector3(sx, sy, sz);
+
+                if (nLocal.lengthSq() > 1e-14) {
+
+                    nLocal.normalize();
+
+                } else {
+
+                    nLocal = null;
+
+                }
+
+            }
+
+        }
+
+        if (!nLocal && geom) {
+
+            nLocal = estimateFloorUpNormalFromGeometry(geom);
+
+        }
+
+        if (!nLocal) {
+
+            return false;
+
+        }
+
+        var upWorld = new THREE.Vector3(0, 1, 0);
+
+        var nWorld = nLocal.clone().applyQuaternion(centerMeshAnchor.quaternion).normalize();
+
+        var qFix = quaternionRotateVectorToVector(nWorld, upWorld);
+
+        qFix.multiply(centerMeshAnchor.quaternion);
+
+        centerMeshAnchor.quaternion.copy(qFix);
+
+        centerMeshAnchor.quaternion.normalize();
+
+        centerMeshAnchor.updateMatrixWorld(true);
+
+        window.dispatchEvent(new CustomEvent('center-mesh-anchor-changed'));
+
+        return true;
 
     }
 
@@ -837,6 +1401,8 @@
             .then(function (data) {
 
                 updateCenterRealtimeStatus(data);
+
+                cacheSemanticHorizontalUp(data);
 
                 if (!data || data.ok === false) return;
 
@@ -1583,6 +2149,10 @@
             return lastPlacementMeta;
 
         },
+
+        alignAnchorUprightFromFloor: alignCenterMeshAnchorUpright,
+
+
 
     };
 

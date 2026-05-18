@@ -178,6 +178,16 @@
                 showToast('已停止扫描');
                 setMenuOpen(false);
                 break;
+            case 'mesh-upright':
+                var uprightOk =
+                    window.CenterRealtimeMesh &&
+                    typeof window.CenterRealtimeMesh.alignAnchorUprightFromFloor === 'function' &&
+                    window.CenterRealtimeMesh.alignAnchorUprightFromFloor();
+                showToast(
+                    uprightOk ? '已回正模型（材质语义地面/天花板或网格估计）' : '无法回正（请先扫描出网格并等待材质分区）'
+                );
+                setMenuOpen(false);
+                break;
             case 'desktop':
                 if (window.ARRealmControls) window.ARRealmControls.setMode('desktop');
                 setMenuOpen(false);

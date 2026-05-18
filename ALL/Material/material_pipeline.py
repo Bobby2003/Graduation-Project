@@ -1,6 +1,7 @@
-import trimesh
+from pathlib import Path
+
 import numpy as np
-import os
+import trimesh
 from PIL import Image
 
 
@@ -47,8 +48,43 @@ class MRMaterialEngine:
         self.original_mesh.visual = trimesh.visual.ColorVisuals(mesh=self.original_mesh)
         return self._process_geometry(self.original_mesh)
 
+    def _merge_nearby_mesh_parts(self, parts: list, max_centroid_dist: float) -> list:
+        """按质心距离合并邻近连通域，减少碎片门洞被算作多扇门。"""
+        if len(parts) <= 1:
+            return parts
+        centers = [np.mean(p.vertices, axis=0) for p in parts]
+        n = len(parts)
+        parent = list(range(n))
+
+        def find(a: int) -> int:
+            while parent[a] != a:
+                parent[a] = parent[parent[a]]
+                a = parent[a]
+            return a
+
+        def union(a: int, b: int) -> None:
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[rb] = ra
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                if np.linalg.norm(centers[i] - centers[j]) <= max_centroid_dist:
+                    union(i, j)
+
+        clusters: dict[int, list] = {}
+        for i in range(n):
+            r = find(i)
+            clusters.setdefault(r, []).append(parts[i])
+
+        merged: list = []
+        for group in clusters.values():
+            merged.append(trimesh.util.concatenate(group))
+        return merged
+
     def _extract_doors_and_clean_walls(self, wall_mesh):
-        if wall_mesh.is_empty: return wall_mesh, [], []
+        if wall_mesh.is_empty:
+            return wall_mesh, [], []
         wall_mesh.fix_normals()
 
         dominant_normal = np.median(wall_mesh.face_normals, axis=0)
@@ -61,23 +97,62 @@ class MRMaterialEngine:
         centroid = np.median(wall_mesh.vertices, axis=0)
         depths = np.dot(wall_mesh.triangles.mean(axis=1) - centroid, dominant_normal)
 
-        door_face_mask = (np.abs(depths) > 0.1) & (np.abs(depths) < 0.25)
+        # 略收紧深度带，减少窗套/墙饰被当成门洞
+        door_face_mask = (np.abs(depths) > 0.13) & (np.abs(depths) < 0.22)
         door_candidate = trimesh.Trimesh(vertices=wall_mesh.vertices, faces=wall_mesh.faces[door_face_mask])
         door_candidate.remove_unreferenced_vertices()
 
         main_wall = trimesh.Trimesh(vertices=wall_mesh.vertices, faces=wall_mesh.faces[~door_face_mask])
         main_wall.remove_unreferenced_vertices()
 
-        true_doors = []
-        false_doors = []
+        true_doors: list = []
+        false_doors: list = []
 
-        if not door_candidate.is_empty:
-            for part in door_candidate.split(only_watertight=False):
-                min_y, max_y = part.bounds[0][1], part.bounds[1][1]
-                if part.area > 0.1 and min_y < 1.5 and (min_y < 0.6 or max_y > 1.2):
-                    true_doors.append(part)
-                else:
-                    false_doors.append(part)
+        if door_candidate.is_empty:
+            return main_wall, true_doors, false_doors
+
+        raw_parts: list = []
+        for part in door_candidate.split(only_watertight=False):
+            ext = part.bounds[1] - part.bounds[0]
+            height = float(ext[1])
+            if part.area < 0.08 or height < 0.4:
+                false_doors.append(part)
+                continue
+            min_y, max_y = float(part.bounds[0][1]), float(part.bounds[1][1])
+            if min_y < 1.45 and (min_y < 0.65 or max_y > 1.15):
+                raw_parts.append(part)
+            else:
+                false_doors.append(part)
+
+        merged = self._merge_nearby_mesh_parts(raw_parts, max_centroid_dist=0.55)
+        merged.sort(key=lambda m: float(m.area), reverse=True)
+
+        MIN_DOOR_AREA = 0.28
+        MIN_DOOR_HEIGHT = 0.92
+        MIN_ASPECT_H_OVER_W = 1.05
+        max_doors_keep = 5
+
+        for part in merged:
+            ext = part.bounds[1] - part.bounds[0]
+            height = float(ext[1])
+            horiz = float(max(ext[0], ext[2]))
+            min_y = float(part.bounds[0][1])
+            max_y = float(part.bounds[1][1])
+
+            if part.area < MIN_DOOR_AREA or height < MIN_DOOR_HEIGHT:
+                false_doors.append(part)
+                continue
+            if height / max(horiz, 0.05) < MIN_ASPECT_H_OVER_W:
+                false_doors.append(part)
+                continue
+            if min_y > 1.35 and max_y < 2.2:
+                false_doors.append(part)
+                continue
+            true_doors.append(part)
+
+        if len(true_doors) > max_doors_keep:
+            false_doors.extend(true_doors[max_doors_keep:])
+            true_doors = true_doors[:max_doors_keep]
 
         return main_wall, true_doors, false_doors
 
@@ -335,6 +410,36 @@ app.add_middleware(
 
 global_engine = MRMaterialEngine()
 
+_MATERIAL_API_ROOT = Path(__file__).resolve().parent
+
+
+def _register_pbr_library_for_engine(engine: MRMaterialEngine, root: Path) -> int:
+    """与 MaterialEngineAdapter 约定一致：<root>/<n>/<n>_albedo.jpg …"""
+    if not root.is_dir():
+        return 0
+    n_ok = 0
+    digit_dirs = sorted(
+        [p for p in root.iterdir() if p.is_dir() and p.name.isdigit()],
+        key=lambda p: int(p.name),
+    )
+    for mat_dir in digit_dirs:
+        i = int(mat_dir.name)
+        material_id = f"style_{i}"
+        albedo = mat_dir / f"{i}_albedo.jpg"
+        if not albedo.is_file():
+            continue
+        ok = engine.register_pbr_material(
+            material_id=material_id,
+            albedo_path=str(albedo),
+            normal_path=str(mat_dir / f"{i}_normal.jpg"),
+            ao_path=str(mat_dir / f"{i}_ao.jpg"),
+            rough_path=str(mat_dir / f"{i}_roughness.jpg"),
+            metal_path=str(mat_dir / f"{i}_metallic.jpg"),
+        )
+        if ok:
+            n_ok += 1
+    return n_ok
+
 
 # 定义前后端通信的 JSON 格式
 class InitSceneRequest(BaseModel):
@@ -360,18 +465,7 @@ def api_init_scene(req: InitSceneRequest):
         global_engine.register_color_material("default_door", [20, 20, 25, 255], metallic=0.9)
         global_engine.register_color_material("default_others", [60, 60, 65, 255])
 
-        # 批量注册高级 PBR 材质
-        for i in [1, 2, 3]:
-            mat_dir = rf"C:\毕设\材质\{i}"
-            if os.path.exists(mat_dir):
-                global_engine.register_pbr_material(
-                    material_id=f"style_{i}",
-                    albedo_path=os.path.join(mat_dir, f"{i}_albedo.jpg"),
-                    normal_path=os.path.join(mat_dir, f"{i}_normal.jpg"),
-                    ao_path=os.path.join(mat_dir, f"{i}_ao.jpg"),
-                    rough_path=os.path.join(mat_dir, f"{i}_roughness.jpg"),
-                    metal_path=os.path.join(mat_dir, f"{i}_metallic.jpg")
-                )
+        _register_pbr_library_for_engine(global_engine, _MATERIAL_API_ROOT)
 
         global_engine.restore_default_materials()
 
@@ -407,8 +501,10 @@ def api_change_material(req: MaterialChangeRequest):
 @app.get("/api/download_glb")
 def api_download_glb():
     """步骤 4：前端调用，获取拼接、换装完成后的最终 GLB 模型文件用于 Three.js 渲染"""
-    out_path = r"C:\毕设\final_rendered_room.glb"
-    global_engine.export_glb(out_path)
+    out_dir = _MATERIAL_API_ROOT / "outputs"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "api_download_room.glb"
+    global_engine.export_glb(str(out_path))
     return FileResponse(out_path, media_type="model/gltf-binary", filename="room.glb")
 
 
