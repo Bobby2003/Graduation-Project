@@ -87,6 +87,48 @@ def recommended_view_distance_from_mesh(mesh: o3d.geometry.TriangleMesh | None) 
         return None
 
 
+def _mesh_floor_y_percentile(vertices: np.ndarray, pct: float = 8.0) -> float:
+    if vertices.size == 0:
+        return 0.0
+    ys = np.sort(vertices[:, 1])
+    return float(np.percentile(ys, pct))
+
+
+def compute_metric_mesh_placement(
+    vertices: np.ndarray,
+    *,
+    floor_y_target: float = 0.0,
+    room_center_xz: tuple[float, float] = (0.0, 0.0),
+) -> dict[str, Any] | None:
+    """
+  从 reconstruction_world 顶点（米）估计锚点放置：scale=1，底面对齐 floor_y_target，XZ 居中到 room_center。
+    """
+    if vertices.size == 0:
+        return None
+    v = np.asarray(vertices, dtype=np.float64)
+    if v.ndim != 2 or v.shape[1] != 3:
+        v = v.reshape(-1, 3)
+    vmin = v.min(axis=0)
+    vmax = v.max(axis=0)
+    floor_y = _mesh_floor_y_percentile(v, 8.0)
+    center_x = float((vmin[0] + vmax[0]) * 0.5)
+    center_z = float((vmin[2] + vmax[2]) * 0.5)
+    size_x = float(max(vmax[0] - vmin[0], 0.0))
+    size_y = float(max(vmax[1] - floor_y, 0.0))
+    size_z = float(max(vmax[2] - vmin[2], 0.0))
+    return {
+        "scale": 1.0,
+        "position": [
+            float(room_center_xz[0] - center_x),
+            float(floor_y_target - floor_y),
+            float(room_center_xz[1] - center_z),
+        ],
+        "extent_m": {"x": size_x, "y": size_y, "z": size_z},
+        "floor_y_reconstruction": floor_y,
+        "center_reconstruction": [center_x, float((vmin[1] + vmax[1]) * 0.5), center_z],
+    }
+
+
 def rel_path(path: str | Path | None) -> str | None:
     if path is None:
         return None
@@ -271,6 +313,14 @@ class CenterPipelineService:
         self._api_mesh_version = 0
         self._api_mesh_signature: str | None = None
 
+        # 前几帧深度 + mesh 校准：真实尺寸（米）与位面锚点
+        self._placement_lock = threading.Lock()
+        self._placement_depth_samples: list[dict[str, Any]] = []
+        self._placement_mesh_samples: list[dict[str, Any]] = []
+        self._placement_locked: dict[str, Any] | None = None
+        self._placement_reference_camera: list[list[float]] | None = None
+        self._placement_floor_y_target = 0.0
+
         # AR/VR 漫游：仅串口 IMU，不启深度相机 / TSDF
         self._imu_only_mode = False
         self._imu_only_stop = threading.Event()
@@ -291,6 +341,195 @@ class CenterPipelineService:
         self._consecutive_success_frames = 0
         self._recovery_hint = None
 
+    def _reset_placement_calibration(self) -> None:
+        with self._placement_lock:
+            self._placement_depth_samples = []
+            self._placement_mesh_samples = []
+            self._placement_locked = None
+            self._placement_reference_camera = None
+
+    def _capture_depth_placement_sample(self, tracking: Any) -> None:
+        """跟踪成功时从前几帧深度图估计相机系/世界系包围盒（米）。"""
+        max_depth_samples = 5
+        with self._placement_lock:
+            if self._placement_locked is not None:
+                return
+            if len(self._placement_depth_samples) >= max_depth_samples:
+                return
+
+        with self.lock:
+            pipeline = self.pipeline
+        if pipeline is None or not bool(getattr(tracking, "success", False)):
+            return
+
+        slot = getattr(pipeline, "latest_frame_slot", None)
+        if slot is None:
+            return
+        frame = slot.get_latest()
+        if frame is None or getattr(frame, "depth", None) is None:
+            return
+
+        mapper = getattr(pipeline, "mapper", None)
+        if mapper is None:
+            return
+
+        depth_np = np.asarray(frame.depth)
+        if depth_np.size == 0:
+            return
+
+        depth_scale = 1.0
+        guess_fn = getattr(mapper, "_guess_depth_scale_for_local_map", None)
+        if callable(guess_fn):
+            try:
+                depth_scale = float(guess_fn(depth_np))
+            except Exception:
+                depth_scale = 1.0
+
+        fx = float(getattr(mapper, "fx", 525.0))
+        fy = float(getattr(mapper, "fy", 525.0))
+        cx = float(getattr(mapper, "cx", 319.5))
+        cy = float(getattr(mapper, "cy", 239.5))
+        depth_trunc = float(getattr(mapper, "depth_trunc", 3.0))
+        stride = max(1, int(getattr(mapper, "local_map_frame_pcd_stride", 4)))
+
+        d = depth_np.astype(np.float32, copy=False)
+        z_m = d * depth_scale
+        valid = np.isfinite(z_m) & (z_m > 0.05) & (z_m < depth_trunc)
+        if not np.any(valid):
+            return
+
+        v_idx, u_idx = np.where(valid)
+        v_idx = v_idx[::stride]
+        u_idx = u_idx[::stride]
+        z_m = z_m[v_idx, u_idx]
+        x_m = (u_idx.astype(np.float64) - cx) * z_m / fx
+        y_m = (v_idx.astype(np.float64) - cy) * z_m / fy
+
+        cam_pts = np.stack([x_m, y_m, z_m], axis=1)
+        cam_min = cam_pts.min(axis=0)
+        cam_max = cam_pts.max(axis=0)
+        cam_center = (cam_min + cam_max) * 0.5
+        cam_size = cam_max - cam_min
+
+        T_cw = pipeline.get_current_camera_pose_world()
+        if T_cw is None:
+            return
+        T = np.asarray(T_cw, dtype=np.float64).reshape(4, 4)
+        R = T[:3, :3]
+        t = T[:3, 3]
+        world_center = R @ cam_center + t
+
+        sample = {
+            "frame_id": int(getattr(tracking, "frame_id", -1)),
+            "depth_scale": depth_scale,
+            "extent_camera_m": {
+                "x": float(cam_size[0]),
+                "y": float(cam_size[1]),
+                "z": float(cam_size[2]),
+            },
+            "center_camera_m": [float(cam_center[0]), float(cam_center[1]), float(cam_center[2])],
+            "center_world_m": [float(world_center[0]), float(world_center[1]), float(world_center[2])],
+        }
+
+        with self._placement_lock:
+            if self._placement_locked is not None:
+                return
+            if self._placement_reference_camera is None:
+                self._placement_reference_camera = T.tolist()
+            self._placement_depth_samples.append(sample)
+
+    def _record_mesh_placement_sample(self, vertices: np.ndarray) -> None:
+        placement = compute_metric_mesh_placement(
+            vertices,
+            floor_y_target=self._placement_floor_y_target,
+        )
+        if placement is None:
+            return
+        with self._placement_lock:
+            if self._placement_locked is not None:
+                return
+            self._placement_mesh_samples.append(placement)
+            mesh_n = len(self._placement_mesh_samples)
+            depth_n = len(self._placement_depth_samples)
+            ref_cam = self._placement_reference_camera
+
+        if mesh_n >= 3:
+            self._lock_placement_from_samples()
+
+    def _lock_placement_from_samples(self) -> None:
+        with self._placement_lock:
+            if self._placement_locked is not None:
+                return
+            if not self._placement_mesh_samples:
+                return
+            scales = [float(s["scale"]) for s in self._placement_mesh_samples]
+            px = py = pz = 0.0
+            ext_x = ext_y = ext_z = 0.0
+            for s in self._placement_mesh_samples:
+                pos = s["position"]
+                px += float(pos[0])
+                py += float(pos[1])
+                pz += float(pos[2])
+                e = s.get("extent_m") or {}
+                ext_x += float(e.get("x", 0.0))
+                ext_y += float(e.get("y", 0.0))
+                ext_z += float(e.get("z", 0.0))
+            n = len(self._placement_mesh_samples)
+            depth_samples = list(self._placement_depth_samples)
+            ref_cam = self._placement_reference_camera
+
+        depth_extent = None
+        if depth_samples:
+            wx = wy = wz = 0.0
+            for ds in depth_samples:
+                ec = ds.get("extent_camera_m") or {}
+                wx += float(ec.get("x", 0.0))
+                wy += float(ec.get("y", 0.0))
+                wz += float(ec.get("z", 0.0))
+            dn = len(depth_samples)
+            depth_extent = {
+                "x": wx / dn,
+                "y": wy / dn,
+                "z": wz / dn,
+                "samples": dn,
+            }
+
+        locked = {
+            "locked": True,
+            "method": "metric_depth_mesh",
+            "scale": float(sum(scales) / n),
+            "position": [px / n, py / n, pz / n],
+            "extent_m": {"x": ext_x / n, "y": ext_y / n, "z": ext_z / n},
+            "depth_extent_m": depth_extent,
+            "reference_camera_to_world": ref_cam,
+            "mesh_samples": n,
+            "floor_y_target": self._placement_floor_y_target,
+            "coordinate_space": "reconstruction_world",
+        }
+
+        with self._placement_lock:
+            if self._placement_locked is not None:
+                return
+            self._placement_locked = locked
+
+    def _placement_api_payload(self) -> dict[str, Any] | None:
+        with self._placement_lock:
+            locked = copy.deepcopy(self._placement_locked)
+            if locked is not None:
+                return locked
+            depth_n = len(self._placement_depth_samples)
+            mesh_n = len(self._placement_mesh_samples)
+            ref_cam = copy.deepcopy(self._placement_reference_camera)
+        if depth_n == 0 and mesh_n == 0:
+            return None
+        return {
+            "locked": False,
+            "calibrating": True,
+            "depth_samples": depth_n,
+            "mesh_samples": mesh_n,
+            "reference_camera_to_world": ref_cam,
+        }
+
     def _attach_recovery_observer(self) -> None:
         if self.pipeline is None:
             return
@@ -303,6 +542,11 @@ class CenterPipelineService:
         self.pipeline.set_center_recovery_gate(enabled, enabled)
 
     def _on_tracking_result(self, tracking: Any) -> None:
+        try:
+            self._capture_depth_placement_sample(tracking)
+        except Exception:
+            pass
+
         with self.lock:
             if self.pipeline is None:
                 return
@@ -445,6 +689,10 @@ class CenterPipelineService:
         with self.lock:
             self._reset_recovery_to_normal()
             self._recommended_view_distance_cache = (None, None)
+            with self._api_mesh_lock:
+                self._api_mesh_version = 0
+                self._api_mesh_signature = None
+            self._reset_placement_calibration()
             pl = self.pipeline
             if pl is not None:
                 pl.set_tracking_result_observer(self._on_tracking_result)
@@ -653,6 +901,10 @@ class CenterPipelineService:
 
             self._reset_recovery_to_normal()
             self._recommended_view_distance_cache = (None, None)
+            with self._api_mesh_lock:
+                self._api_mesh_version = 0
+                self._api_mesh_signature = None
+            self._reset_placement_calibration()
 
             self.pipeline = self._build_pipeline()
             ok = self.pipeline.start_background()
@@ -690,6 +942,10 @@ class CenterPipelineService:
             self.pipeline = None
             self.last_stop_result = json_safe(stop_result)
             self._reset_recovery_to_normal()
+            with self._api_mesh_lock:
+                self._api_mesh_version = 0
+                self._api_mesh_signature = None
+            self._reset_placement_calibration()
 
         self.emit_event({"type": "pipeline_stopped", "updated_at": utc_now_iso()})
         return self.status()
@@ -925,7 +1181,15 @@ class CenterPipelineService:
                 self._api_mesh_version += 1
             ver = self._api_mesh_version
 
-        return {
+        if nv >= 120:
+            try:
+                self._record_mesh_placement_sample(v_np)
+            except Exception:
+                pass
+
+        placement = self._placement_api_payload()
+
+        out_mesh: dict[str, Any] = {
             "ok": True,
             "running": running,
             "version": ver,
@@ -933,6 +1197,9 @@ class CenterPipelineService:
             "coordinate_space": "reconstruction_world",
             "summary": {"vertices": nv, "faces": nf},
         }
+        if placement is not None:
+            out_mesh["placement"] = placement
+        return out_mesh
 
     def export_white_mesh(self, mesh: o3d.geometry.TriangleMesh) -> dict[str, Any]:
         with self.lock:
