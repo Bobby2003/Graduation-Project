@@ -156,6 +156,17 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         if (document.pointerLockElement) {
             document.exitPointerLock();
         }
+        if (document.body) {
+            document.body.classList.remove('realm-pointer-locked');
+        }
+    }
+
+    function syncRealmPointerLockClass(canvas) {
+        if (!document.body || !canvas) return;
+        document.body.classList.toggle(
+            'realm-pointer-locked',
+            document.pointerLockElement === canvas
+        );
     }
 
     var state = {
@@ -1507,18 +1518,41 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
         }
     }
 
+    function isRealmChromeTarget(target) {
+        if (!target || !target.closest) return false;
+        return !!target.closest(
+            '.realm-ui-chrome, .realm-immersive-keep, .realm-dock, a, button, input, select, textarea, details, summary, label'
+        );
+    }
+
     function bindPointer() {
         var canvas = renderer.domElement;
         canvas.setAttribute('tabindex', '0');
         canvas.style.outline = 'none';
-        canvas.addEventListener('click', function () {
+        var viewport = document.querySelector('.realm-viewport');
+
+        function requestDesktopPointerLock() {
             if (!isDesktopControl()) return;
             canvas.focus({ preventScroll: true });
             if (document.pointerLockElement !== canvas) {
                 canvas.requestPointerLock();
             }
-        });
+        }
+
+        if (viewport) {
+            viewport.addEventListener('click', function (e) {
+                if (!isDesktopControl()) return;
+                if (isRealmChromeTarget(e.target)) return;
+                requestDesktopPointerLock();
+            });
+        } else {
+            canvas.addEventListener('click', function () {
+                requestDesktopPointerLock();
+            });
+        }
+
         document.addEventListener('pointerlockchange', function () {
+            syncRealmPointerLockClass(canvas);
             if (!isDesktopControl()) return;
             if (document.pointerLockElement === canvas && !reported.pointerLocked) {
                 reported.pointerLocked = true;
@@ -1528,6 +1562,7 @@ window.__REALM_MAIN_ACTUAL_LOADED = true;
                 completeTrainingStep('pointer');
             }
         });
+        syncRealmPointerLockClass(canvas);
         document.addEventListener('mousemove', function (e) {
             if (!isDesktopControl()) return;
             if (document.pointerLockElement !== canvas) return;

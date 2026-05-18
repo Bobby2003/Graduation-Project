@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TRAINING GROUND | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260516n">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260518a">
     <style>
         :root {
             --neon: #00f2ff;
@@ -73,7 +73,6 @@
             box-shadow: 44px 0 0 var(--neon);
         }
         .hud-top {
-            position: absolute;
             top: 16px;
             left: 24px;
             right: 24px;
@@ -82,8 +81,6 @@
             align-items: flex-start;
             flex-wrap: wrap;
             gap: 12px;
-            z-index: 40;
-            pointer-events: none;
         }
         .hud-top > * { pointer-events: auto; }
         .realm-title {

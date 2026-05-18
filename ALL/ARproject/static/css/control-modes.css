@@ -54,6 +54,37 @@ body.ar-immersive-3d.realm-stereo-active #realm-canvas-root {
     z-index: 2;
 }
 
+/* 桌面模式：WebGL 画布勿挡住顶栏（Edge F11 全屏时尤甚） */
+body.ar-immersive-3d .realm-stereo-frame {
+    pointer-events: none;
+}
+
+body.ar-immersive-3d.realm-mode-desktop:not(.realm-pointer-locked) #realm-canvas-root canvas,
+body.ar-immersive-3d[data-control-mode="desktop"]:not(.realm-pointer-locked) #realm-canvas-root canvas {
+    pointer-events: none;
+}
+
+body.ar-immersive-3d.realm-mode-desktop.realm-pointer-locked #realm-canvas-root canvas,
+body.ar-immersive-3d[data-control-mode="desktop"].realm-pointer-locked #realm-canvas-root canvas {
+    pointer-events: auto;
+    cursor: none;
+}
+
+body.ar-immersive-3d .realm-viewport > .hud-top,
+body.ar-immersive-3d .realm-immersive-bar.realm-immersive-keep {
+    position: fixed;
+    z-index: 100000;
+    pointer-events: auto;
+    isolation: isolate;
+}
+
+:fullscreen body.ar-immersive-3d .realm-viewport > .hud-top,
+:-webkit-full-screen body.ar-immersive-3d .realm-viewport > .hud-top,
+:fullscreen body.ar-immersive-3d .realm-immersive-bar.realm-immersive-keep,
+:-webkit-full-screen body.ar-immersive-3d .realm-immersive-bar.realm-immersive-keep {
+    z-index: 2147483646;
+}
+
 /* VR / AR 立体分屏（SBS）· 左右眼 */
 body.ar-immersive-3d.realm-stereo-active #realm-canvas-root {
     position: absolute;

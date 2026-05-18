@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DESKTOP REALM | AR REALM</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260517z">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}?v=20260518a">
     <script type="importmap">
     {
         "imports": {
@@ -125,7 +125,6 @@
             box-shadow: 44px 0 0 var(--neon);
         }
         .hud-top {
-            position: absolute;
             top: 16px;
             left: 24px;
             right: 24px;
@@ -134,8 +133,6 @@
             align-items: flex-start;
             flex-wrap: wrap;
             gap: 12px;
-            z-index: 40;
-            pointer-events: none;
         }
         .hud-top > * { pointer-events: auto; }
         .realm-title {
@@ -581,7 +578,7 @@
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
     <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260517w"></script>
     {% include "partials/ar_stereo_scripts.html" %}
-    <script src="{% static 'js/realm/realm-main.js' %}?v=20260518b"></script>
+    <script src="{% static 'js/realm/realm-main.js' %}?v=20260518c"></script>
     <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517v"></script>
     <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
     <script>
