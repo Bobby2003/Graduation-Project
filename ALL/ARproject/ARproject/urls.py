@@ -53,6 +53,7 @@ urlpatterns = [
     path('api/center/start-imu/', views.center_start_imu_api, name='center_start_imu_api'),
     path('api/center/stop-imu/', views.center_stop_imu_api, name='center_stop_imu_api'),
     path('api/center/stop/', views.center_stop_api, name='center_stop_api'),
+    path('api/center/clear-material/', views.center_clear_material_api, name='center_clear_material_api'),
     path('api/center/status/', views.center_status_api, name='center_status_api'),
     path('api/center/resume/', views.center_resume_api, name='center_resume_api'),
     path('api/center/reset-reconstruction/', views.center_reset_reconstruction_api, name='center_reset_reconstruction_api'),

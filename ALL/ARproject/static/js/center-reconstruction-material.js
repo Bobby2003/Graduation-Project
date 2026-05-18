@@ -168,7 +168,8 @@
             if (allowed && !allowed.has(m.material_id)) return;
             var opt = document.createElement('option');
             opt.value = m.material_id;
-            opt.textContent = m.name ? m.material_id + ' — ' + m.name : String(m.material_id);
+            opt.textContent =
+                m.source_file || m.name || String(m.material_id).split('/').pop() || m.material_id;
             librarySelectEl.appendChild(opt);
         });
 
@@ -448,6 +449,41 @@
             })
             .catch(function () {});
     }
+
+    function clearMaterialSceneFromView() {
+        clearMaterialGltfChildren();
+        stopPlacementSync();
+        stopScenePolling();
+        trackedSceneVersion = null;
+        if (materialRoot) {
+            materialRoot.visible = false;
+        }
+        if (targetSelectEl) {
+            while (targetSelectEl.firstChild) {
+                targetSelectEl.removeChild(targetSelectEl.firstChild);
+            }
+            var o = document.createElement('option');
+            o.value = '';
+            o.textContent = '(无分区)';
+            targetSelectEl.appendChild(o);
+        }
+        if (librarySelectEl) {
+            while (librarySelectEl.firstChild) {
+                librarySelectEl.removeChild(librarySelectEl.firstChild);
+            }
+            var empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = '(无可用材质)';
+            librarySelectEl.appendChild(empty);
+        }
+        if (applyBtn) applyBtn.disabled = true;
+        setHint('场上模型已清空', '');
+    }
+
+    window.CenterReconstructionMaterial = {
+        clearScene: clearMaterialSceneFromView,
+        refreshPanels: refreshPanelsFromServerSilent,
+    };
 
     function initDelayed() {
         setupDom();

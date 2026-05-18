@@ -308,6 +308,36 @@
             color: #fff;
             box-shadow: 0 0 18px rgba(0, 242, 255, 0.45);
         }
+        .center-pipeline-btn {
+            cursor: pointer;
+            width: 100%;
+            padding: 7px 10px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 0.6px;
+            line-height: 1.35;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: 0.2s ease;
+        }
+        .center-pipeline-btn--start {
+            background: #002a33;
+            color: #00f2ff;
+            border-color: #00f2ff;
+        }
+        .center-pipeline-btn--fix {
+            background: #1a1028;
+            color: #d8a8ff;
+            border-color: rgba(188, 0, 255, 0.55);
+        }
+        .center-pipeline-btn--clear {
+            background: #220011;
+            color: #ff88aa;
+            border-color: #ff88aa;
+        }
+        .center-pipeline-btn:hover {
+            filter: brightness(1.12);
+        }
         .dock-save-btn {
             border-color: rgba(0, 255, 136, 0.4);
             color: #00ff88;
@@ -387,6 +417,7 @@
                     centerStartImu: "{% url 'center_start_imu_api' %}",
                     centerStopImu: "{% url 'center_stop_imu_api' %}",
                     centerStop: "{% url 'center_stop_api' %}",
+                    centerClearMaterial: "{% url 'center_clear_material_api' %}",
                     centerStatus: "{% url 'center_status_api' %}",
                     centerResume: "{% url 'center_resume_api' %}",
                     centerLatestMesh: "{% url 'center_latest_mesh_api' %}",
@@ -463,9 +494,10 @@
 
         <div class="realm-center-panel realm-ui-chrome" id="center-realtime-panel" style="position:absolute;top:200px;right:24px;z-index:38;padding:10px 14px;background:rgba(5,8,12,0.88);border:1px solid rgba(0,242,255,0.28);backdrop-filter:blur(8px);font-family:Syncopate,sans-serif;font-size:9px;letter-spacing:1px;pointer-events:auto;max-width:min(360px,92vw);">
             <div style="color:rgba(0,242,255,0.85);margin-bottom:8px;">CENTER PIPELINE · MEMORY MESH</div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;">
-                <button type="button" id="center-start-btn" style="cursor:pointer;padding:6px 10px;font-size:10px;background:#002a33;color:#00f2ff;border:1px solid #00f2ff;">START</button>
-                <button type="button" id="center-stop-btn" style="cursor:pointer;padding:6px 10px;font-size:10px;background:#220011;color:#ff88aa;border:1px solid #ff88aa;">STOP</button>
+            <div class="center-pipeline-actions" style="display:flex;flex-direction:column;gap:6px;align-items:stretch;margin-bottom:8px;">
+                <button type="button" id="center-start-btn" class="center-pipeline-btn center-pipeline-btn--start">Start Reconstruct</button>
+                <button type="button" id="center-fix-material-btn" class="center-pipeline-btn center-pipeline-btn--fix">Fix and Material</button>
+                <button type="button" id="center-stop-clear-btn" class="center-pipeline-btn center-pipeline-btn--clear">Stop and Clear</button>
             </div>
             <div id="center-recovery-banner" role="status" aria-live="polite" hidden
                 style="display:none;margin-bottom:8px;padding:8px 10px;font-size:11px;line-height:1.45;font-family:Rajdhani,sans-serif;letter-spacing:0.5px;border:1px solid rgba(255,200,0,0.45);background:rgba(255,180,0,0.08);color:#ffd080;">
@@ -577,11 +609,11 @@
     {% include "partials/hud_audio_scripts.html" %}
     <script src="{% static 'js/stereo-overlay-sync.js' %}?v=20260517d"></script>
     <script src="{% static 'js/realm-immersive.js' %}?v=20260517d"></script>
-    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260518sem"></script>
+    <script src="{% static 'js/center-realtime-mesh.js' %}?v=20260519crm2"></script>
     {% include "partials/ar_stereo_scripts.html" %}
     <script src="{% static 'js/realm/realm-main.js' %}?v=20260518c"></script>
     <script src="{% static 'js/realm-imu-tracker.js' %}?v=20260517v"></script>
-    <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260517crm3"></script>
+    <script src="{% static 'js/center-reconstruction-material.js' %}?v=20260519crm1"></script>
     <script>
         window.syncControlHelp = window.syncControlHelp || function () {};
         (function () {

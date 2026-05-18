@@ -765,6 +765,13 @@ def center_stop_api(request):
 
 
 @login_required
+@require_POST
+def center_clear_material_api(request):
+    data = center_bridge.clear_published_material()
+    return JsonResponse(data, safe=False)
+
+
+@login_required
 @require_GET
 def center_status_api(request):
     data = center_bridge.status()

@@ -164,18 +164,12 @@
                 break;
             case 'scan-start':
                 clickCenterButton('center-start-btn');
-                window.dispatchEvent(
-                    new CustomEvent('realm-action', { detail: { action: 'scan-start' } })
-                );
-                showToast('已开始扫描（Center 管线）');
+                showToast('已开始重建（Center 管线）');
                 setMenuOpen(false);
                 break;
             case 'scan-stop':
-                clickCenterButton('center-stop-btn');
-                window.dispatchEvent(
-                    new CustomEvent('realm-action', { detail: { action: 'scan-stop' } })
-                );
-                showToast('已停止扫描');
+                clickCenterButton('center-fix-material-btn');
+                showToast('已修补并保留材质模型');
                 setMenuOpen(false);
                 break;
             case 'mesh-upright':

@@ -38,6 +38,68 @@ def _load_legacy_engine_class():
 
 MRMaterialEngine = _load_legacy_engine_class()
 
+# Material/<n>/：1=门 2=墙 3=地/顶；未映射的数字夹仅给 others，且 others 分区可选用全部贴图
+PBR_FOLDER_SEGMENT_TYPES: dict[str, frozenset[str]] = {
+    "1": frozenset({"doors"}),
+    "2": frozenset({"walls"}),
+    "3": frozenset({"floor", "ceiling"}),
+}
+
+_ALBEDO_GLOBS = ("*_albedo.jpg", "*_albedo.jpeg", "*_albedo.png", "*_albedo.webp")
+_PBR_MAP_SUFFIXES = ("_normal", "_ao", "_roughness", "_metallic", "_height")
+
+
+def resolve_pbr_library_root(library_root: Path | str | None = None) -> Path:
+    import os
+
+    env_root = os.environ.get(PBR_MATERIAL_ROOT_ENV, "").strip()
+    if env_root:
+        return Path(env_root).expanduser().resolve()
+    if library_root is not None:
+        return Path(library_root).resolve()
+    return MODULE_DIR.resolve()
+
+
+def discover_albedo_files(mat_dir: Path) -> list[Path]:
+    found: list[Path] = []
+    for pattern in _ALBEDO_GLOBS:
+        found.extend(mat_dir.glob(pattern))
+    return sorted({p.resolve() for p in found}, key=lambda p: p.name.lower())
+
+
+def _pbr_texture_base_name(albedo: Path) -> str:
+    stem = albedo.stem
+    if stem.endswith("_albedo"):
+        return stem[: -len("_albedo")]
+    return stem
+
+
+def pbr_texture_paths(albedo: Path) -> dict[str, Path]:
+    parent = albedo.parent
+    base = _pbr_texture_base_name(albedo)
+    paths: dict[str, Path] = {"albedo": albedo}
+
+    for suffix in _PBR_MAP_SUFFIXES:
+        hit: Path | None = None
+        for ext in (".jpg", ".jpeg", ".png", ".webp"):
+            candidate = parent / f"{base}{suffix}{ext}"
+            if candidate.is_file():
+                hit = candidate
+                break
+        paths[suffix.lstrip("_")] = hit or (parent / f"{base}{suffix}.jpg")
+    return paths
+
+
+def segment_types_for_material_folder(folder_name: str) -> set[str]:
+    mapped = PBR_FOLDER_SEGMENT_TYPES.get(folder_name)
+    if mapped:
+        return set(mapped) | {"others"}
+    return {"others"}
+
+
+def make_pbr_material_id(folder_name: str, albedo: Path) -> str:
+    return f"{folder_name}/{albedo.name}"
+
 
 class MaterialEngineAdapter:
     """Frontend-friendly wrapper around the existing MRMaterialEngine."""
@@ -67,21 +129,6 @@ class MaterialEngineAdapter:
             "name": "默认其他",
             "segment_types": {"others"},
             "color": [60, 60, 65, 255],
-        },
-        "style_1": {
-            "name": "风格 1",
-            "segment_types": {"floor", "ceiling", "walls", "doors", "others"},
-            "color": [179, 159, 126, 255],
-        },
-        "style_2": {
-            "name": "风格 2",
-            "segment_types": {"floor", "ceiling", "walls", "doors", "others"},
-            "color": [120, 140, 160, 255],
-        },
-        "style_3": {
-            "name": "风格 3",
-            "segment_types": {"floor", "ceiling", "walls", "doors", "others"},
-            "color": [170, 130, 140, 255],
         },
     }
 
@@ -126,19 +173,10 @@ class MaterialEngineAdapter:
 
     def register_pbr_styles_from_disk(self, library_root: Path | str | None = None) -> int:
         """
-        从磁盘加载 style_<n> PBR 套装（与 FastAPI 示例一致：<n>/<n>_albedo.jpg …）。
-        覆盖同名 style_* 在 engine.material_library 中的条目，并更新 material_metadata。
+        扫描 Material/<数字>/ 下所有 *_albedo.*，按文件夹绑定分区类型；
+        选项名使用贴图文件名（如 1_albedo.jpg）。
         """
-        import os
-
-        env_root = os.environ.get(PBR_MATERIAL_ROOT_ENV, "").strip()
-        if env_root:
-            root = Path(env_root).expanduser().resolve()
-        elif library_root is not None:
-            root = Path(library_root).resolve()
-        else:
-            root = MODULE_DIR.resolve()
-
+        root = resolve_pbr_library_root(library_root)
         registered = 0
         if not root.is_dir():
             return 0
@@ -148,41 +186,32 @@ class MaterialEngineAdapter:
             key=lambda p: int(p.name),
         )
         for mat_dir in digit_dirs:
-            i = int(mat_dir.name)
-            material_id = f"style_{i}"
-            albedo = mat_dir / f"{i}_albedo.jpg"
-            normal = mat_dir / f"{i}_normal.jpg"
-            ao = mat_dir / f"{i}_ao.jpg"
-            rough = mat_dir / f"{i}_roughness.jpg"
-            metal = mat_dir / f"{i}_metallic.jpg"
-            if not albedo.is_file():
-                continue
-            ok = self.engine.register_pbr_material(
-                material_id=material_id,
-                albedo_path=str(albedo),
-                normal_path=str(normal),
-                ao_path=str(ao),
-                rough_path=str(rough),
-                metal_path=str(metal),
-            )
-            if not ok:
-                continue
-            registered += 1
-            meta_base = self.DEFAULT_MATERIALS.get(material_id, {})
-            fallback_color = meta_base.get("color", [180, 180, 180, 255])
-            self.material_metadata[material_id] = {
-                "material_id": material_id,
-                "name": meta_base.get("name", f"风格 {i}"),
-                "type": "pbr",
-                "preview_color": fallback_color,
-                "preview_url": None,
-                "segment_types": sorted(
-                    meta_base.get(
-                        "segment_types",
-                        {"floor", "ceiling", "walls", "doors", "others"},
-                    )
-                ),
-            }
+            folder_name = mat_dir.name
+            seg_types = segment_types_for_material_folder(folder_name)
+            for albedo in discover_albedo_files(mat_dir):
+                paths = pbr_texture_paths(albedo)
+                material_id = make_pbr_material_id(folder_name, albedo)
+                ok = self.engine.register_pbr_material(
+                    material_id=material_id,
+                    albedo_path=str(paths["albedo"]),
+                    normal_path=str(paths["normal"]),
+                    ao_path=str(paths["ao"]),
+                    rough_path=str(paths["roughness"]),
+                    metal_path=str(paths["metallic"]),
+                )
+                if not ok:
+                    continue
+                registered += 1
+                self.material_metadata[material_id] = {
+                    "material_id": material_id,
+                    "name": albedo.name,
+                    "type": "pbr",
+                    "preview_color": [180, 180, 180, 255],
+                    "preview_url": None,
+                    "segment_types": sorted(seg_types),
+                    "source_folder": folder_name,
+                    "source_file": albedo.name,
+                }
         return registered
 
     def load_from_mesh(self, mesh: trimesh.Trimesh) -> bool:
@@ -220,11 +249,18 @@ class MaterialEngineAdapter:
         ]
 
     def get_available_materials(self, segment_type: str) -> list[str]:
-        return [
-            material_id
-            for material_id, meta in self.material_metadata.items()
-            if segment_type in set(meta.get("segment_types", []))
-        ]
+        out: list[str] = []
+        for material_id, meta in self.material_metadata.items():
+            if segment_type in set(meta.get("segment_types", [])):
+                out.append(material_id)
+        out.sort(
+            key=lambda mid: (
+                0 if str(mid).startswith("default_") else 1,
+                str(self.material_metadata.get(mid, {}).get("source_folder", "z")),
+                str(self.material_metadata.get(mid, {}).get("source_file", mid)),
+            )
+        )
+        return out
 
     def get_flat_material_status(self) -> dict[str, str | None]:
         state = self.engine.get_material_status()

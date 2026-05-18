@@ -1286,9 +1286,24 @@
 
 
 
-    function startCenterRealtime() {
+    function clearCenterSceneMeshes() {
 
         resetCenterMeshSession();
+
+        if (
+            window.CenterReconstructionMaterial &&
+            typeof window.CenterReconstructionMaterial.clearScene === 'function'
+        ) {
+            window.CenterReconstructionMaterial.clearScene();
+        }
+
+    }
+
+
+
+    function startCenterRealtime() {
+
+        clearCenterSceneMeshes();
 
         postCenterApi(apiUrl('centerStart', '/api/center/start/')).then(function (data) {
 
@@ -1322,7 +1337,7 @@
 
 
 
-    function stopCenterRealtime() {
+    function stopCenterRealtimeFixAndMaterial() {
 
         if (centerMeshPollDelayTimer) {
 
@@ -1351,6 +1366,60 @@
             updateCenterRealtimeStatus({ ok: false, error: formatCenterFetchError(err) });
 
         });
+
+    }
+
+
+
+    function stopCenterRealtimeAndClear() {
+
+        if (centerMeshPollDelayTimer) {
+
+            clearTimeout(centerMeshPollDelayTimer);
+
+            centerMeshPollDelayTimer = null;
+
+        }
+
+        stopCenterMeshPolling();
+
+        stopCenterStatusPolling();
+
+        centerAutoResumePending = false;
+
+        updateCenterRecoveryBanner({ center_recovery_state: 'normal' });
+
+        var stopUrl = apiUrl('centerStop', '/api/center/stop/');
+
+        var clearUrl = apiUrl('centerClearMaterial', '/api/center/clear-material/');
+
+        postCenterApi(stopUrl)
+
+            .then(function (data) {
+
+                return postCenterApi(clearUrl).then(function (clearData) {
+
+                    return { stop: data, clear: clearData };
+
+                });
+
+            })
+
+            .then(function (bundle) {
+
+                updateCenterRealtimeStatus(bundle.stop);
+
+                clearCenterSceneMeshes();
+
+            })
+
+            .catch(function (err) {
+
+                updateCenterRealtimeStatus({ ok: false, error: formatCenterFetchError(err) });
+
+                clearCenterSceneMeshes();
+
+            });
 
     }
 
@@ -1722,7 +1791,7 @@
 
             var line =
 
-                'CENTER: ' + running + ' · ' + data.message + '（点 START 后等几秒；无 mesh 时 TSDF 尚未出表面）' + lockTag;
+                'CENTER: ' + running + ' · ' + data.message + '（点 Start Reconstruct 后等几秒；无 mesh 时 TSDF 尚未出表面）' + lockTag;
 
             if (data.hint) line += ' — ' + data.hint;
 
@@ -2074,13 +2143,19 @@
 
         if (d.action === 'scan-start') {
 
-            resetCenterMeshSession();
+            clearCenterSceneMeshes();
 
         }
 
         if (d.action === 'scan-stop') {
 
-            resetCenterMeshSession();
+            stopCenterRealtimeFixAndMaterial();
+
+        }
+
+        if (d.action === 'scan-stop-clear') {
+
+            stopCenterRealtimeAndClear();
 
         }
 
@@ -2092,7 +2167,9 @@
 
         var startBtn = document.getElementById('center-start-btn');
 
-        var stopBtn = document.getElementById('center-stop-btn');
+        var fixBtn = document.getElementById('center-fix-material-btn');
+
+        var clearBtn = document.getElementById('center-stop-clear-btn');
 
         if (startBtn) {
 
@@ -2104,11 +2181,21 @@
 
         }
 
-        if (stopBtn) {
+        if (fixBtn) {
 
-            stopBtn.addEventListener('click', function () {
+            fixBtn.addEventListener('click', function () {
 
-                stopCenterRealtime();
+                stopCenterRealtimeFixAndMaterial();
+
+            });
+
+        }
+
+        if (clearBtn) {
+
+            clearBtn.addEventListener('click', function () {
+
+                stopCenterRealtimeAndClear();
 
             });
 
@@ -2123,6 +2210,12 @@
     window.CenterRealtimeMesh = {
 
         resetSession: resetCenterMeshSession,
+
+        clearScene: clearCenterSceneMeshes,
+
+        stopFixAndMaterial: stopCenterRealtimeFixAndMaterial,
+
+        stopAndClear: stopCenterRealtimeAndClear,
 
         ensurePipelineForImu: ensureCenterPipelineForImu,
 

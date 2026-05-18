@@ -172,11 +172,13 @@ class MRMaterialEngine:
 
         floor_mesh = trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces[floor_mask])
         floor_mesh.remove_unreferenced_vertices()
-        if not floor_mesh.is_empty: self.segments["floor"] = floor_mesh
-
         ceiling_mesh = trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces[ceiling_mask])
         ceiling_mesh.remove_unreferenced_vertices()
-        if not ceiling_mesh.is_empty: self.segments["ceiling"] = ceiling_mesh
+        # 几何启发式里 floor/ceiling 与真实朝向相反，交换语义键后贴图与回正才正确
+        if not floor_mesh.is_empty:
+            self.segments["ceiling"] = floor_mesh
+        if not ceiling_mesh.is_empty:
+            self.segments["floor"] = ceiling_mesh
 
         others_pieces = []
         initial_others = trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces[others_mask])
@@ -272,16 +274,30 @@ class MRMaterialEngine:
     # ==========================================
     def register_pbr_material(self, material_id, albedo_path, normal_path, ao_path, rough_path, metal_path):
         try:
-            img_ao = Image.open(ao_path).convert('L')
-            img_rough = Image.open(rough_path).convert('L').resize(img_ao.size)
-            img_metal = Image.open(metal_path).convert('L').resize(img_ao.size)
+            albedo_img = Image.open(albedo_path).convert('RGB')
+            w, h = albedo_img.size
+
+            def open_gray(path, default: int) -> Image.Image:
+                p = Path(path)
+                if p.is_file():
+                    return Image.open(p).convert('L').resize((w, h))
+                return Image.new('L', (w, h), default)
+
+            img_ao = open_gray(ao_path, 255)
+            img_rough = open_gray(rough_path, 200)
+            img_metal = open_gray(metal_path, 0)
             orm_image = Image.merge('RGB', (img_ao, img_rough, img_metal))
+
+            normal_tex = None
+            if Path(normal_path).is_file():
+                normal_tex = Image.open(normal_path)
 
             mat = trimesh.visual.material.PBRMaterial(
                 name=material_id,
-                baseColorTexture=Image.open(albedo_path).convert('RGB'),
-                normalTexture=Image.open(normal_path),
-                metallicRoughnessTexture=orm_image, occlusionTexture=orm_image
+                baseColorTexture=albedo_img,
+                normalTexture=normal_tex,
+                metallicRoughnessTexture=orm_image,
+                occlusionTexture=orm_image,
             )
             self.material_library[material_id] = mat
             return True
@@ -414,7 +430,15 @@ _MATERIAL_API_ROOT = Path(__file__).resolve().parent
 
 
 def _register_pbr_library_for_engine(engine: MRMaterialEngine, root: Path) -> int:
-    """与 MaterialEngineAdapter 约定一致：<root>/<n>/<n>_albedo.jpg …"""
+    """与 MaterialEngineAdapter 共用扫描逻辑（按文件夹与 albedo 文件名注册）。"""
+    from material_engine_adapter import (
+        discover_albedo_files,
+        make_pbr_material_id,
+        pbr_texture_paths,
+        resolve_pbr_library_root,
+    )
+
+    root = resolve_pbr_library_root(root)
     if not root.is_dir():
         return 0
     n_ok = 0
@@ -423,21 +447,20 @@ def _register_pbr_library_for_engine(engine: MRMaterialEngine, root: Path) -> in
         key=lambda p: int(p.name),
     )
     for mat_dir in digit_dirs:
-        i = int(mat_dir.name)
-        material_id = f"style_{i}"
-        albedo = mat_dir / f"{i}_albedo.jpg"
-        if not albedo.is_file():
-            continue
-        ok = engine.register_pbr_material(
-            material_id=material_id,
-            albedo_path=str(albedo),
-            normal_path=str(mat_dir / f"{i}_normal.jpg"),
-            ao_path=str(mat_dir / f"{i}_ao.jpg"),
-            rough_path=str(mat_dir / f"{i}_roughness.jpg"),
-            metal_path=str(mat_dir / f"{i}_metallic.jpg"),
-        )
-        if ok:
-            n_ok += 1
+        folder_name = mat_dir.name
+        for albedo in discover_albedo_files(mat_dir):
+            paths = pbr_texture_paths(albedo)
+            material_id = make_pbr_material_id(folder_name, albedo)
+            ok = engine.register_pbr_material(
+                material_id=material_id,
+                albedo_path=str(paths["albedo"]),
+                normal_path=str(paths["normal"]),
+                ao_path=str(paths["ao"]),
+                rough_path=str(paths["roughness"]),
+                metal_path=str(paths["metallic"]),
+            )
+            if ok:
+                n_ok += 1
     return n_ok
 
 

@@ -136,6 +136,17 @@ class CenterBridge:
         except Exception as exc:
             return {"ok": False, "error": repr(exc)}
 
+    def clear_published_material(self) -> dict[str, Any]:
+        if not _ensure_center():
+            return {"ok": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}
+        try:
+            st = _center_mod.clear_published_material()
+            if isinstance(st, dict):
+                return _enrich_status_with_pipeline_debug(st)
+            return st
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
     def status(self) -> dict[str, Any]:
         if not _ensure_center():
             return {"ok": False, "running": False, "error": _CENTER_IMPORT_ERROR or "CENTER_IMPORT_FAILED"}

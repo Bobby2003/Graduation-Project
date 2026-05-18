@@ -965,6 +965,16 @@ class CenterPipelineService:
         self.emit_event({"type": "pipeline_stopped", "updated_at": utc_now_iso()})
         return self.status()
 
+    def clear_published_material(self) -> dict[str, Any]:
+        """清空已发布的修补/材质场景（前端 Stop and Clear 或新一轮建模前）。"""
+        with self.lock:
+            self.material_engine = None
+            self.latest_material_scene = None
+            self.latest_material_targets = None
+            self._semantic_horizontal_up = None
+        self.emit_event({"type": "material_cleared", "updated_at": utc_now_iso()})
+        return {"ok": True, **self.status()}
+
     def status(self) -> dict[str, Any]:
         with self.lock:
             pipeline = self.pipeline
@@ -1586,6 +1596,10 @@ def get_material_scene_latest() -> dict[str, Any]:
     if meta is None:
         return {"status": "not_ready", "source_module": "Material"}
     return meta
+
+
+def clear_published_material() -> dict[str, Any]:
+    return service.clear_published_material()
 
 
 def get_material_scene_file(version: int | None = None) -> Path:
