@@ -1,7 +1,7 @@
 /**
  * AR/VR 沉浸位面：POST start-imu + 轮询 pose-latest。
  * 使用 Center 下发的 camera_to_world（OpenCV 相机轴，已含 R_cam_imu），
- * 转成 Three 相机系后做世界系相对旋转 Δ·ref 驱动画面。
+ * 转成 Three 相机系后做世界系相对旋转 Δ·ref 驱动相机；API 矩阵按行填入 Three.Matrix4。
  */
 (function () {
     'use strict';
@@ -283,28 +283,30 @@
         debugBody.textContent = buildDebugText(data || lastPayload, errMsg || lastNetworkError);
     }
 
-    /** NumPy/API 为行主序 4×4；Three.Matrix4.set 参数为列主序，需转置写入 */
+    /** API 下发的 4×4 按行数组（NumPy/Python 等与 rows[i][j] 一致）；Three.Matrix4.set 按矩阵行填入 n11–n44。 */
     function mat4FromRows(rows) {
         if (!rows || rows.length < 4 || typeof THREE === 'undefined') return null;
+
         var m = new THREE.Matrix4();
         m.set(
             rows[0][0],
-            rows[1][0],
-            rows[2][0],
-            rows[3][0],
             rows[0][1],
-            rows[1][1],
-            rows[2][1],
-            rows[3][1],
             rows[0][2],
-            rows[1][2],
-            rows[2][2],
-            rows[3][2],
             rows[0][3],
+            rows[1][0],
+            rows[1][1],
+            rows[1][2],
             rows[1][3],
+            rows[2][0],
+            rows[2][1],
+            rows[2][2],
             rows[2][3],
+            rows[3][0],
+            rows[3][1],
+            rows[3][2],
             rows[3][3]
         );
+
         return m;
     }
 
@@ -341,24 +343,6 @@
             Number.isFinite(q.z) &&
             Number.isFinite(q.w)
         );
-    }
-
-    /**
-     * 在校准相机朝向下，只对相对 Δ 的俯仰(X)、横滚(Z) 取反，偏航(Y) 不动。
-     * 解决 OpenCV→Three + 相对合成后「上下、左右倾」与设备反向，同时保持已正确的左右转头。
-     */
-    function fixInvertedPitchRollDelta(quatDelta, qRef) {
-        if (!isValidQuaternion(quatDelta) || !isValidQuaternion(qRef)) {
-            return quatDelta;
-        }
-        var qRefInv = qRef.clone().invert();
-        var qLocal = qRefInv.clone().multiply(quatDelta).multiply(qRef);
-        var e = new THREE.Euler(0, 0, 0, 'YXZ');
-        e.setFromQuaternion(qLocal);
-        e.x = -e.x;
-        e.z = -e.z;
-        var qLocalFixed = new THREE.Quaternion().setFromEuler(e);
-        return qRef.clone().multiply(qLocalFixed).multiply(qRefInv);
     }
 
     function getCenterCsrfToken() {
@@ -453,7 +437,7 @@
         }
 
         var baselineInv = new THREE.Matrix4().copy(baselinePose).invert();
-        // Δ = T_curr · T_base⁻¹；与行后姿态 q_curr = q_delta · q_base 一致，目标画面 q = q_delta · q_ref
+        // Δ = T_curr · T_base⁻¹；目标画面 q = q_delta · q_ref
         var delta = new THREE.Matrix4().copy(currentPose).multiply(baselineInv);
         var pos = new THREE.Vector3();
         var quat = new THREE.Quaternion();
@@ -469,10 +453,9 @@
             return;
         }
 
-        quat = fixInvertedPitchRollDelta(quat, refQuat);
-        if (!isValidQuaternion(quat)) {
-            return;
-        }
+        var e = new THREE.Euler().setFromQuaternion(quat, 'YXZ');
+        e.y = -e.y;
+        quat.setFromEuler(e);
 
         var targetQuat = quat.clone().multiply(refQuat);
 
