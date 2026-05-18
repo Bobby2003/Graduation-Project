@@ -49,6 +49,27 @@ function lmHypot(dx, dy) {
     return Math.hypot(dx, dy);
 }
 
+/** 左右反转（镜像 X），上下 Y 不变 — 用于前置摄像头手势与屏幕一致 */
+function mirrorLandmarksX(lm) {
+    if (!lm || !lm.length) return lm;
+    var out = new Array(lm.length);
+    for (var i = 0; i < lm.length; i++) {
+        var p = lm[i];
+        out[i] = {
+            x: 1 - p.x,
+            y: p.y,
+            z: p.z != null ? p.z : 0,
+        };
+    }
+    return out;
+}
+
+function flipHandednessLabel(label) {
+    if (label === 'Left') return 'Right';
+    if (label === 'Right') return 'Left';
+    return label;
+}
+
 function getGestureSensitivity() {
     try {
         if (globalThis.ARUserSettings && typeof globalThis.ARUserSettings.get === 'function') {
@@ -634,16 +655,16 @@ class ARGestureController {
         const n = result.landmarks?.length || 0;
 
         for (let i = 0; i < n; i++) {
-            const lm = result.landmarks[i];
+            const lm = mirrorLandmarksX(result.landmarks[i]);
             if (isOpenPalm(lm)) palmOpen = true;
             if (isFist(lm)) palmFist = true;
             if (isPeaceSign(lm)) peaceSign = true;
         }
 
         for (let i = 0; i < n; i++) {
-            const lm = result.landmarks[i];
+            const lm = mirrorLandmarksX(result.landmarks[i]);
             const cat = result.handednesses?.[i]?.[0];
-            const label = cat?.categoryName || cat?.displayName || '';
+            const label = flipHandednessLabel(cat?.categoryName || cat?.displayName || '');
 
             const palmThisHand = isOpenPalm(lm);
             const fistThisHand = isFist(lm);
@@ -673,7 +694,7 @@ class ARGestureController {
         if (palmFist && !palmOpen) leftGesture = 'fist';
 
         if (rightGesture === 'none' && n > 0 && !palmOpen) {
-            const lm0 = result.landmarks[0];
+            const lm0 = mirrorLandmarksX(result.landmarks[0]);
             if (isPinch(lm0)) rightGesture = 'pinch';
             else if (isPointing(lm0)) {
                 rightGesture = 'point';
