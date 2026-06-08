@@ -18,9 +18,8 @@ class GpuICPTracker:
 
     - 独立于旧 tracker.py
     - 不使用 IMU
-    - 不使用 Open3D legacy odometry
     - Open3D 内部计算尽量全走 CUDA tensor API
-    - 输出 TrackingResult，保持后续 TrackingWorker / Mapper 不需要大改
+    - 输出 TrackingResult，保持后续 TrackingWorker / Mapper
     """
 
     def __init__(
@@ -124,14 +123,9 @@ class GpuICPTracker:
         self.map_tracking_min_points = int(map_tracking_min_points)
         self.map_tracking_max_corr = float(map_tracking_max_corr)
 
-        # frame-to-model 比 frame-to-frame 更危险：
-        # 一旦错配，会直接把当前帧吸到错误地图位置。
-        # 所以这里单独用更严格的接受门限。
         self.map_min_icp_fitness = float(map_min_icp_fitness)
         self.map_max_icp_rmse = float(map_max_icp_rmse)
 
-        # frame-to-model 单次相对上一次位姿的最大跳变。
-        # 超过就认为可能错配，不允许 integrate。
         self.map_max_delta_trans = float(map_max_delta_trans)
         self.map_max_delta_rot_deg = float(map_max_delta_rot_deg)
 
@@ -159,7 +153,6 @@ class GpuICPTracker:
         self.last_trans = np.zeros(3, dtype=np.float64)
         self.last_delta_icp = np.eye(4, dtype=np.float64)
 
-        # tracking lost / relocalization state
         self.is_lost = False
         self.lost_count = 0
         self.last_lost_reason = None
@@ -214,10 +207,6 @@ class GpuICPTracker:
         self.map_icp_cooldown_frames = 0
 
     def reset_lost_counters_for_resume(self) -> None:
-        """
-        Called when external logic resumes tracking after a hard pause.
-        Clears lost streak without discarding prev_pcd / pose so relocalization can proceed.
-        """
         self.lost_count = 0
         self.is_lost = False
         self.last_lost_reason = None
@@ -225,10 +214,7 @@ class GpuICPTracker:
 
     def get_intrinsic(self):
         """
-        兼容旧接口。
-        某些外部模块可能会调用 tracker.get_intrinsic()。
-        这里尽量返回 legacy PinholeCameraIntrinsic。
-        如果你的环境 legacy 可用，这个没问题。
+        对旧接口保留一定的兼容性。
         """
         return o3d.camera.PinholeCameraIntrinsic(
             self.width,
@@ -396,11 +382,6 @@ class GpuICPTracker:
     def _auto_depth_scale(self, depth_np: np.ndarray) -> float:
         """
         根据 depth dtype / 数值范围自动估计 depth_scale。
-
-        约定：
-        - uint16 通常是毫米，scale=1000
-        - float32 / float64 如果最大值很大，也可能是毫米
-        - float32 / float64 如果数值在几米范围内，scale=1
         """
         if self.depth_scale is not None:
             return float(self.depth_scale)
@@ -416,7 +397,6 @@ class GpuICPTracker:
 
         p95 = float(np.percentile(finite, 95))
 
-        # 经验判断：float 深度如果 95 分位数大于 20，大概率是毫米
         if p95 > 20.0:
             return 1000.0
 
@@ -433,7 +413,6 @@ class GpuICPTracker:
             }
 
         if cv2 is None:
-            # 常见 640x480 -> 320x240 的整数降采样 fallback
             if w % self.width == 0 and h % self.height == 0:
                 sx = w // self.width
                 sy = h // self.height
@@ -450,7 +429,6 @@ class GpuICPTracker:
                 f"input={(h, w)}, target={(self.height, self.width)}"
             )
 
-        # 深度图建议最近邻，避免插值制造虚假深度
         depth_small = cv2.resize(
             depth_np,
             (self.width, self.height),
@@ -544,10 +522,6 @@ class GpuICPTracker:
     # ============================================================
 
     def _estimate_normals_safe(self, pcd):
-        """
-        不同 Open3D 构建下 estimate_normals 的 Python 参数绑定可能略有差异。
-        做两种调用兼容。
-        """
         try:
             pcd.estimate_normals(
                 radius=self.normal_radius,
@@ -635,7 +609,6 @@ class GpuICPTracker:
     def _make_init_tensor(self):
         """
         使用上一帧的 ICP delta 作为当前帧 ICP 初值。
-        这样快速移动时，比每次 identity 初始化更稳。
         """
         init_np = self.last_delta_icp.astype(np.float32, copy=True)
 
@@ -780,10 +753,8 @@ class GpuICPTracker:
             if target_points < self.map_tracking_min_points:
                 return None, None, target_points, "local_map_target_too_few_points"
 
-            # point-to-plane ICP 需要 target normals
             ok_normals, normal_error = self._estimate_normals_safe(target_pcd)
             if not ok_normals:
-                # 不直接失败，因为后面还有 point-to-point fallback
                 if self.logger is not None:
                     self.logger.warning(
                         f"local_map target normal failed: {normal_error}"
@@ -1005,7 +976,6 @@ class GpuICPTracker:
         icp_estimation = None
         icp_error_info = None
 
-        # lost 状态下按间隔尝试 relocalize，避免每帧刷屏和误吸附。
         allow_map_try = True
         if self.is_lost:
             allow_map_try = (self.lost_count % self.relocalize_try_interval == 0)
@@ -1025,7 +995,6 @@ class GpuICPTracker:
             map_target_pcd, map_init = None, None
             local_map_status = f"lost_relocalize_wait:{self.lost_count}"
 
-        # 1) 先尝试 frame-to-model
         if map_target_pcd is not None and map_init is not None:
             map_result, map_estimation, map_error_info = self._run_icp_with_fallback(
                 current_pcd,
@@ -1055,14 +1024,12 @@ class GpuICPTracker:
                         f"need_rmse<={self.map_max_icp_rmse:.5f}"
                     )
 
-                    # 基本可视为 0 correspondence / 极差对齐，进入 cooldown
                     if map_fitness <= 1e-6:
                         self.map_icp_cooldown_frames = self.map_icp_cooldown_after_fail
             else:
                 map_icp_rejected_reason = "map_icp_failed"
                 self.map_icp_cooldown_frames = self.map_icp_cooldown_after_fail
 
-        # 1.5) lost 后局部地图对不上时，尝试整张 local map 做宽松重定位。
         if result is None and self.is_lost and allow_map_try:
             full_target, full_init, full_points, full_status = (
                 self._prepare_full_map_relocalize_target()
@@ -1108,7 +1075,6 @@ class GpuICPTracker:
                 else:
                     map_icp_rejected_reason = "full_map_icp_failed"
 
-        # 2) 还没 lost 时，允许 fallback 到 frame-to-frame
         if result is None and not self.is_lost:
             result, icp_estimation, icp_error_info = self._run_icp_with_fallback(
                 self.prev_pcd,
@@ -1125,7 +1091,6 @@ class GpuICPTracker:
                 icp_error_info["local_map_status"] = local_map_status
                 icp_error_info["local_map_points"] = local_map_points
 
-        # 3) 已经处于 lost 状态时，不允许 frame-to-frame 伪恢复
         if result is None and self.is_lost:
             t4 = time.perf_counter()
 
@@ -1207,24 +1172,16 @@ class GpuICPTracker:
                 },
             )
 
-        # 注意：Open3D 0.19 测试中 transformation 返回 CPU:0 Float64 Tensor
         icp_transform = result.transformation.cpu().numpy().astype(np.float64)
 
         old_T_c_w = self.T_c_w.copy()
 
         if use_local_map:
-            # frame-to-model:
-            # icp_transform 是 camera -> world，即 T_w_c_new
-            # 但本工程传给 mapper 的 TrackingResult.T_wc 实际作为 TSDF extrinsic 使用，
-            # 也就是 world -> camera。
             T_w_c_new = icp_transform
             T_c_w_new = np.linalg.inv(T_w_c_new)
 
-            # 用相对位姿变化做 gating / 日志统计
             delta_refined = T_c_w_new @ np.linalg.inv(old_T_c_w)
         else:
-            # frame-to-frame:
-            # 保持原来的语义，prev -> current 的 delta
             delta_refined = icp_transform
 
         dR = self.normalize_rotation(delta_refined[:3, :3])
@@ -1343,15 +1300,11 @@ class GpuICPTracker:
         accepted_t = False
 
         if use_local_map:
-            # frame-to-model 已经是 current frame 对齐 local map 得到的绝对位姿。
-            # 这里不要再因为旋转而清零平移，否则又会把真实抬高/移动吃掉。
             accepted_t = True
             trans_refined = raw_t.copy()
 
-            # 直接使用 frame-to-model 的绝对位姿结果
             self.T_c_w = T_c_w_new.copy()
 
-            # last_delta_icp 仍然存相对 delta，用于日志/后续 fallback 初值
             self.last_delta_icp = delta_refined.copy()
             self.last_delta_icp[:3, :3] = self.normalize_rotation(
                 self.last_delta_icp[:3, :3]
@@ -1360,7 +1313,6 @@ class GpuICPTracker:
             self.last_trans = trans_refined.copy()
 
         else:
-            # 原来的 frame-to-frame 平移平滑逻辑
             if self.min_translation_per_frame <= raw_t_norm <= self.max_translation_per_frame:
                 if vo_rot_deg >= self.rotation_dominant_angle_deg:
                     accepted_t = raw_t_norm <= self.max_translation_when_rotating
@@ -1450,8 +1402,6 @@ class GpuICPTracker:
                 "local_map_points": local_map_points,
                 "local_map_status": local_map_status,
 
-                # 兼容旧 mapper / 日志里可能读取 info_trace 的逻辑。
-                # 注意：这里不是真正 information matrix trace。
                 "info_trace": fitness * 1e6,
 
                 "translation_norm": float(np.linalg.norm(trans_refined)),

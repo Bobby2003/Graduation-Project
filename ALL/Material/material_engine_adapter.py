@@ -9,7 +9,7 @@ import trimesh
 
 MODULE_DIR = Path(__file__).resolve().parent
 
-# 可选：专用贴图根目录（默认使用 Material 下的数字子文件夹 1/, 2/, …）
+# 贴图根目录（默认使用 Material 下的数字子文件夹）
 PBR_MATERIAL_ROOT_ENV = "CENTER_PBR_MATERIAL_ROOT"
 LEGACY_ENGINE_CANDIDATES = (
     MODULE_DIR / "material_pipeline.py",
@@ -331,7 +331,7 @@ class MaterialEngineAdapter:
 
     def get_semantic_horizontal_up_hint(self) -> list[float] | None:
         """
-        用语义 floor / ceiling 三角面的面积加权法线估计竖直朝上方向（重建坐标），供前端锚点回正。
+        用语义 floor / ceiling 三角面的面积加权法线估计竖直朝上方向（重建坐标），供前端锚点回正（此方法暂时存在bug无效）。
         """
         ey = np.array([0.0, 1.0, 0.0], dtype=np.float64)
         hints: list[np.ndarray] = []

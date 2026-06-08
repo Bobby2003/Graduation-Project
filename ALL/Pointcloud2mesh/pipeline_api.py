@@ -1074,7 +1074,7 @@ class RealtimeMappingPipeline:
         参数：
         - reset_scanner_temporal_state:
             如果 scanner 有 reset_temporal_state()，是否重置它。
-            对你的 UnifiedDepthScanner 来说，会清空 EMA 深度缓存。
+            对 UnifiedDepthScanner 来说，会清空 EMA 深度缓存。
 
         - restart_workers:
             如果 reset 前 pipeline 正在运行，reset 后是否自动重启 tracking/mapping worker。
