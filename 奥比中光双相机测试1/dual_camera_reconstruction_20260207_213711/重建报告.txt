@@ -1,0 +1,144 @@
+======================================================================
+奥比中光Astra双相机彩色3D重建报告
+======================================================================
+
+重建时间: 2026-02-07 21:38:06
+相机间距: 16.0 cm
+相机标定: 成功
+标定质量: 57 个内点
+变换矩阵:
+  [1.0000, 0.0000, 0.0000, 0.1600]
+  [0.0000, 1.0000, 0.0000, 0.0000]
+  [0.0000, 0.0000, 1.0000, 0.0000]
+  [0.0000, 0.0000, 0.0000, 1.0000]
+
+重建参数:
+  capture_count: 20
+  capture_interval: 0.5
+  depth_scale: 0.001
+  depth_clip_min: 0.3
+  depth_clip_max: 5.0
+  voxel_size: 0.005
+  remove_outlier: True
+  outlier_neighbors: 20
+  outlier_std_ratio: 2.0
+  use_global_registration: True
+  registration_threshold: 0.05
+  icp_max_iterations: 50
+  fuse_pointclouds: True
+  color_blending: True
+  export_formats: ['ply', 'stl', 'obj']
+  save_calibration: True
+  save_match_images: True
+  save_preview_images: True
+
+点云统计:
+  总点数: 187836
+  X范围: [-0.997, 0.967] m
+  Y范围: [-1.025, 0.332] m
+  Z范围: [0.744, 1.816] m
+
+网格统计:
+  顶点数: 50065
+  面片数: 100000
+  有颜色: 是
+  有法线: 是
+
+📁 文件结构:
+dual_camera_reconstruction_20260207_213711/
+  camera1_registered.ply (5887.6 KB)
+  camera2_registered.ply (6848.7 KB)
+  config.json (0.5 KB)
+  fused_mesh.ply (3763.3 KB)
+  fused_pointcloud.ply (9355.4 KB)
+  重建报告.txt (0.0 KB)
+  calibration/
+    best_matches_00.png (795.3 KB)
+    best_matches_07.png (803.2 KB)
+    calibration_result.json (0.8 KB)
+    calib_00_cam1_color.png (362.9 KB)
+    calib_00_cam2_color.png (385.0 KB)
+    calib_01_cam1_color.png (363.8 KB)
+    calib_01_cam2_color.png (385.1 KB)
+    calib_02_cam1_color.png (363.7 KB)
+    calib_02_cam2_color.png (384.6 KB)
+    calib_03_cam1_color.png (363.4 KB)
+    calib_03_cam2_color.png (385.2 KB)
+    calib_04_cam1_color.png (364.2 KB)
+    calib_04_cam2_color.png (384.2 KB)
+    calib_05_cam1_color.png (364.0 KB)
+    calib_05_cam2_color.png (385.9 KB)
+    calib_06_cam1_color.png (364.0 KB)
+    calib_06_cam2_color.png (385.0 KB)
+    calib_07_cam1_color.png (363.9 KB)
+    calib_07_cam2_color.png (384.1 KB)
+    calib_08_cam1_color.png (362.9 KB)
+    calib_08_cam2_color.png (384.8 KB)
+    calib_09_cam1_color.png (364.0 KB)
+    calib_09_cam2_color.png (384.8 KB)
+  capture/
+    frame_000_cam1_color.png (364.3 KB)
+    frame_000_cam2_color.png (385.0 KB)
+    frame_001_cam1_color.png (364.0 KB)
+    frame_001_cam2_color.png (384.4 KB)
+    frame_002_cam1_color.png (364.1 KB)
+    frame_002_cam2_color.png (383.5 KB)
+    frame_003_cam1_color.png (363.5 KB)
+    frame_003_cam2_color.png (385.6 KB)
+    frame_004_cam1_color.png (364.1 KB)
+    frame_004_cam2_color.png (384.3 KB)
+    frame_005_cam1_color.png (363.4 KB)
+    frame_005_cam2_color.png (385.5 KB)
+    frame_006_cam1_color.png (364.3 KB)
+    frame_006_cam2_color.png (384.2 KB)
+    frame_007_cam1_color.png (364.4 KB)
+    frame_007_cam2_color.png (385.4 KB)
+    frame_008_cam1_color.png (364.4 KB)
+    frame_008_cam2_color.png (385.5 KB)
+    frame_009_cam1_color.png (363.5 KB)
+    frame_009_cam2_color.png (384.6 KB)
+    frame_010_cam1_color.png (364.4 KB)
+    frame_010_cam2_color.png (384.2 KB)
+    frame_011_cam1_color.png (363.7 KB)
+    frame_011_cam2_color.png (385.2 KB)
+    frame_012_cam1_color.png (363.8 KB)
+    frame_012_cam2_color.png (384.8 KB)
+    frame_013_cam1_color.png (363.6 KB)
+    frame_013_cam2_color.png (385.3 KB)
+    frame_014_cam1_color.png (363.3 KB)
+    frame_014_cam2_color.png (384.6 KB)
+    frame_015_cam1_color.png (363.9 KB)
+    frame_015_cam2_color.png (386.0 KB)
+    frame_016_cam1_color.png (363.8 KB)
+    frame_016_cam2_color.png (384.5 KB)
+    frame_017_cam1_color.png (364.2 KB)
+    frame_017_cam2_color.png (384.6 KB)
+    frame_018_cam1_color.png (363.5 KB)
+    frame_018_cam2_color.png (384.4 KB)
+    frame_019_cam1_color.png (364.1 KB)
+    frame_019_cam2_color.png (384.6 KB)
+  visualization/
+    camera1_pointcloud.ply (5887.6 KB)
+    camera2_pointcloud.ply (6848.7 KB)
+    fused_model.obj (7436.9 KB)
+    fused_model.ply (3763.3 KB)
+    fused_model.stl (4882.9 KB)
+    registration_result.ply (12736.0 KB)
+    visualization_report.html (7.7 KB)
+    previews/
+      fused_model_view_00.png (38.1 KB)
+      fused_model_view_01.png (40.9 KB)
+      fused_model_view_02.png (35.6 KB)
+      fused_model_view_03.png (38.0 KB)
+      fused_model_view_04.png (27.3 KB)
+      fused_model_view_05.png (26.8 KB)
+
+📋 使用说明:
+1. 可视化目录包含多种格式的3D模型:
+   - fused_model.ply: PLY格式，推荐在MeshLab中查看
+   - fused_model.stl: STL格式，适用于3D打印
+   - fused_model.obj: OBJ格式，在大多数3D软件中可打开
+2. 打开 visualization_report.html 查看交互式报告
+3. 使用 MeshLab (免费) 可以获得最佳视觉效果
+4. 确保两个相机水平放置，相距约16cm
+5. 重建场景应位于两个相机视野重叠区域

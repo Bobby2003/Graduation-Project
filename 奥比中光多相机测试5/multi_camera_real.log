@@ -1,0 +1,822 @@
+2026-01-23 14:09:55,885 - __main__ - INFO - 成功导入奥比中光SDK
+2026-01-23 14:10:03,883 - __main__ - INFO - 初始化相机 0 (设备索引: 0)
+2026-01-23 14:10:03,883 - __main__ - INFO - 初始化相机 1 (设备索引: 1)
+2026-01-23 14:10:03,883 - __main__ - INFO - 初始化相机 2 (设备索引: 2)
+2026-01-23 14:10:03,896 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:10:03,896 - __main__ - INFO - 相机 1: SDK初始化成功
+2026-01-23 14:10:03,896 - __main__ - INFO - 相机 2: SDK初始化成功
+2026-01-23 14:10:03,896 - __main__ - INFO - 多相机管理器初始化完成，模式: MODE_01_12_20
+2026-01-23 14:10:03,899 - __main__ - INFO - 图像处理器初始化完成，输出目录: output_20260123_141003
+2026-01-23 14:10:03,899 - __main__ - INFO - 相机控制循环启动
+2026-01-23 14:10:03,899 - __main__ - INFO - 相机 0: 找到设备 Astra
+2026-01-23 14:10:03,899 - __main__ - INFO - 多相机管理器已启动
+2026-01-23 14:10:03,899 - __main__ - INFO - 相机 0: 设备打开成功
+2026-01-23 14:10:03,899 - __main__ - INFO - 相机 0: 数据流启动成功
+2026-01-23 14:10:03,900 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:10:03,900 - __main__ - INFO - 相机 1: 找到设备 Orbbec
+2026-01-23 14:10:03,900 - __main__ - INFO - 相机 1: 设备打开成功
+2026-01-23 14:10:03,900 - __main__ - INFO - 相机 1: 数据流启动成功
+2026-01-23 14:10:03,900 - __main__ - INFO - 相机 1 激活成功
+2026-01-23 14:10:07,219 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 0: 数据流已停止
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 0: 设备已关闭
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 1: 数据流已停止
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 1: 设备已关闭
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:07,219 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:07,343 - __main__ - ERROR - 相机 1: SDK未初始化
+2026-01-23 14:10:07,373 - __main__ - ERROR - 激活相机 1 失败: 打开设备失败
+2026-01-23 14:10:07,379 - __main__ - ERROR - 激活相机 1 失败
+2026-01-23 14:10:07,379 - __main__ - INFO - 相机 2: 找到设备 \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:10:07,379 - __main__ - INFO - 相机 2: 设备打开成功
+2026-01-23 14:10:07,380 - __main__ - INFO - 相机 2: 数据流启动成功
+2026-01-23 14:10:07,380 - __main__ - INFO - 相机 2 激活成功
+2026-01-23 14:10:07,380 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:10:09,101 - __main__ - INFO - 运动参数更新: vx=0.050 m/s
+2026-01-23 14:10:10,482 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:10:10,482 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:10,482 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:10,482 - __main__ - INFO - 相机 2: 数据流已停止
+2026-01-23 14:10:10,482 - __main__ - INFO - 相机 2: 设备已关闭
+2026-01-23 14:10:10,482 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:10,482 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:10,591 - __main__ - ERROR - 相机 2: SDK未初始化
+2026-01-23 14:10:10,591 - __main__ - ERROR - 激活相机 2 失败: 打开设备失败
+2026-01-23 14:10:10,591 - __main__ - ERROR - 激活相机 2 失败
+2026-01-23 14:10:10,591 - __main__ - ERROR - 相机 0: SDK未初始化
+2026-01-23 14:10:10,591 - __main__ - ERROR - 激活相机 0 失败: 打开设备失败
+2026-01-23 14:10:10,591 - __main__ - ERROR - 激活相机 0 失败
+2026-01-23 14:10:10,591 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:10:13,601 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:10:13,601 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:13,601 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:13,601 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:13,601 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:13,710 - __main__ - ERROR - 相机 0: SDK未初始化
+2026-01-23 14:10:13,710 - __main__ - ERROR - 激活相机 0 失败: 打开设备失败
+2026-01-23 14:10:13,711 - __main__ - ERROR - 激活相机 0 失败
+2026-01-23 14:10:13,711 - __main__ - ERROR - 相机 1: SDK未初始化
+2026-01-23 14:10:13,711 - __main__ - ERROR - 激活相机 1 失败: 打开设备失败
+2026-01-23 14:10:13,711 - __main__ - ERROR - 激活相机 1 失败
+2026-01-23 14:10:13,712 - __main__ - INFO - 相机切换完成: [0, 1]
+2026-01-23 14:10:14,113 - __main__ - INFO - 运动参数更新: vx=0.050 m/s
+2026-01-23 14:10:16,714 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:10:16,714 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:16,714 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:16,714 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:16,714 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:16,822 - __main__ - ERROR - 相机 1: SDK未初始化
+2026-01-23 14:10:16,822 - __main__ - ERROR - 激活相机 1 失败: 打开设备失败
+2026-01-23 14:10:16,822 - __main__ - ERROR - 激活相机 1 失败
+2026-01-23 14:10:16,822 - __main__ - ERROR - 相机 2: SDK未初始化
+2026-01-23 14:10:16,822 - __main__ - ERROR - 激活相机 2 失败: 打开设备失败
+2026-01-23 14:10:16,822 - __main__ - ERROR - 激活相机 2 失败
+2026-01-23 14:10:16,823 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:10:19,116 - __main__ - INFO - 运动参数更新: vx=0.050 m/s
+2026-01-23 14:10:19,826 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:10:19,826 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:19,826 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:19,826 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:19,826 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:19,935 - __main__ - ERROR - 相机 2: SDK未初始化
+2026-01-23 14:10:19,935 - __main__ - ERROR - 激活相机 2 失败: 打开设备失败
+2026-01-23 14:10:19,935 - __main__ - ERROR - 激活相机 2 失败
+2026-01-23 14:10:19,935 - __main__ - ERROR - 相机 0: SDK未初始化
+2026-01-23 14:10:19,935 - __main__ - ERROR - 激活相机 0 失败: 打开设备失败
+2026-01-23 14:10:19,935 - __main__ - ERROR - 激活相机 0 失败
+2026-01-23 14:10:19,935 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:10:22,941 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:10:22,941 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:22,941 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:22,941 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:22,941 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:23,049 - __main__ - ERROR - 相机 0: SDK未初始化
+2026-01-23 14:10:23,049 - __main__ - ERROR - 激活相机 0 失败: 打开设备失败
+2026-01-23 14:10:23,049 - __main__ - ERROR - 激活相机 0 失败
+2026-01-23 14:10:23,049 - __main__ - ERROR - 相机 1: SDK未初始化
+2026-01-23 14:10:23,049 - __main__ - ERROR - 激活相机 1 失败: 打开设备失败
+2026-01-23 14:10:23,049 - __main__ - ERROR - 激活相机 1 失败
+2026-01-23 14:10:23,049 - __main__ - INFO - 相机切换完成: [0, 1]
+2026-01-23 14:10:24,129 - __main__ - INFO - 运动参数更新: vx=0.050 m/s
+2026-01-23 14:10:26,050 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:10:26,050 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:26,050 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:26,050 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:26,050 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:26,158 - __main__ - ERROR - 相机 1: SDK未初始化
+2026-01-23 14:10:26,158 - __main__ - ERROR - 激活相机 1 失败: 打开设备失败
+2026-01-23 14:10:26,158 - __main__ - ERROR - 激活相机 1 失败
+2026-01-23 14:10:26,158 - __main__ - ERROR - 相机 2: SDK未初始化
+2026-01-23 14:10:26,158 - __main__ - ERROR - 激活相机 2 失败: 打开设备失败
+2026-01-23 14:10:26,158 - __main__ - ERROR - 激活相机 2 失败
+2026-01-23 14:10:26,158 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:10:29,136 - __main__ - INFO - 运动参数更新: vx=0.050 m/s
+2026-01-23 14:10:29,168 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:10:29,168 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:29,168 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:29,168 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:29,168 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:29,276 - __main__ - ERROR - 相机 2: SDK未初始化
+2026-01-23 14:10:29,276 - __main__ - ERROR - 激活相机 2 失败: 打开设备失败
+2026-01-23 14:10:29,276 - __main__ - ERROR - 激活相机 2 失败
+2026-01-23 14:10:29,276 - __main__ - ERROR - 相机 0: SDK未初始化
+2026-01-23 14:10:29,276 - __main__ - ERROR - 激活相机 0 失败: 打开设备失败
+2026-01-23 14:10:29,276 - __main__ - ERROR - 激活相机 0 失败
+2026-01-23 14:10:29,276 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:10:32,277 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:10:32,277 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:32,277 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:32,277 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:32,277 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:32,386 - __main__ - ERROR - 相机 0: SDK未初始化
+2026-01-23 14:10:32,386 - __main__ - ERROR - 激活相机 0 失败: 打开设备失败
+2026-01-23 14:10:32,386 - __main__ - ERROR - 激活相机 0 失败
+2026-01-23 14:10:32,386 - __main__ - ERROR - 相机 1: SDK未初始化
+2026-01-23 14:10:32,386 - __main__ - ERROR - 激活相机 1 失败: 打开设备失败
+2026-01-23 14:10:32,386 - __main__ - ERROR - 激活相机 1 失败
+2026-01-23 14:10:32,386 - __main__ - INFO - 相机切换完成: [0, 1]
+2026-01-23 14:10:33,899 - __main__ - INFO - 相机 0: 资源已清理
+2026-01-23 14:10:33,899 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:10:33,899 - __main__ - INFO - 相机 1: 资源已清理
+2026-01-23 14:10:33,899 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:10:33,899 - __main__ - INFO - 相机 2: 资源已清理
+2026-01-23 14:10:33,899 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:10:33,899 - __main__ - INFO - 多相机管理器已停止
+2026-01-23 14:10:33,907 - __main__ - INFO - 图像处理器已清理
+2026-01-23 14:17:13,039 - __main__ - INFO - 相机 0: DLL加载成功
+2026-01-23 14:17:13,039 - __main__ - INFO - 初始化相机 0，位置: (-0.16, 0.0, 0.0)
+2026-01-23 14:17:13,039 - __main__ - INFO - 相机 1: DLL加载成功
+2026-01-23 14:17:13,039 - __main__ - INFO - 初始化相机 1，位置: (0.0, 0.0, 0.0)
+2026-01-23 14:17:13,040 - __main__ - INFO - 相机 2: DLL加载成功
+2026-01-23 14:17:13,040 - __main__ - INFO - 初始化相机 2，位置: (0.16, 0.0, 0.0)
+2026-01-23 14:17:13,049 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:17:13,050 - __main__ - INFO - 相机 1: SDK初始化成功
+2026-01-23 14:17:13,050 - __main__ - INFO - 相机 2: SDK初始化成功
+2026-01-23 14:17:13,050 - __main__ - INFO - 多相机管理器初始化完成，模式: MODE_01_12_20
+2026-01-23 14:17:13,051 - __main__ - INFO - 图像处理器初始化完成，输出目录: reconstruction_20260123_141713
+2026-01-23 14:17:13,051 - __main__ - INFO - 相机控制循环启动
+2026-01-23 14:17:13,051 - __main__ - INFO - 多相机管理器已启动
+2026-01-23 14:17:13,052 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:17:13,052 - __main__ - INFO - 相机 0: 找到 3 个设备
+2026-01-23 14:17:13,052 - __main__ - INFO - 相机 0: 打开设备 Astra
+2026-01-23 14:17:13,141 - __main__ - INFO - 相机 0: 设备打开成功
+2026-01-23 14:17:13,147 - __main__ - INFO - 相机 0: 深度流创建成功
+2026-01-23 14:17:13,167 - __main__ - INFO - 相机 0: 数据流启动成功
+2026-01-23 14:17:13,924 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:17:13,924 - __main__ - INFO - 相机 1: SDK初始化成功
+2026-01-23 14:17:13,924 - __main__ - INFO - 相机 1: 找到 3 个设备
+2026-01-23 14:17:13,924 - __main__ - INFO - 相机 1: 打开设备 Orbbec
+2026-01-23 14:17:13,924 - __main__ - ERROR - 相机 1: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device ''\n"
+2026-01-23 14:17:13,973 - __main__ - INFO - 相机 1: SDK已关闭
+2026-01-23 14:17:13,973 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:13,986 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,002 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,017 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,032 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,047 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,063 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,078 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,093 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,108 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,123 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,139 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,155 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,170 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,186 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,201 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,216 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,231 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,247 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,262 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,278 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,293 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,308 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,323 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,338 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,354 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,369 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,384 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,400 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,415 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,430 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,446 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,461 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,477 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,493 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,508 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,523 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,538 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,554 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,570 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,585 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,601 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,616 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,631 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,647 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,662 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,677 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,693 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,709 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,724 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,739 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,755 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,770 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,786 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,801 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,817 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,833 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,849 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,865 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,881 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,896 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,911 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,927 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,942 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,958 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,974 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:14,990 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,004 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,019 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,035 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,050 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,065 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,080 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,095 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,111 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,126 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,142 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,157 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,173 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,188 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,204 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,219 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,235 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,251 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,266 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,282 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,297 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,312 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,327 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,343 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,358 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,373 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,389 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,404 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,419 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,435 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,450 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,465 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,481 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,496 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,511 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,527 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,542 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,558 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,574 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,590 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,605 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,621 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,636 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,652 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,668 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,683 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,699 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,714 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,729 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,745 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,760 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,775 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,792 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,808 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,823 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,837 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,853 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,868 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,884 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,899 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,915 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,931 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,946 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,961 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,976 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:15,992 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:16,007 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:16,023 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:16,038 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE98DC80
+2026-01-23 14:17:16,053 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 0: 数据流已停止
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 0: 数据流已销毁
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 0: 设备已关闭
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 0: SDK已关闭
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 1: SDK已关闭
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 1: 已关闭
+2026-01-23 14:17:16,054 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:17:16,274 - __main__ - INFO - 相机 1: SDK初始化成功
+2026-01-23 14:17:16,274 - __main__ - INFO - 相机 1: 找到 3 个设备
+2026-01-23 14:17:16,274 - __main__ - INFO - 相机 1: 打开设备 Orbbec
+2026-01-23 14:17:16,274 - __main__ - ERROR - 相机 1: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device ''\n"
+2026-01-23 14:17:16,334 - __main__ - INFO - 相机 1: SDK已关闭
+2026-01-23 14:17:16,334 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:17:16,341 - __main__ - INFO - 相机 2: SDK初始化成功
+2026-01-23 14:17:16,342 - __main__ - INFO - 相机 2: 找到 3 个设备
+2026-01-23 14:17:16,342 - __main__ - INFO - 相机 2: 打开设备 \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:17:16,342 - __main__ - ERROR - 相机 2: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:17:16,393 - __main__ - INFO - 相机 2: SDK已关闭
+2026-01-23 14:17:16,394 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:17:16,394 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:17:19,406 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:17:19,406 - __main__ - INFO - 相机 1: SDK已关闭
+2026-01-23 14:17:19,406 - __main__ - INFO - 相机 1: 已关闭
+2026-01-23 14:17:19,406 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:17:19,406 - __main__ - INFO - 相机 2: SDK已关闭
+2026-01-23 14:17:19,406 - __main__ - INFO - 相机 2: 已关闭
+2026-01-23 14:17:19,407 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:17:19,628 - __main__ - INFO - 相机 2: SDK初始化成功
+2026-01-23 14:17:19,628 - __main__ - INFO - 相机 2: 找到 3 个设备
+2026-01-23 14:17:19,628 - __main__ - INFO - 相机 2: 打开设备 \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:17:19,628 - __main__ - ERROR - 相机 2: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:17:19,684 - __main__ - INFO - 相机 2: SDK已关闭
+2026-01-23 14:17:19,685 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:17:19,692 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:17:19,692 - __main__ - INFO - 相机 0: 找到 3 个设备
+2026-01-23 14:17:19,692 - __main__ - INFO - 相机 0: 打开设备 Astra
+2026-01-23 14:17:19,784 - __main__ - INFO - 相机 0: 设备打开成功
+2026-01-23 14:17:19,790 - __main__ - INFO - 相机 0: 深度流创建成功
+2026-01-23 14:17:19,806 - __main__ - INFO - 相机 0: 数据流启动成功
+2026-01-23 14:17:19,902 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x0000000000000018
+2026-01-23 14:17:19,902 - __main__ - INFO - 运动参数更新: 物体速度 vx=0.050 m/s
+2026-01-23 14:17:20,203 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:17:20,203 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:17:20,203 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:17:23,259 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 2: SDK已关闭
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 2: 已关闭
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 0: 数据流已停止
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 0: 数据流已销毁
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 0: 设备已关闭
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 0: SDK已关闭
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:17:23,323 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:17:23,542 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:17:23,542 - __main__ - INFO - 相机 0: 找到 3 个设备
+2026-01-23 14:17:23,542 - __main__ - INFO - 相机 0: 打开设备 Astra
+2026-01-23 14:17:23,619 - __main__ - INFO - 相机 0: 设备打开成功
+2026-01-23 14:17:23,624 - __main__ - INFO - 相机 0: 深度流创建成功
+2026-01-23 14:17:23,630 - __main__ - INFO - 相机 0: 数据流启动成功
+2026-01-23 14:17:23,735 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0xFFFFFFFFFFFFFFFF
+2026-01-23 14:17:24,095 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:17:24,095 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:17:24,096 - __main__ - INFO - 相机 1: SDK初始化成功
+2026-01-23 14:17:24,096 - __main__ - INFO - 相机 1: 找到 3 个设备
+2026-01-23 14:17:24,096 - __main__ - INFO - 相机 1: 打开设备 Orbbec
+2026-01-23 14:17:24,097 - __main__ - ERROR - 相机 1: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device ''\n"
+2026-01-23 14:17:24,163 - __main__ - ERROR - 相机 1: 关闭SDK异常: exception: access violation reading 0x0000000000000000
+2026-01-23 14:17:24,163 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:17:24,163 - __main__ - INFO - 相机切换完成: [0, 1]
+2026-01-23 14:17:24,665 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,681 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,696 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,712 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,727 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,742 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,758 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,774 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,790 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,805 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,820 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,835 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,851 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,866 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,882 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,897 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,914 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,929 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,945 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,960 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,975 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:24,991 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,007 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,022 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,037 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,053 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,068 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,084 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,099 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,115 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,130 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,146 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,162 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,177 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,193 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,209 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,225 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,240 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,255 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,271 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,287 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,302 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,317 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,332 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,348 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,363 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,379 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,394 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,410 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,425 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,441 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,456 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,471 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,487 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,502 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,517 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,533 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,548 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,563 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,578 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,593 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,610 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,625 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,641 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,656 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,672 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,687 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,702 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,717 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,732 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,748 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,763 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,778 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,794 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,810 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,825 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,840 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,856 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,872 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,888 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,904 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,918 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,934 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,949 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,965 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,980 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:25,996 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,012 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,027 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,042 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,058 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,073 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,088 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,104 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,118 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,134 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,149 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,164 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,180 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,195 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,210 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,225 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,241 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,257 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,272 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,287 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,303 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,318 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,333 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,348 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,365 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,380 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,395 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,411 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,426 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,442 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,458 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,473 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,489 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,504 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,520 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,536 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,551 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,567 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,583 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,599 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,614 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,629 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,645 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,661 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,676 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,691 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,706 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,723 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,738 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,754 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,769 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,785 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,801 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,816 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,832 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,847 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,863 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,879 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,894 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,910 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,925 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,941 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,956 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,972 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:26,988 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,003 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,019 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,035 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,051 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,066 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,081 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,096 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,112 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,127 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,143 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,158 - __main__ - ERROR - 相机 0: 捕获帧异常: exception: access violation reading 0x000001FEFE97E440
+2026-01-23 14:17:27,174 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 0: 数据流已停止
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 0: 数据流已销毁
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 0: 设备已关闭
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 0: SDK已关闭
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 1: SDK已关闭
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 1: 已关闭
+2026-01-23 14:17:27,174 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:17:27,398 - __main__ - INFO - 相机 1: SDK初始化成功
+2026-01-23 14:17:27,398 - __main__ - INFO - 相机 1: 找到 3 个设备
+2026-01-23 14:17:27,398 - __main__ - INFO - 相机 1: 打开设备 Orbbec
+2026-01-23 14:17:27,398 - __main__ - ERROR - 相机 1: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device ''\n"
+2026-01-23 14:17:27,454 - __main__ - ERROR - 相机 1: 关闭SDK异常: exception: access violation reading 0x0000000000000000
+2026-01-23 14:17:27,454 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:17:27,460 - __main__ - INFO - 相机 2: SDK初始化成功
+2026-01-23 14:17:27,460 - __main__ - INFO - 相机 2: 找到 3 个设备
+2026-01-23 14:17:27,461 - __main__ - INFO - 相机 2: 打开设备 \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:17:27,461 - __main__ - ERROR - 相机 2: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:17:27,516 - __main__ - ERROR - 相机 2: 关闭SDK异常: exception: access violation reading 0x0000000000000000
+2026-01-23 14:17:27,516 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:17:27,516 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:17:30,528 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:17:30,528 - __main__ - INFO - 相机 1: SDK已关闭
+2026-01-23 14:17:30,530 - __main__ - INFO - 相机 1: 已关闭
+2026-01-23 14:17:30,530 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:17:30,530 - __main__ - INFO - 相机 2: SDK已关闭
+2026-01-23 14:17:30,530 - __main__ - INFO - 相机 2: 已关闭
+2026-01-23 14:17:30,530 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:17:30,753 - __main__ - INFO - 相机 2: SDK初始化成功
+2026-01-23 14:17:30,753 - __main__ - INFO - 相机 2: 找到 3 个设备
+2026-01-23 14:17:30,753 - __main__ - INFO - 相机 2: 打开设备 \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:17:30,753 - __main__ - ERROR - 相机 2: 打开设备失败: 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:17:30,811 - __main__ - ERROR - 相机 2: 关闭SDK异常: exception: access violation reading 0x0000000000000000
+2026-01-23 14:17:30,811 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:17:30,816 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:17:30,818 - __main__ - INFO - 相机 0: 找到 3 个设备
+2026-01-23 14:17:30,818 - __main__ - INFO - 相机 0: 打开设备 Astra
+2026-01-23 14:17:30,820 - __main__ - ERROR - 相机 0: 打开设备异常: exception: access violation writing 0x0000000000000000
+2026-01-23 14:17:30,872 - __main__ - ERROR - 相机 0: 关闭SDK异常: exception: access violation reading 0x0000000000000000
+2026-01-23 14:17:30,872 - __main__ - ERROR - 相机 0 激活失败
+2026-01-23 14:17:30,872 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:17:33,887 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:17:33,887 - __main__ - INFO - 相机 2: SDK已关闭
+2026-01-23 14:17:33,887 - __main__ - INFO - 相机 2: 已关闭
+2026-01-23 14:17:33,887 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:17:33,887 - __main__ - INFO - 相机 0: SDK已关闭
+2026-01-23 14:17:33,887 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:17:33,888 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:17:34,095 - __main__ - INFO - 相机 0: SDK初始化成功
+2026-01-23 14:17:34,096 - __main__ - INFO - 相机 0: 找到 3 个设备
+2026-01-23 14:17:34,096 - __main__ - INFO - 相机 0: 打开设备 Astra
+2026-01-23 14:17:34,096 - __main__ - ERROR - 相机 0: 打开设备异常: exception: access violation writing 0x0000000000000000
+2026-01-23 14:28:35,871 - __main__ - INFO - DLL函数原型设置成功
+2026-01-23 14:28:35,871 - __main__ - INFO - DLL加载成功: C:\Users\Bobby2003\Desktop\相机驱动\奥比中光Win64-Release\sdk\libs\OpenNI2.dll
+2026-01-23 14:28:35,879 - __main__ - INFO - SDK初始化成功
+2026-01-23 14:28:35,879 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:35,879 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:35,879 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:35,879 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:35,879 - __main__ - INFO - 初始化相机 0，位置: (-0.16, 0.0, 0.0)
+2026-01-23 14:28:35,879 - __main__ - INFO - 初始化相机 1，位置: (0.0, 0.0, 0.0)
+2026-01-23 14:28:35,879 - __main__ - INFO - 初始化相机 2，位置: (0.16, 0.0, 0.0)
+2026-01-23 14:28:35,879 - __main__ - INFO - 多相机管理器初始化完成，模式: MODE_01_12_20，找到 3 个设备
+2026-01-23 14:28:35,881 - __main__ - INFO - 图像处理器初始化完成，输出目录: reconstruction_20260123_142835
+2026-01-23 14:28:35,881 - __main__ - INFO - 相机控制循环启动
+2026-01-23 14:28:35,881 - __main__ - INFO - 多相机管理器已启动
+2026-01-23 14:28:35,881 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:35,881 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:35,881 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:35,881 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:35,881 - __main__ - INFO - 相机 0: 使用指定设备: Astra
+2026-01-23 14:28:35,966 - __main__ - INFO - 设备打开成功: \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:35,972 - __main__ - INFO - 深度流创建成功
+2026-01-23 14:28:35,988 - __main__ - INFO - 数据流启动成功
+2026-01-23 14:28:36,481 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:28:36,486 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:36,486 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:36,486 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:36,486 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:36,486 - __main__ - INFO - 相机 1: 选择设备: Orbbec
+2026-01-23 14:28:36,486 - __main__ - ERROR - 相机 1: 找不到可用设备
+2026-01-23 14:28:38,896 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:28:38,944 - __main__ - INFO - 数据流已停止
+2026-01-23 14:28:38,944 - __main__ - INFO - 数据流已销毁
+2026-01-23 14:28:38,945 - __main__ - INFO - 设备已关闭
+2026-01-23 14:28:38,945 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:28:38,945 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:28:38,945 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:28:39,160 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:39,160 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:39,160 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:39,160 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:39,160 - __main__ - INFO - 相机 1: 选择设备: Orbbec
+2026-01-23 14:28:39,160 - __main__ - ERROR - 相机 1: 找不到可用设备
+2026-01-23 14:28:39,160 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:28:39,160 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:39,160 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:39,160 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:39,160 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:39,160 - __main__ - INFO - 相机 2: 使用指定设备: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:39,160 - __main__ - ERROR - 打开设备失败: URI='a', 错误码 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:28:39,160 - __main__ - ERROR - 相机 2: 打开设备失败
+2026-01-23 14:28:39,160 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:28:39,160 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:28:40,890 - __main__ - INFO - 运动参数更新: 物体速度 vx=0.050 m/s
+2026-01-23 14:28:42,171 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:28:42,171 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:28:42,171 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:28:42,385 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:42,386 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:42,386 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:42,386 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:42,386 - __main__ - INFO - 相机 2: 使用指定设备: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:42,386 - __main__ - ERROR - 打开设备失败: URI='a', 错误码 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:28:42,386 - __main__ - ERROR - 相机 2: 打开设备失败
+2026-01-23 14:28:42,386 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:28:42,386 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:42,386 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:42,386 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:42,386 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:42,386 - __main__ - INFO - 相机 0: 使用指定设备: Astra
+2026-01-23 14:28:42,469 - __main__ - INFO - 设备打开成功: \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:42,473 - __main__ - INFO - 深度流创建成功
+2026-01-23 14:28:42,480 - __main__ - INFO - 数据流启动成功
+2026-01-23 14:28:42,894 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:28:42,894 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:28:42,894 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:28:45,943 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:28:45,943 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:28:45,955 - __main__ - INFO - 运动参数更新: 物体速度 vx=0.050 m/s
+2026-01-23 14:28:45,990 - __main__ - INFO - 数据流已停止
+2026-01-23 14:28:45,991 - __main__ - INFO - 数据流已销毁
+2026-01-23 14:28:45,991 - __main__ - INFO - 设备已关闭
+2026-01-23 14:28:45,993 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:28:45,993 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:28:46,207 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:46,207 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:46,207 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:46,207 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:46,207 - __main__ - INFO - 相机 0: 使用指定设备: Astra
+2026-01-23 14:28:46,293 - __main__ - INFO - 设备打开成功: \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:46,297 - __main__ - INFO - 深度流创建成功
+2026-01-23 14:28:46,318 - __main__ - INFO - 数据流启动成功
+2026-01-23 14:28:46,870 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:28:46,870 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:28:46,880 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:46,880 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:46,880 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:46,880 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:46,880 - __main__ - INFO - 相机 1: 选择设备: Orbbec
+2026-01-23 14:28:46,880 - __main__ - ERROR - 相机 1: 找不到可用设备
+2026-01-23 14:28:46,881 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:28:46,881 - __main__ - INFO - 相机切换完成: [0, 1]
+2026-01-23 14:28:49,897 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:28:49,944 - __main__ - INFO - 数据流已停止
+2026-01-23 14:28:49,945 - __main__ - INFO - 数据流已销毁
+2026-01-23 14:28:49,945 - __main__ - INFO - 设备已关闭
+2026-01-23 14:28:49,945 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:28:49,945 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:28:49,945 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:28:50,160 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:50,160 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:50,160 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:50,160 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:50,160 - __main__ - INFO - 相机 1: 选择设备: Orbbec
+2026-01-23 14:28:50,160 - __main__ - ERROR - 相机 1: 找不到可用设备
+2026-01-23 14:28:50,161 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:28:50,161 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:50,161 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:50,161 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:50,161 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:50,161 - __main__ - INFO - 相机 2: 使用指定设备: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:50,161 - __main__ - ERROR - 打开设备失败: URI='a', 错误码 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:28:50,161 - __main__ - ERROR - 相机 2: 打开设备失败
+2026-01-23 14:28:50,161 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:28:50,161 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:28:50,963 - __main__ - INFO - 运动参数更新: 物体速度 vx=0.050 m/s
+2026-01-23 14:28:53,168 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:28:53,168 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:28:53,170 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:28:53,383 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:53,383 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:53,383 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:53,383 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:53,383 - __main__ - INFO - 相机 2: 使用指定设备: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:53,383 - __main__ - ERROR - 打开设备失败: URI='a', 错误码 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:28:53,383 - __main__ - ERROR - 相机 2: 打开设备失败
+2026-01-23 14:28:53,383 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:28:53,383 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:53,383 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:53,383 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:53,383 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:53,383 - __main__ - INFO - 相机 0: 使用指定设备: Astra
+2026-01-23 14:28:53,471 - __main__ - INFO - 设备打开成功: \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:53,476 - __main__ - INFO - 深度流创建成功
+2026-01-23 14:28:53,493 - __main__ - INFO - 数据流启动成功
+2026-01-23 14:28:53,893 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:28:53,893 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:28:53,893 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:28:56,012 - __main__ - INFO - 运动参数更新: 物体速度 vx=0.050 m/s
+2026-01-23 14:28:56,939 - __main__ - INFO - 开始切换相机: [2, 0] -> ...
+2026-01-23 14:28:56,939 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:28:57,002 - __main__ - INFO - 数据流已停止
+2026-01-23 14:28:57,002 - __main__ - INFO - 数据流已销毁
+2026-01-23 14:28:57,003 - __main__ - INFO - 设备已关闭
+2026-01-23 14:28:57,003 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:28:57,003 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:28:57,217 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:57,217 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:57,217 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:57,217 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:57,217 - __main__ - INFO - 相机 0: 使用指定设备: Astra
+2026-01-23 14:28:57,298 - __main__ - INFO - 设备打开成功: \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:57,304 - __main__ - INFO - 深度流创建成功
+2026-01-23 14:28:57,310 - __main__ - INFO - 数据流启动成功
+2026-01-23 14:28:57,800 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:28:57,800 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:28:57,818 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:28:57,818 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:28:57,818 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:28:57,818 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:28:57,818 - __main__ - INFO - 相机 1: 选择设备: Orbbec
+2026-01-23 14:28:57,818 - __main__ - ERROR - 相机 1: 找不到可用设备
+2026-01-23 14:28:57,818 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:28:57,818 - __main__ - INFO - 相机切换完成: [0, 1]
+2026-01-23 14:29:00,870 - __main__ - INFO - 开始切换相机: [0, 1] -> ...
+2026-01-23 14:29:00,918 - __main__ - INFO - 数据流已停止
+2026-01-23 14:29:00,918 - __main__ - INFO - 数据流已销毁
+2026-01-23 14:29:00,921 - __main__ - INFO - 设备已关闭
+2026-01-23 14:29:00,921 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:29:00,921 - __main__ - INFO - 相机 0 已关闭
+2026-01-23 14:29:00,922 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:29:01,024 - __main__ - INFO - 运动参数更新: 物体速度 vx=0.050 m/s
+2026-01-23 14:29:01,132 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:29:01,132 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:01,133 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:29:01,133 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:29:01,133 - __main__ - INFO - 相机 1: 选择设备: Orbbec
+2026-01-23 14:29:01,133 - __main__ - ERROR - 相机 1: 找不到可用设备
+2026-01-23 14:29:01,133 - __main__ - ERROR - 相机 1 激活失败
+2026-01-23 14:29:01,133 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:29:01,133 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:01,133 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:29:01,133 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:29:01,133 - __main__ - INFO - 相机 2: 使用指定设备: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:01,133 - __main__ - ERROR - 打开设备失败: URI='a', 错误码 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:29:01,133 - __main__ - ERROR - 相机 2: 打开设备失败
+2026-01-23 14:29:01,134 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:29:01,134 - __main__ - INFO - 相机切换完成: [1, 2]
+2026-01-23 14:29:04,146 - __main__ - INFO - 开始切换相机: [1, 2] -> ...
+2026-01-23 14:29:04,146 - __main__ - INFO - 相机 1 已关闭
+2026-01-23 14:29:04,146 - __main__ - INFO - 相机 2 已关闭
+2026-01-23 14:29:04,348 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:29:04,348 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:04,349 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:29:04,349 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:29:04,349 - __main__ - INFO - 相机 2: 使用指定设备: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:04,349 - __main__ - ERROR - 打开设备失败: URI='a', 错误码 6, 错误: b"\tDeviceOpen: Couldn't open device 'a'\n"
+2026-01-23 14:29:04,349 - __main__ - ERROR - 相机 2: 打开设备失败
+2026-01-23 14:29:04,349 - __main__ - ERROR - 相机 2 激活失败
+2026-01-23 14:29:04,349 - __main__ - INFO - 找到 3 个设备
+2026-01-23 14:29:04,349 - __main__ - INFO -   设备 0: Astra - \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:04,349 - __main__ - INFO -   设备 1: Orbbec - 
+2026-01-23 14:29:04,349 - __main__ - INFO -   设备 2: \\?\usb#vid_2bc5&pid_0403&mi_00#8&18c8e5ad&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1} - a
+2026-01-23 14:29:04,349 - __main__ - INFO - 相机 0: 使用指定设备: Astra
+2026-01-23 14:29:04,433 - __main__ - INFO - 设备打开成功: \\?\usb#vid_2bc5&pid_0403&mi_00#7&e0d59a&0&0000#{c3b5f022-5a42-1980-1909-ea72095601b1}
+2026-01-23 14:29:04,441 - __main__ - INFO - 深度流创建成功
+2026-01-23 14:29:04,458 - __main__ - INFO - 数据流启动成功
+2026-01-23 14:29:04,858 - __main__ - INFO - 相机 0: 激活完成
+2026-01-23 14:29:04,858 - __main__ - INFO - 相机 0 激活成功
+2026-01-23 14:29:04,858 - __main__ - INFO - 相机切换完成: [2, 0]
+2026-01-23 14:29:06,005 - __main__ - INFO - 数据流已停止
+2026-01-23 14:29:06,005 - __main__ - INFO - 数据流已销毁
+2026-01-23 14:29:06,006 - __main__ - INFO - 设备已关闭
+2026-01-23 14:29:06,006 - __main__ - INFO - 相机 0: 已关闭
+2026-01-23 14:29:06,053 - __main__ - INFO - SDK已关闭
+2026-01-23 14:29:06,053 - __main__ - INFO - 多相机管理器已停止
+2026-01-23 14:29:06,053 - __main__ - INFO - 图像处理器已清理

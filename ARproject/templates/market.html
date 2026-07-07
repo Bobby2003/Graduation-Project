@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>黑市交易所 - AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        body {
+            margin: 0; background: #050608; color: #fff;
+            font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden;
+            background-image: radial-gradient(circle at top center, #150020 0%, #050608 80%);
+        }
+
+        /* 顶部导航控制条 */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(188, 0, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: #bc00ff;
+            border-color: rgba(188, 0, 255, 0.3);
+            background: rgba(188, 0, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(188, 0, 255, 0.05); border: 1px solid #bc00ff;
+            color: #bc00ff; font-family: 'Syncopate', sans-serif; font-size: 12px;
+            padding: 8px 20px; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 10px;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+
+        .btn-return:hover, .btn-return.ar-hover {
+            background: #bc00ff; color: #fff; box-shadow: 0 0 15px #bc00ff;
+        }
+
+        .page-title { font-family: 'Syncopate'; font-size: 20px; color: #bc00ff; letter-spacing: 4px; text-shadow: 0 0 10px #bc00ff; }
+
+        /* 商品网格区域 */
+        .market-container {
+            padding: 40px; max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px;
+        }
+
+        .market-card {
+            background: rgba(20, 10, 30, 0.6);
+            border: 1px solid rgba(188, 0, 255, 0.2);
+            padding: 20px; position: relative; transition: 0.3s;
+        }
+        .market-card:hover, .market-card.ar-hover {
+            transform: translateY(-5px); border-color: #bc00ff;
+            box-shadow: 0 10px 30px rgba(188, 0, 255, 0.15);
+        }
+
+        .item-image-placeholder {
+            height: 150px; background: rgba(0,0,0,0.5);
+            border: 1px dashed rgba(188, 0, 255, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            color: #555; margin-bottom: 15px; font-family: 'Syncopate';
+        }
+
+        .item-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+        .item-desc { font-size: 12px; color: #888; margin-bottom: 15px; line-height: 1.5; }
+
+        .buy-row { display: flex; justify-content: space-between; align-items: center; }
+        .price { color: #ffd700; font-size: 18px; font-weight: bold; }
+
+        .btn-buy {
+            background: transparent; border: 1px solid #ffd700; color: #ffd700;
+            padding: 6px 15px; font-family: 'Syncopate'; font-size: 12px;
+            cursor: pointer; transition: 0.3s;
+        }
+        .btn-buy:hover, .btn-buy.ar-hover { background: #ffd700; color: #000; box-shadow: 0 0 15px #ffd700; }
+
+        #gesture-status-text { color: #bc00ff; font-family: 'Syncopate'; font-size: 12px; }
+        :root { --neon-purple: #bc00ff; }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">BLACK MARKET</div>
+        {% include "partials/hud_nav_center.html" %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
+    </div>
+
+    <!-- 商品列表（MySQL: MarketProduct） -->
+    <div class="market-container">
+        {% for p in products %}
+        {% if p.accent == 'cyan' %}
+        <div class="market-card" style="border-color: rgba(0, 242, 255, 0.4);">
+        {% else %}
+        <div class="market-card">
+        {% endif %}
+            <div class="item-image-placeholder">{{ p.image_placeholder }}</div>
+            {% if p.accent == 'cyan' %}
+            <div class="item-name" style="color: #00f2ff;">{{ p.name }}</div>
+            {% else %}
+            <div class="item-name">{{ p.name }}</div>
+            {% endif %}
+            <div class="item-desc">{{ p.description }}</div>
+            <div class="buy-row">
+                <div class="price">₮ {{ p.price_credits }}</div>
+                {% if p.accent == 'cyan' %}
+                <button type="button" class="btn-buy" style="border-color: #00f2ff; color:#00f2ff;">TRADE</button>
+                {% else %}
+                <button type="button" class="btn-buy">TRADE</button>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p style="grid-column: 1/-1; text-align:center; color:#666;">暂无上架商品，请在后台运行 seed 或于 Django Admin 添加。</p>
+        {% endfor %}
+    </div>
+
+    <!-- 统一引入 AR 手势 -->
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+</body>
+</html>

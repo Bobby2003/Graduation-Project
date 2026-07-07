@@ -1,0 +1,33 @@
+# Same as requirements.txt but:
+# - open3d: install separately from your local .whl (CUDA/custom build).
+# - torch: install separately with CUDA 12.4 wheels, e.g.
+#     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# --- Web stack (ARproject/) ---
+django>=4.2.0,<5
+channels>=4.0.0,<5
+daphne>=4.0.0,<6
+pymysql>=1.1.0,<2
+
+# --- Vision, 3D, scientific ---
+numpy>=1.24.0,<3
+opencv-python>=4.8.0,<5
+scipy>=1.10.0,<2
+scikit-learn>=1.2.0,<2
+matplotlib>=3.7.0,<4
+trimesh>=3.21.0,<5
+Pillow>=10.0.0,<12
+scikit-image>=0.21.0,<1
+
+PyCameraList>=1.0.0
+
+tqdm>=4.65.0
+
+pyserial>=3.5,<4
+g2o-python>=0.0.10,<0.1
+
+streamlit>=1.28.0,<2
+rerun-sdk>=0.14.0
+
+pybind11>=2.11.0,<3
+setuptools>=68.0.0

@@ -1,0 +1,27 @@
+/* 控制模式切换（导航栏 / 网关页） */
+.control-mode-switcher {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.mode-btn {
+    background: transparent;
+    border: 1px solid var(--neon-purple, #b026ff);
+    color: var(--neon-purple, #b026ff);
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    font-family: 'Syncopate', 'Segoe UI', sans-serif;
+}
+
+.mode-btn:hover,
+.mode-btn.active {
+    background: rgba(176, 38, 255, 0.15);
+    box-shadow: 0 0 10px var(--neon-purple, #b026ff);
+    color: #fff;
+}

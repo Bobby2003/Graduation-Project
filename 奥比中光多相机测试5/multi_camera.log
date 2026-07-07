@@ -1,0 +1,297 @@
+2026-01-23 13:26:23,183 - __main__ - INFO - 相机管理器初始化完成
+2026-01-23 13:26:23,185 - __main__ - INFO - 工作模式设置为: MODE_01_12_20
+2026-01-23 13:26:23,186 - __main__ - INFO - TSDF引擎初始化: voxel_size=0.01, trunc_margin=0.05
+2026-01-23 13:26:23,837 - __main__ - INFO - 多相机重建系统初始化完成
+2026-01-23 13:26:23,837 - __main__ - INFO - 运动参数更新: vx=0.000, vy=0.000, vz=0.000 m/s
+2026-01-23 13:26:23,839 - __main__ - INFO - 相机控制循环启动
+2026-01-23 13:26:23,839 - __main__ - INFO - 相机管理器启动
+2026-01-23 13:26:23,840 - __main__ - INFO - 重建循环启动
+2026-01-23 13:26:23,840 - __main__ - INFO - 多相机重建系统启动
+2026-01-23 13:26:26,220 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:26:29,130 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:26:29,147 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:29,227 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:26:29,310 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:29,475 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:29,635 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:29,784 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:29,973 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:30,124 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:30,278 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:30,430 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:30,584 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:30,777 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:30,927 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:31,083 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:31,618 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:31,775 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:31,973 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:32,127 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:32,258 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:26:32,283 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:32,432 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:32,597 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:32,783 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:32,954 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:33,121 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:33,274 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:33,430 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:33,993 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:34,159 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:34,193 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:26:34,320 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:34,472 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:34,629 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:34,813 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:34,965 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:35,132 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:35,292 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:35,292 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:26:35,446 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:35,634 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:35,791 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:35,944 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:36,464 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:36,628 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:36,829 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:36,979 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:37,133 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:37,294 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:37,457 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:37,650 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:37,800 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:37,956 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:38,112 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:38,267 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:38,298 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:26:38,455 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:38,961 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:39,123 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:39,277 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:39,431 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:39,475 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:26:39,619 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:39,772 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:39,926 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:40,076 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:40,233 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:40,419 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:40,577 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:40,729 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:40,885 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:41,398 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:41,426 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:26:41,610 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:41,770 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:41,924 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:42,083 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:42,239 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:42,424 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:42,577 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:42,740 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:42,899 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:43,053 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:43,239 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:43,390 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:43,894 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:44,047 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:44,200 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:44,388 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:44,443 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:26:44,505 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:26:44,557 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:44,711 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:44,865 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:45,019 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:45,205 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:45,358 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:45,515 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:45,673 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:45,826 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:46,365 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:26:46,385 - __main__ - INFO - 相机管理器停止
+2026-01-23 13:26:46,906 - __main__ - INFO - 最终模型已保存: reconstruction_20260123_132623\final_model.ply
+2026-01-23 13:26:51,408 - __main__ - INFO - 最终模型已保存: reconstruction_20260123_132623\final_model.obj
+2026-01-23 13:28:12,989 - __main__ - INFO - 相机管理器初始化完成
+2026-01-23 13:28:12,989 - __main__ - INFO - 工作模式设置为: MODE_01_12_20
+2026-01-23 13:28:12,990 - __main__ - INFO - TSDF引擎初始化: voxel_size=0.01, trunc_margin=0.05
+2026-01-23 13:28:13,571 - __main__ - INFO - 多相机重建系统初始化完成
+2026-01-23 13:28:13,571 - __main__ - INFO - 运动参数更新: vx=0.000, vy=0.000, vz=0.000 m/s
+2026-01-23 13:28:13,573 - __main__ - INFO - 相机控制循环启动
+2026-01-23 13:28:13,573 - __main__ - INFO - 相机管理器启动
+2026-01-23 13:28:13,573 - __main__ - INFO - 重建循环启动
+2026-01-23 13:28:13,573 - __main__ - INFO - 多相机重建系统启动
+2026-01-23 13:28:16,194 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:28:18,632 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:18,754 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:28:18,822 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:18,971 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:19,126 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:19,214 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:28:19,277 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:19,430 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:19,622 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:19,770 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:19,927 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:20,080 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:20,235 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:20,428 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:20,593 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:21,153 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:21,308 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:21,456 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:21,646 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:21,800 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:21,967 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:22,126 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:22,218 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:28:22,283 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:22,470 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:22,624 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:22,771 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:22,932 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:23,085 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:23,665 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:23,824 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:23,999 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:24,161 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:28:24,161 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:24,314 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:24,509 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:24,674 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:24,843 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:25,023 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:25,180 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:25,238 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:28:25,369 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:25,522 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:26,073 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:26,237 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:26,405 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:26,610 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:26,774 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:26,926 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:27,079 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:27,238 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:27,425 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:27,575 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:27,729 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:27,885 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:28,050 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:28,653 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:28,668 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:28:28,831 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:28,991 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:29,154 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:29,195 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:28:29,307 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:29,505 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:29,663 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:29,817 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:29,974 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:30,132 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:30,345 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:30,500 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:31,049 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:31,224 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:31,381 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:31,581 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:31,674 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:28:31,739 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:31,897 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:32,051 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:32,207 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:32,406 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:32,567 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:32,722 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:32,889 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:33,043 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:33,595 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:33,775 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:33,935 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:34,110 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:34,269 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:34,462 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:34,603 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:28:34,626 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:34,682 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:28:34,779 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:34,936 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:35,115 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:35,313 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:35,471 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:35,974 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:36,150 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:36,312 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:36,503 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:36,655 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:36,808 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:36,964 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:37,126 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:37,332 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:37,488 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:37,644 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:37,700 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:28:37,797 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:37,951 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:38,526 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:38,693 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:38,852 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:39,016 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:39,185 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:39,387 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:39,542 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:39,693 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:39,706 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:28:39,851 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:40,002 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:40,216 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:40,425 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:40,917 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:40,942 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:28:41,068 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:41,223 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:41,420 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:41,581 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:41,739 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:41,895 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:42,048 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:42,243 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:42,407 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:42,563 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:42,718 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:42,874 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:43,392 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:43,573 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:43,724 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:43,878 - __main__ - ERROR - 重建循环出错: 'CameraManager' object has no attribute 'get_status'
+2026-01-23 13:28:43,940 - __main__ - INFO - 相机管理器停止
+2026-01-23 13:28:44,399 - __main__ - INFO - 最终模型已保存: reconstruction_20260123_132812\final_model.ply
+2026-01-23 13:33:31,095 - __main__ - INFO - 相机管理器初始化完成
+2026-01-23 13:33:31,095 - __main__ - INFO - 工作模式设置为: MODE_01_12_20
+2026-01-23 13:33:31,095 - __main__ - INFO - TSDF引擎初始化: voxel_size=0.01, trunc_margin=0.05
+2026-01-23 13:33:31,674 - __main__ - INFO - 多相机重建系统初始化完成
+2026-01-23 13:33:31,674 - __main__ - INFO - 运动参数更新: vx=0.000, vy=0.000, vz=0.000 m/s
+2026-01-23 13:33:31,675 - __main__ - INFO - 相机控制循环启动
+2026-01-23 13:33:31,675 - __main__ - INFO - 相机管理器启动
+2026-01-23 13:33:31,675 - __main__ - INFO - 重建循环启动
+2026-01-23 13:33:31,675 - __main__ - INFO - 多相机重建系统启动
+2026-01-23 13:33:34,482 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:33:36,891 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:33:37,499 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:33:40,553 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:33:42,003 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:33:43,598 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:33:46,613 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:33:47,167 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:33:49,616 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:33:52,290 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:33:52,622 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:33:56,004 - __main__ - INFO - 相机切换: [2, 0]
+2026-01-23 13:33:57,330 - __main__ - INFO - 运动参数更新: vx=0.050, vy=0.000, vz=0.000 m/s
+2026-01-23 13:33:59,040 - __main__ - INFO - 相机切换: [0, 1]
+2026-01-23 13:34:02,127 - __main__ - INFO - 相机切换: [1, 2]
+2026-01-23 13:34:02,981 - __main__ - INFO - 相机管理器停止
+2026-01-23 13:34:03,338 - __main__ - INFO - 最终模型已保存: reconstruction_20260123_133331\final_model.ply
+2026-01-23 13:34:06,782 - __main__ - INFO - 最终模型已保存: reconstruction_20260123_133331\final_model.obj
+2026-01-23 13:34:06,784 - __main__ - INFO - 多相机重建系统停止

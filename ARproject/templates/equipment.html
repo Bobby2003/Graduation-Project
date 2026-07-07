@@ -1,0 +1,703 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQUIPMENT | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --green: #00ff88;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 30% 20%, rgba(0, 242, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(188, 0, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at center, #0a111a 0%, #050608 100%);
+        }
+
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(188, 0, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--purple);
+            border-color: rgba(188, 0, 255, 0.3);
+            background: rgba(188, 0, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(188, 0, 255, 0.05);
+            border: 1px solid var(--purple);
+            color: var(--purple);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+        .btn-return:hover, .btn-return.ar-hover {
+            background: var(--purple);
+            color: #fff;
+            box-shadow: 0 0 15px var(--purple);
+        }
+
+        .page-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            color: var(--purple);
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(188, 0, 255, 0.5);
+        }
+
+        /* 装备概览 */
+        .equipment-overview {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 30px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(188, 0, 255, 0.1);
+        }
+
+        .overview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .overview-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 14px;
+            color: #fff;
+            letter-spacing: 3px;
+        }
+        .power-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .power-label {
+            font-size: 12px;
+            color: #666;
+            letter-spacing: 2px;
+        }
+        .power-value {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--neon);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        /* 装备槽位 */
+        .equipment-slots {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+        }
+
+        .equip-slot {
+            aspect-ratio: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: 0.3s;
+        }
+        .equip-slot:hover, .equip-slot.ar-hover {
+            border-color: var(--purple);
+            background: rgba(188, 0, 255, 0.05);
+        }
+        .equip-slot.equipped {
+            border-style: solid;
+            border-color: rgba(188, 0, 255, 0.3);
+            background: rgba(188, 0, 255, 0.05);
+        }
+        .equip-slot.active {
+            border-color: var(--neon);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+        }
+
+        .slot-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        .slot-name {
+            font-size: 10px;
+            color: #666;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .slot-power {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        .slot-empty {
+            color: #333;
+            font-size: 24px;
+        }
+
+        /* 装备详情容器 */
+        .equipment-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 30px 60px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        /* 装备列表 */
+        .equipment-list {
+            background: var(--panel-bg);
+            border: 1px solid rgba(188, 0, 255, 0.1);
+            padding: 25px;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .list-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            color: #fff;
+            letter-spacing: 3px;
+        }
+
+        .filter-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .filter-btn {
+            padding: 6px 15px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #666;
+            font-size: 11px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            border-color: var(--purple);
+            color: var(--purple);
+            background: rgba(188, 0, 255, 0.1);
+        }
+
+        /* 装备卡片 */
+        .item-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        .item-card:hover, .item-card.ar-hover {
+            border-color: rgba(188, 0, 255, 0.3);
+            background: rgba(188, 0, 255, 0.05);
+            transform: translateX(5px);
+        }
+        .item-card.selected {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .item-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(188, 0, 255, 0.1);
+            border: 2px solid rgba(188, 0, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .item-card.legendary .item-icon {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+        .item-card.epic .item-icon {
+            border-color: var(--purple);
+            background: rgba(188, 0, 255, 0.1);
+        }
+        .item-card.rare .item-icon {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.1);
+        }
+        .item-card.common .item-icon {
+            border-color: #555;
+            background: rgba(100, 100, 100, 0.1);
+        }
+
+        .item-info {
+            flex: 1;
+        }
+        .item-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .item-card.legendary .item-name { color: var(--gold); }
+        .item-card.epic .item-name { color: var(--purple); }
+        .item-card.rare .item-name { color: var(--neon); }
+
+        .item-type {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .item-desc {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.5;
+        }
+
+        .item-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .stat-item {
+            font-size: 12px;
+        }
+        .stat-item .label {
+            color: #555;
+        }
+        .stat-item .value {
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .item-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-equip {
+            padding: 10px 25px;
+            background: transparent;
+            border: 1px solid var(--purple);
+            color: var(--purple);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-equip:hover, .btn-equip.ar-hover {
+            background: var(--purple);
+            color: #fff;
+            box-shadow: 0 0 15px var(--purple);
+        }
+        .btn-equip.equipped {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .rarity-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            padding: 3px 8px;
+        }
+        .legendary .rarity-tag { background: rgba(255, 215, 0, 0.2); color: var(--gold); border: 1px solid var(--gold); }
+        .epic .rarity-tag { background: rgba(188, 0, 255, 0.2); color: var(--purple); border: 1px solid var(--purple); }
+        .rare .rarity-tag { background: rgba(0, 242, 255, 0.2); color: var(--neon); border: 1px solid var(--neon); }
+        .common .rarity-tag { background: rgba(100, 100, 100, 0.2); color: #888; border: 1px solid #555; }
+
+        /* 装备详情面板 */
+        .equipment-detail {
+            background: var(--panel-bg);
+            border: 1px solid rgba(188, 0, 255, 0.1);
+            padding: 25px;
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .detail-header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .detail-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 15px;
+            background: rgba(188, 0, 255, 0.1);
+            border: 2px solid rgba(188, 0, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 56px;
+        }
+
+        .detail-name {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        .detail-type {
+            font-size: 12px;
+            color: #666;
+            letter-spacing: 2px;
+        }
+
+        .detail-stats {
+            margin-bottom: 25px;
+        }
+        .stats-title {
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .stat-name {
+            font-size: 14px;
+            color: #888;
+        }
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--green);
+        }
+        .stat-value.negative {
+            color: var(--red);
+        }
+
+        .detail-bonus {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        .bonus-title {
+            font-size: 11px;
+            color: var(--green);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        .bonus-text {
+            font-size: 13px;
+            color: var(--green);
+            line-height: 1.6;
+        }
+
+        .detail-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn-action {
+            padding: 12px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+        }
+        .btn-upgrade {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+        }
+        .btn-upgrade:hover, .btn-upgrade.ar-hover {
+            background: var(--gold);
+            color: #000;
+        }
+        .btn-sell {
+            background: transparent;
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+        .btn-sell:hover, .btn-sell.ar-hover {
+            background: var(--red);
+            color: #fff;
+        }
+
+        #gesture-status-text {
+            color: var(--purple);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 1024px) {
+            .equipment-slots {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .equipment-container {
+                grid-template-columns: 1fr;
+            }
+            .equipment-detail {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .equipment-slots {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">EQUIPMENT WORKSHOP</div>
+        {% include "partials/hud_nav_center.html" %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
+    </div>
+
+    <!-- 装备概览（UserEquippedItem + EquipmentItem） -->
+    <div class="equipment-overview">
+        <div class="overview-header">
+            <div class="overview-title">ACTIVE LOADOUT // 当前装备</div>
+            <div class="power-display">
+                <div class="power-label">LOADOUT POWER</div>
+                <div class="power-value">{{ loadout_power }}</div>
+            </div>
+        </div>
+
+        <div class="equipment-slots">
+            {% for row in slot_rows %}
+            <div class="equip-slot{% if row.equipped %} equipped{% endif %}{% if row.is_active %} active{% endif %}">
+                {% if row.equipped %}
+                <div class="slot-icon">{{ row.icon }}</div>
+                <div class="slot-name">{{ row.label }}</div>
+                <div class="slot-power">+{{ row.power }}</div>
+                {% else %}
+                <div class="slot-icon slot-empty">+</div>
+                <div class="slot-name">{{ row.label }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 装备列表与详情 -->
+    <div class="equipment-container">
+        <!-- 装备列表 -->
+        <div class="equipment-list">
+            <div class="list-header">
+                <div class="list-title">INVENTORY // 背包</div>
+                <div class="filter-btns">
+                    <button class="filter-btn active">全部</button>
+                    <button class="filter-btn">武器</button>
+                    <button class="filter-btn">护甲</button>
+                    <button class="filter-btn">饰品</button>
+                </div>
+            </div>
+
+            {% for row in catalog_rows %}
+            <div class="item-card {{ row.item.rarity|lower }}">
+                <div class="item-icon">{{ row.icon }}</div>
+                <div class="item-info">
+                    <div class="item-name">{{ row.item.name }}</div>
+                    <div class="item-type">{{ row.item.get_slot_display }} · {{ row.item.get_rarity_display }}</div>
+                    <div class="item-desc">{{ row.item.description }}</div>
+                    <div class="item-stats">
+                        {% if row.item.stat_label_1 %}
+                        <div class="stat-item"><span class="label">{{ row.item.stat_label_1 }} </span><span class="value">{{ row.item.stat_value_1 }}</span></div>
+                        {% endif %}
+                        {% if row.item.stat_label_2 %}
+                        <div class="stat-item"><span class="label">{{ row.item.stat_label_2 }} </span><span class="value">{{ row.item.stat_value_2 }}</span></div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="item-actions">
+                    {% if row.is_equipped %}
+                    <button type="button" class="btn-equip equipped" disabled>EQUIPPED</button>
+                    {% else %}
+                    <form method="post" action="{% url 'equipment_equip' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="item_id" value="{{ row.item.id }}">
+                        <button type="submit" class="btn-equip">EQUIP</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p style="color:#666;">暂无装备图鉴，请运行 seed。</p>
+            {% endfor %}
+        </div>
+
+        <!-- 装备详情（按槽位顺序首件已装备） -->
+        <div class="equipment-detail">
+            {% if detail_item %}
+            <div class="detail-header">
+                <div class="detail-icon">{{ detail_icon }}</div>
+                <div class="detail-name">{{ detail_item.name }}</div>
+                <div class="detail-type">{{ detail_item.rarity }} · {{ detail_item.get_slot_display }}</div>
+            </div>
+
+            <div class="detail-stats">
+                <div class="stats-title">BASE STATS</div>
+                <div class="stat-row">
+                    <div class="stat-name">战力加成</div>
+                    <div class="stat-value">+{{ detail_item.power_bonus }}</div>
+                </div>
+                {% if detail_item.stat_label_1 %}
+                <div class="stat-row">
+                    <div class="stat-name">{{ detail_item.stat_label_1 }}</div>
+                    <div class="stat-value">{{ detail_item.stat_value_1 }}</div>
+                </div>
+                {% endif %}
+                {% if detail_item.stat_label_2 %}
+                <div class="stat-row">
+                    <div class="stat-name">{{ detail_item.stat_label_2 }}</div>
+                    <div class="stat-value">{{ detail_item.stat_value_2 }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="detail-bonus">
+                <div class="bonus-title">SET BONUS</div>
+                <div class="bonus-text">图鉴与装配数据来自 MySQL；套装逻辑可后续接入。</div>
+            </div>
+
+            <div class="detail-actions">
+                <button type="button" class="btn-action btn-upgrade">UPGRADE</button>
+                <button type="button" class="btn-action btn-sell">SELL</button>
+            </div>
+            {% else %}
+            <p style="color:#888; text-align:center;">当前没有已装配装备。</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+    <script>
+        // 装备卡片点击选择功能
+        document.querySelectorAll('.item-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                // 移除所有选中状态
+                document.querySelectorAll('.item-card').forEach(function(c) {
+                    c.classList.remove('selected');
+                });
+                // 添加选中状态
+                this.classList.add('selected');
+            });
+        });
+
+        // 筛选按钮功能
+        document.querySelectorAll('.filter-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+
+        // 详情面板按钮（演示用，未写回数据库）
+        var btnUp = document.querySelector('.btn-upgrade');
+        if (btnUp) {
+            btnUp.addEventListener('click', function() {
+                this.textContent = 'UPGRADING...';
+                setTimeout(() => {
+                    this.textContent = 'UPGRADE';
+                    alert('强化成功！战力 +200');
+                }, 1500);
+            });
+        }
+        var btnSell = document.querySelector('.btn-sell');
+        if (btnSell) {
+            btnSell.addEventListener('click', function() {
+                if (confirm('确定要以 1,000 信用点出售此物品吗？')) {
+                    alert('物品已出售，获得 1,000 信用点');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

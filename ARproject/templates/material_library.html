@@ -1,0 +1,274 @@
+{% extends "portal_shell.html" %}
+{% block doc_title %}材质库{% endblock %}
+{% block page_title %}MATERIAL PROTOCOLS // 材质协议库{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-library-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 18px;
+        margin-top: 20px;
+    }
+    .material-card {
+        position: relative;
+        border: 1px solid rgba(0, 242, 255, 0.18);
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.28);
+        transition: 0.25s ease;
+    }
+    .material-card.active {
+        border-color: #00f2ff;
+        background: rgba(0, 242, 255, 0.08);
+        box-shadow: 0 0 24px rgba(0, 242, 255, 0.22);
+    }
+    .material-card.active::before {
+        content: 'ACTIVE PROTOCOL';
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        font-family: 'Syncopate', sans-serif;
+        font-size: 8px;
+        letter-spacing: 2px;
+        color: #00f2ff;
+    }
+    .material-preview {
+        height: 72px;
+        border-radius: 4px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .material-preview.cyber_neon {
+        background: linear-gradient(135deg, #102033 0%, #071822 50%, #00f2ff33 100%);
+    }
+    .material-preview.wasteland_rust {
+        background: linear-gradient(135deg, #5a3824 0%, #2e2219 60%, #ff7a1a44 100%);
+    }
+    .material-preview.starship_alloy {
+        background: linear-gradient(135deg, #5a6578 0%, #2d3540 55%, #99ccff44 100%);
+    }
+    .material-preview.magic_stone {
+        background: linear-gradient(135deg, #312448 0%, #1c1530 55%, #bc00ff44 100%);
+    }
+    .material-preview.forest_temple {
+        background: linear-gradient(135deg, #1a3d2a 0%, #0f2418 55%, #00ff8844 100%);
+    }
+    .material-preview.deep_sea {
+        background: linear-gradient(135deg, #0a2540 0%, #051828 55%, #0088cc55 100%);
+    }
+    .material-preview.pixel_retro {
+        background: linear-gradient(135deg, #3a2d50 0%, #201830 50%, #ff00aa55 100%);
+    }
+    .material-preview.hacker_matrix {
+        background: linear-gradient(135deg, #0d280d 0%, #061806 50%, #00ff0033 100%);
+    }
+    .material-card .protocol-tag {
+        font-family: 'Syncopate', sans-serif;
+        font-size: 9px;
+        color: #00f2ff;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+    }
+    .material-card .material-name {
+        font-size: 17px;
+        color: #fff;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .material-card .material-code {
+        font-size: 11px;
+        color: #555;
+        margin-bottom: 14px;
+    }
+    .material-card .material-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .material-card .apply-material-btn,
+    .material-card .enter-material-btn {
+        padding: 10px 12px;
+        font-family: 'Syncopate', sans-serif;
+        font-size: 9px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        border: 1px solid rgba(0, 242, 255, 0.35);
+        background: rgba(0, 242, 255, 0.08);
+        color: #9eefff;
+        transition: 0.2s;
+    }
+    .material-card .enter-material-btn {
+        border-color: rgba(0, 255, 136, 0.45);
+        color: #00ff88;
+        background: rgba(0, 255, 136, 0.06);
+    }
+    .material-card .apply-material-btn:hover {
+        border-color: #00f2ff;
+        box-shadow: 0 0 14px rgba(0, 242, 255, 0.35);
+        color: #fff;
+    }
+    .material-card .enter-material-btn:hover {
+        border-color: #00ff88;
+        box-shadow: 0 0 14px rgba(0, 255, 136, 0.3);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block doc %}
+<form style="display: none;" id="material-library-csrf">{% csrf_token %}</form>
+<script>
+    window.MATERIAL_LIBRARY_BOOTSTRAP = {
+        urls: {
+            saveRealm: "{% url 'realm_save_api' %}",
+            realm: "{% url 'realm' %}",
+            progressEvent: "{% url 'progress_event_api' %}"
+        },
+        currentMaterialPack: "{{ current_material_pack|escapejs }}"
+    };
+</script>
+
+<div class="doc-panel">
+    <p>玩家侧统称：<strong>现实覆写</strong>、<strong>位面皮肤</strong>、<strong>材质协议</strong>。在下方选择协议，可<strong>应用到私人位面</strong>（写入 MySQL），再<strong>进入桌面位面</strong>体验；进度与成就与位面内切换协议一致，通过 <code>material_changed</code> 上报。</p>
+
+    <div class="material-library-grid">
+        {% for code, label in material_packs %}
+        <div class="material-card" data-pack="{{ code }}">
+            <div class="material-preview {{ code }}"></div>
+            <div class="protocol-tag">PROTOCOL</div>
+            <div class="material-name">{{ label }}</div>
+            <div class="material-code"><code>{{ code }}</code></div>
+            <div class="material-actions">
+                <button type="button" class="apply-material-btn" data-material-pack="{{ code }}">
+                    APPLY TO MY REALM
+                </button>
+                <button type="button" class="enter-material-btn" data-material-pack="{{ code }}">
+                    ENTER WITH THIS PROTOCOL
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h2>ROOM TEMPLATES // 房间结构模板</h2>
+    <p>模型 = 空间结构；材质包 = 风格皮肤；灯光 = 氛围。可在「位面编辑器」中组合并保存。</p>
+    <ul>
+        {% for code, label in room_templates %}
+        <li><strong>{{ label }}</strong>（<code>{{ code }}</code>）</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var boot = window.MATERIAL_LIBRARY_BOOTSTRAP || {};
+
+    function getCsrfToken() {
+        var input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+        var match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function setActiveCard(code) {
+        document.querySelectorAll('.material-card').forEach(function (card) {
+            card.classList.toggle('active', card.getAttribute('data-pack') === code);
+        });
+    }
+
+    function showLibraryToast(text) {
+        var toast = document.getElementById('material-library-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'material-library-toast';
+            toast.style.cssText =
+                'position:fixed;right:30px;top:96px;z-index:9999;padding:12px 20px;border:1px solid #00f2ff;background:rgba(5,8,14,0.92);color:#00f2ff;font-family:Syncopate,sans-serif;font-size:11px;letter-spacing:2px;transition:opacity .35s;max-width:320px;';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = text;
+        toast.style.opacity = '1';
+        clearTimeout(showLibraryToast._t);
+        showLibraryToast._t = setTimeout(function () {
+            toast.style.opacity = '0';
+        }, 2000);
+    }
+
+    function reportProgressEvent(event, payload) {
+        var url = boot.urls && boot.urls.progressEvent;
+        if (!url) return Promise.resolve();
+        payload = payload || {};
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify({ event: event, payload: payload }),
+        }).catch(function (err) {
+            console.warn('progress report failed', err);
+        });
+    }
+
+    function saveMaterialPack(code, options) {
+        options = options || {};
+        var saveUrl = boot.urls && boot.urls.saveRealm;
+        if (!saveUrl) {
+            showLibraryToast('未配置保存接口');
+            return;
+        }
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify({ material_pack: code }),
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data || !data.ok) {
+                    showLibraryToast('应用失败：' + (data && data.error ? data.error : 'UNKNOWN'));
+                    return;
+                }
+                setActiveCard(code);
+                boot.currentMaterialPack = code;
+                showLibraryToast('材质协议已应用：' + code);
+                reportProgressEvent('material_changed', {
+                    material_pack: code,
+                    source: 'material_library',
+                });
+                if (options.enterRealm) {
+                    setTimeout(function () {
+                        window.location.href = boot.urls.realm;
+                    }, 500);
+                }
+            })
+            .catch(function () {
+                showLibraryToast('应用失败：网络错误');
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setActiveCard(boot.currentMaterialPack || '');
+
+        document.querySelectorAll('.apply-material-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var code = btn.getAttribute('data-material-pack');
+                if (code) saveMaterialPack(code, {});
+            });
+        });
+
+        document.querySelectorAll('.enter-material-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var code = btn.getAttribute('data-material-pack');
+                if (code) saveMaterialPack(code, { enterRealm: true });
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

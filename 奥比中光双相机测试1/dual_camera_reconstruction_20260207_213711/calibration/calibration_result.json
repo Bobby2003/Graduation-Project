@@ -1,0 +1,60 @@
+{
+  "transform_matrix": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.16
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "calibration_quality": 57,
+  "best_frame_index": 7,
+  "calibration_info": {
+    "matches_count": 127,
+    "inliers_count": 44,
+    "triangulated_points": 44,
+    "scale_factor": 0.5,
+    "translation_norm": 0.16,
+    "rotation_matrix": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "translation_vector": [
+      0.16,
+      0.0,
+      0.0
+    ]
+  },
+  "timestamp": "2026-02-07T21:37:39.724853"
+}

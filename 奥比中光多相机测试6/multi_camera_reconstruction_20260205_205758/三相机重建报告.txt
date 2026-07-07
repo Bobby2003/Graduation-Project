@@ -1,0 +1,80 @@
+======================================================================
+奥比中光三相机 - 大范围彩色3D重建报告
+======================================================================
+
+重建时间: 2026-02-05 20:58:00
+处理轮次: 1
+相机数量: 0个
+输出模型: 0个
+输出目录: multi_camera_reconstruction_20260205_205758
+
+相机位置关系:
+   相机 0: left
+   相机 1: center
+   相机 2: right
+
+相机外参矩阵:
+   相机 0:
+      [1.000, 0.000, 0.000, -0.160]
+      [0.000, 1.000, 0.000, 0.000]
+      [0.000, 0.000, 1.000, 0.000]
+      [0.000, 0.000, 0.000, 1.000]
+
+   相机 1:
+      [1.000, 0.000, 0.000, 0.000]
+      [0.000, 1.000, 0.000, 0.000]
+      [0.000, 0.000, 1.000, 0.000]
+      [0.000, 0.000, 0.000, 1.000]
+
+   相机 2:
+      [1.000, 0.000, 0.000, 0.160]
+      [0.000, 1.000, 0.000, 0.000]
+      [0.000, 0.000, 1.000, 0.000]
+      [0.000, 0.000, 0.000, 1.000]
+
+
+重建参数:
+  num_cameras: 3
+  camera_spacing: 0.16
+  camera_fov: 60.0
+  depth_scale: 0.001
+  depth_clip_min: 0.3
+  depth_clip_max: 2.5
+  tsdf_voxel_length: 0.005
+  tsdf_sdf_trunc: 0.04
+  volume_size: 4.0
+  max_iterations: 15
+  frame_interval: 0.3
+  depth_camera_indices: [0, 1, 2]
+  rgb_camera_indices: [0, 1, 2]
+  camera_width: 320
+  camera_height: 240
+  camera_fps: 15
+  color_enhance: True
+  color_contrast: 1.1
+  color_brightness: 5
+  mesh_simplify: True
+  target_vertices: 50000
+  smooth_mesh: True
+  smooth_iterations: 2
+  fusion_method: tsdf
+  overlap_threshold: 0.02
+  export_ply: True
+  export_obj: True
+  export_stl: True
+  save_every_frame: False
+  save_intermediate: True
+  detection_threshold: 0.3
+  detection_timeout: 5.0
+
+📋 三相机系统特点:
+1. 更大的重建范围（约50%视野增加）
+2. 减少遮挡，覆盖更多角度
+3. 自动位置检测（左、中、右）
+4. 三视图融合，提高精度
+
+🎯 使用建议:
+1. 确保三个相机水平并排放置
+2. 相邻相机间距16cm
+3. 所有相机朝向同一目标
+4. 目标距离建议0.5-2米

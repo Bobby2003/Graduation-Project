@@ -1,0 +1,592 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABOUT | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --green: #00ff88;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(0, 242, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at center, #0a111a 0%, #050608 100%);
+        }
+
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--neon);
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+        .btn-return:hover, .btn-return.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon);
+        }
+
+        .page-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            color: var(--neon);
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        /* 关于页面内容 */
+        .about-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 50px 30px;
+        }
+
+        /* 英雄区 */
+        .hero-section {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo-display {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(188, 0, 255, 0.2));
+            border: 2px solid var(--neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            clip-path: polygon(20% 0, 80% 0, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0 80%, 0 20%);
+            box-shadow: 0 0 40px rgba(0, 242, 255, 0.3);
+            animation: pulse-logo 3s ease-in-out infinite;
+        }
+        @keyframes pulse-logo {
+            0%, 100% { box-shadow: 0 0 40px rgba(0, 242, 255, 0.3); }
+            50% { box-shadow: 0 0 60px rgba(0, 242, 255, 0.5); }
+        }
+
+        .hero-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 42px;
+            letter-spacing: 8px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #fff, var(--neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 16px;
+            color: #666;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+        }
+        .hero-version {
+            display: inline-block;
+            padding: 8px 25px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            color: var(--neon);
+            letter-spacing: 3px;
+        }
+
+        /* 项目介绍 */
+        .info-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .info-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 35px;
+        }
+        .info-card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .info-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .info-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 14px;
+            letter-spacing: 3px;
+        }
+        .info-desc {
+            font-size: 14px;
+            color: #888;
+            line-height: 1.8;
+        }
+
+        /* 技术栈 */
+        .tech-section {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 40px;
+            margin-bottom: 50px;
+        }
+        .section-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 16px;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: var(--neon);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .tech-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            text-align: center;
+            transition: 0.3s;
+        }
+        .tech-item:hover, .tech-item.ar-hover {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.05);
+        }
+        .tech-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        .tech-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .tech-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 系统架构 */
+        .architecture-section {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 40px;
+            margin-bottom: 50px;
+        }
+        .arch-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        .arch-layer {
+            padding: 20px 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            min-width: 150px;
+        }
+        .arch-layer.hardware {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        .arch-layer.backend {
+            border-color: var(--neon);
+            background: rgba(0, 242, 255, 0.05);
+        }
+        .arch-layer.frontend {
+            border-color: var(--purple);
+            background: rgba(188, 0, 255, 0.05);
+        }
+        .arch-layer .layer-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .arch-layer .layer-name {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+        .arch-layer.hardware .layer-name { color: var(--gold); }
+        .arch-layer.backend .layer-name { color: var(--neon); }
+        .arch-layer.frontend .layer-name { color: var(--purple); }
+        .arch-arrow {
+            font-size: 20px;
+            color: #555;
+        }
+
+        /* 硬件要求 */
+        .requirements-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        .req-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 30px;
+        }
+        .req-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .req-icon {
+            font-size: 28px;
+        }
+        .req-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 13px;
+            letter-spacing: 3px;
+        }
+        .req-list {
+            list-style: none;
+        }
+        .req-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 14px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .req-list li::before {
+            content: '▸';
+            color: var(--neon);
+        }
+
+        /* 开发者信息 */
+        .dev-section {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.05), rgba(188, 0, 255, 0.05));
+            border: 1px solid rgba(0, 242, 255, 0.15);
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .dev-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            color: var(--neon);
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+        }
+        .dev-info {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .dev-school {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .dev-date {
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* 许可证 */
+        .license-section {
+            text-align: center;
+            padding: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .license-text {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.8;
+        }
+        .license-text a {
+            color: var(--neon);
+            text-decoration: none;
+        }
+
+        #gesture-status-text {
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+
+        :root { --neon-purple: #b026ff; }
+
+        @media (max-width: 768px) {
+            .info-section,
+            .requirements-section {
+                grid-template-columns: 1fr;
+            }
+            .hero-title {
+                font-size: 28px;
+            }
+            .arch-diagram {
+                flex-direction: column;
+            }
+            .arch-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">ABOUT SYSTEM</div>
+        {% include "partials/hud_nav_center.html" %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
+    </div>
+
+    <div class="about-container">
+        <!-- 英雄区 -->
+        <div class="hero-section">
+            <div class="logo-display">🎮</div>
+            <h1 class="hero-title">AR REALM</h1>
+            <p class="hero-subtitle">将现实房间重构为虚拟位面的 AR/VR 游戏平台 · 类绿洲网关 · 私人位面 · 材质协议</p>
+            <div class="hero-version">VERSION 1.0.0 // GRADUATION PROJECT</div>
+        </div>
+
+        <!-- 项目介绍 -->
+        <div class="info-section">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <div class="info-icon">📡</div>
+                    <div class="info-title">PROJECT OVERVIEW</div>
+                </div>
+                <div class="info-desc">
+                    AR REALM 定位为<strong>「现实空间重构型」AR/VR 游戏平台原型</strong>：结合类《头号玩家》的<strong>统一虚拟入口</strong>与<strong>房间副本 / 空间皮肤</strong>思路。
+                    玩家通过桌面（预制室内 + WASD）、AR 手势或 VR 链路接入<strong>同一绿洲世界</strong>；以「材质协议 / 现实覆写」将真实或模板空间游戏化，并配套任务、装备、成就与私人位面存档。
+                    深度扫描与点云管线作为<strong>技术底座</strong>呈现，而非产品名称本身。
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="info-card-header">
+                    <div class="info-icon">🎯</div>
+                    <div class="info-title">RESEARCH GOALS</div>
+                </div>
+                <div class="info-desc">
+                    研究目标包括：验证「现实重构」管线（深度 / 平面 / 材质覆写）与虚拟世界 UI 的协同；
+                    探索多控制模式下低延迟交互；构建可扩展的 Web 网关与实时链路；
+                    为 AR/VR 与桌面同服同世界的体验设计提供参考。
+                </div>
+            </div>
+        </div>
+
+        <!-- 核心循环 -->
+        <div class="tech-section" style="margin-bottom: 40px;">
+            <div class="section-title">CORE LOOP // 核心循环</div>
+            <p style="text-align:center;max-width:720px;margin:0 auto;color:#888;line-height:1.9;font-size:14px;">
+                进入世界 → 选择接入模式（桌面 / AR / VR）→ 选择位面主题与材质协议 → 扫描或加载房间模型 → 应用现实覆写 →
+                完成任务 / 收集资源 → 获得经验、货币、成就 → 解锁新皮肤、装备与位面方案 → 继续重构更高级场景。
+            </p>
+        </div>
+            <div class="section-title">TECHNOLOGY STACK</div>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <div class="tech-icon">🐍</div>
+                    <div class="tech-name">Python / Django</div>
+                    <div class="tech-desc">后端框架 + WebSocket</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">📷</div>
+                    <div class="tech-name">Orbbec 深度相机</div>
+                    <div class="tech-desc">奥比中光 Gemini 2</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🔧</div>
+                    <div class="tech-name">OpenNI 2.0</div>
+                    <div class="tech-desc">跨平台深度感知 SDK</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🖐️</div>
+                    <div class="tech-name">MediaPipe</div>
+                    <div class="tech-desc">浏览器端手势追踪（Tasks / WASM）</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🖼️</div>
+                    <div class="tech-name">OpenCV</div>
+                    <div class="tech-desc">计算机视觉处理</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🗄️</div>
+                    <div class="tech-name">MySQL</div>
+                    <div class="tech-desc">数据持久化存储</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">⚛️</div>
+                    <div class="tech-name">Channels</div>
+                    <div class="tech-desc">实时双向通信</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🎨</div>
+                    <div class="tech-name">HTML5 / CSS3</div>
+                    <div class="tech-desc">响应式前端界面</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统架构 -->
+        <div class="architecture-section">
+            <div class="section-title">SYSTEM ARCHITECTURE</div>
+            <div class="arch-diagram">
+                <div class="arch-layer hardware">
+                    <div class="layer-icon">🧱</div>
+                    <div class="layer-name">现实重构</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">深度 / 点云 / 材质覆写</div>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-layer backend">
+                    <div class="layer-icon">🌐</div>
+                    <div class="layer-name">绿洲网关</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">Django + Channels · 位面数据</div>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-layer frontend">
+                    <div class="layer-icon">🎮</div>
+                    <div class="layer-name">玩家位面</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">桌面 / AR / VR 同世界</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 硬件要求 -->
+        <div class="requirements-section">
+            <div class="req-card">
+                <div class="req-header">
+                    <div class="req-icon">💻</div>
+                    <div class="req-title">MINIMUM REQUIREMENTS</div>
+                </div>
+                <ul class="req-list">
+                    <li>Windows 10/11 64-bit</li>
+                    <li>8GB RAM</li>
+                    <li>Intel Core i5 或同等处理器</li>
+                    <li>USB 3.0 接口</li>
+                    <li>支持 OpenGL 2.0 的显卡</li>
+                </ul>
+            </div>
+
+            <div class="req-card">
+                <div class="req-header">
+                    <div class="req-icon">🔧</div>
+                    <div class="req-title">RECOMMENDED SETUP</div>
+                </div>
+                <ul class="req-list">
+                    <li>Windows 11 64-bit</li>
+                    <li>16GB RAM</li>
+                    <li>Intel Core i7 或更高</li>
+                    <li>NVIDIA GTX 1060 或同等显卡</li>
+                    <li>稳定的有线网络连接</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 开发者信息 -->
+        <div class="dev-section">
+            <div class="dev-badge">GRADUATION PROJECT 2024</div>
+            <div class="dev-info">AR 虚拟世界门户 · 底层支持现实重构与多模态接入</div>
+            <div class="dev-school">计算机科学与技术学院</div>
+            <div class="dev-date">项目完成日期：2024年5月</div>
+        </div>
+
+        <!-- 许可证 -->
+        <div class="license-section">
+            <p class="license-text">
+                AR REALM — 现实重构型 AR/VR 游戏平台原型 · 私人位面与材质协议<br>
+                Copyright © 2024 Graduation Project<br><br>
+                本项目仅供学术研究和学习目的使用。<br>
+                <a href="{% url 'privacy' %}">隐私政策</a> ·
+                <a href="{% url 'terms' %}">用户协议</a> ·
+                <a href="{% url 'security' %}">安全说明</a> ·
+                <a href="{% url 'disclaimer' %}">免责声明</a><br><br>
+                第三方库和组件的许可证请参考各自的版权声明。
+        </div>
+    </div>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+</body>
+</html>

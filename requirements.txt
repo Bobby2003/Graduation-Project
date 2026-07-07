@@ -1,0 +1,50 @@
+# Graduation-Project — third-party dependencies
+# Target: Python 3.10.x (64-bit recommended)
+#
+# Conda + CUDA 12.4 + local Open3D wheel: use scripts/setup_conda_cu124_open3d.ps1 and
+# requirements-conda-env.txt (see script header). Put your .whl under ./wheels/ or pass -Open3dWheel.
+#
+# PyTorch GPU: default `torch` on PyPI is often CPU-only. For CUDA wheels use PyTorch’s index, e.g.:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+#
+# Optional / legacy (not imported in code today; enable only if you need them):
+#   pyrealsense2   — Intel RealSense (wheels are OS/Python specific)
+#   primesense     — very old OpenNI bindings; many Python 3.10 environments cannot install them
+
+# --- Web stack (ARproject/) ---
+django>=4.2.0,<5.3
+channels>=4.0.0,<5
+daphne>=4.0.0,<6
+pymysql>=1.1.0,<2
+
+# --- Vision, 3D, scientific (Orbbec / Open3D scripts across the repo) ---
+numpy>=1.24.0,<3
+opencv-python>=4.8.0,<5
+open3d>=0.17.0
+scipy>=1.10.0,<2
+scikit-learn>=1.2.0,<2
+matplotlib>=3.7.0,<4
+trimesh>=3.21.0,<5
+Pillow>=10.0.0,<12
+scikit-image>=0.21.0,<1
+
+# --- Device listing (text.py) ---
+PyCameraList>=1.0.0
+
+# --- Deep learning (超绝ai跑跑测试/, etc.) ---
+torch>=2.2.0,<3
+tqdm>=4.65.0
+
+# --- Serial / IMU (奥比中光单相机_IMU加速度传感器/) ---
+pyserial>=3.5,<4
+
+# --- Pose graph / SLAM (奥比中光单相机点云处理/slam/backend.py, level1.py); PyPI name is g2o-python ---
+g2o-python>=0.0.10,<0.1
+
+# --- Apps / visualization ---
+streamlit>=1.28.0,<2
+rerun-sdk>=0.14.0
+
+# --- Building C++ extensions (root setup.py, 奥比中光单相机点云处理/setup.py) ---
+pybind11>=2.11.0,<3
+setuptools>=68.0.0

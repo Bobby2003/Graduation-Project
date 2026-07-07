@@ -1,0 +1,31 @@
+======================================================================
+稳定版多帧重建报告
+======================================================================
+
+重建时间: 2025-12-26 14:54:02
+总迭代次数: 5
+成功采集帧数: 5
+输出目录: stable_reconstruction_20251226_124144
+
+参数设置:
+  depth_scale: 0.001
+  depth_clip_min: 0.3
+  depth_clip_max: 8.0
+  median_filter_size: 1
+  bilateral_sigma_color: 5
+  bilateral_sigma_space: 5
+  tsdf_voxel_length: 0.008
+  tsdf_sdf_trunc: 0.04
+  convergence_threshold: 0.001
+  max_iterations: 20
+  min_iterations: 3
+  stable_frames: 3
+  frame_interval: 0.2
+  memory_cleanup_interval: 5
+
+收敛历史:
+  第001帧: 1.000000
+  第002帧: 0.001130
+  第003帧: 0.000017
+  第004帧: 0.000005
+  第005帧: 0.000005

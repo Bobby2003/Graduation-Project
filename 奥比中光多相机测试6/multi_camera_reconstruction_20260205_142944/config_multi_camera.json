@@ -1,0 +1,42 @@
+{
+  "num_cameras": 3,
+  "camera_spacing": 0.16,
+  "camera_fov": 60.0,
+  "depth_scale": 0.001,
+  "depth_clip_min": 0.3,
+  "depth_clip_max": 2.5,
+  "tsdf_voxel_length": 0.005,
+  "tsdf_sdf_trunc": 0.04,
+  "volume_size": 4.0,
+  "max_iterations": 15,
+  "frame_interval": 0.3,
+  "depth_camera_indices": [
+    0,
+    1,
+    2
+  ],
+  "rgb_camera_indices": [
+    0,
+    1,
+    2
+  ],
+  "camera_width": 320,
+  "camera_height": 240,
+  "camera_fps": 15,
+  "color_enhance": true,
+  "color_contrast": 1.1,
+  "color_brightness": 5,
+  "mesh_simplify": true,
+  "target_vertices": 50000,
+  "smooth_mesh": true,
+  "smooth_iterations": 2,
+  "fusion_method": "tsdf",
+  "overlap_threshold": 0.02,
+  "export_ply": true,
+  "export_obj": true,
+  "export_stl": true,
+  "save_every_frame": false,
+  "save_intermediate": true,
+  "detection_threshold": 0.3,
+  "detection_timeout": 5.0
+}

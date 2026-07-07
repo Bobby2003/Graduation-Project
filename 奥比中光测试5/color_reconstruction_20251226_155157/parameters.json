@@ -1,0 +1,31 @@
+{
+  "depth_scale": 0.001,
+  "depth_clip_min": 0.3,
+  "depth_clip_max": 3.0,
+  "tsdf_voxel_length": 0.01,
+  "tsdf_sdf_trunc": 0.05,
+  "tsdf_color_type": "RGB8",
+  "convergence_threshold": 0.0001,
+  "max_iterations": 15,
+  "min_iterations": 5,
+  "stable_frames": 3,
+  "frame_interval": 0.3,
+  "camera_index": 0,
+  "camera_width": 640,
+  "camera_height": 480,
+  "camera_fps": 15,
+  "mirror_correction_x": true,
+  "mirror_correction_y": false,
+  "simplify_target_vertices": 15000,
+  "max_vertices_per_mesh": 20000,
+  "save_all_formats_every_frame": true,
+  "save_formats": [
+    "ply",
+    "obj",
+    "stl"
+  ],
+  "save_frame_data": true,
+  "save_checkpoint_interval": 3,
+  "memory_cleanup_interval": 1,
+  "enable_gc": true
+}

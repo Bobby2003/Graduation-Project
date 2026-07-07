@@ -1,0 +1,7 @@
+{
+  "depth_scale": 0.001,
+  "depth_clip_min": 0.3,
+  "depth_clip_max": 3.0,
+  "tsdf_voxel_length": 0.01,
+  "tsdf_sdf_trunc": 0.05,
+  "tsdf_color_type": 

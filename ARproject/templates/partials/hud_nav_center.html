@@ -1,0 +1,7 @@
+<div class="nav-center" role="navigation" aria-label="主导航">
+    {% if request.resolver_match %}
+        {% include "partials/hud_nav_links_snippet.html" with active_key=request.resolver_match.url_name %}
+    {% else %}
+        {% include "partials/hud_nav_links_snippet.html" with active_key="" %}
+    {% endif %}
+</div>

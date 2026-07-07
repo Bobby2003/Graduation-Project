@@ -1,0 +1,516 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MISSIONS | AR REALM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/control-modes.css' %}">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --gold: #ffd700;
+            --purple: #bc00ff;
+            --red: #ff3e3e;
+            --green: #00ff88;
+            --bg-deep: #050608;
+            --panel-bg: rgba(10, 15, 25, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 242, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(188, 0, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at center, #0a111a 0%, #050608 100%);
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            padding: 15px 30px;
+            background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .nav-center {
+            display: flex;
+            gap: 5px;
+        }
+        .nav-center a {
+            padding: 8px 14px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-center a:hover, .nav-center a.active {
+            color: var(--neon);
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .btn-return {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: 0.3s;
+        }
+        .btn-return:hover, .btn-return.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon);
+        }
+
+        .page-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 18px;
+            color: var(--neon);
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        /* 统计概览 */
+        .stats-bar {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon), transparent);
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            font-family: 'Syncopate', sans-serif;
+            margin-bottom: 5px;
+        }
+        .stat-card:nth-child(1) .stat-value { color: var(--neon); }
+        .stat-card:nth-child(2) .stat-value { color: var(--gold); }
+        .stat-card:nth-child(3) .stat-value { color: var(--green); }
+        .stat-card:nth-child(4) .stat-value { color: var(--purple); }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* 任务筛选标签 */
+        .filter-tabs {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 25px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #666;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        .filter-tab:hover, .filter-tab.active {
+            border-color: var(--neon);
+            color: var(--neon);
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        /* 任务列表 */
+        .missions-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 30px 60px;
+        }
+
+        .mission-section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 12px;
+            color: #555;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            border-left: 3px solid #333;
+        }
+
+        .mission-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.08);
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: 80px 1fr auto;
+            align-items: center;
+            padding: 20px 25px;
+            position: relative;
+            transition: 0.3s;
+            overflow: hidden;
+        }
+        .mission-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }
+        .mission-card.daily::before { background: var(--gold); }
+        .mission-card.weekly::before { background: var(--purple); }
+        .mission-card.main::before { background: var(--neon); }
+        .mission-card.side::before { background: #555; }
+
+        .mission-card:hover, .mission-card.ar-hover {
+            border-color: rgba(0, 242, 255, 0.3);
+            transform: translateX(5px);
+            background: rgba(15, 20, 30, 0.9);
+        }
+
+        .mission-type {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .daily .mission-type { background: rgba(255, 215, 0, 0.15); color: var(--gold); border: 1px solid rgba(255, 215, 0, 0.3); }
+        .weekly .mission-type { background: rgba(188, 0, 255, 0.15); color: var(--purple); border: 1px solid rgba(188, 0, 255, 0.3); }
+        .main .mission-type { background: rgba(0, 242, 255, 0.15); color: var(--neon); border: 1px solid rgba(0, 242, 255, 0.3); }
+        .side .mission-type { background: rgba(100, 100, 100, 0.15); color: #888; border: 1px solid rgba(100, 100, 100, 0.3); }
+
+        .mission-info { padding: 0 25px; }
+        .mission-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .mission-desc {
+            font-size: 13px;
+            color: #777;
+            line-height: 1.5;
+        }
+        .mission-progress {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon), var(--green));
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            min-width: 80px;
+        }
+
+        .mission-reward {
+            text-align: right;
+            min-width: 120px;
+        }
+        .reward-label {
+            font-size: 10px;
+            color: #555;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        .reward-value {
+            font-size: 16px;
+            color: var(--gold);
+            font-weight: 600;
+        }
+        .reward-items {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: flex-end;
+        }
+        .reward-item {
+            padding: 3px 8px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            font-size: 11px;
+            color: var(--gold);
+        }
+
+        .mission-action {
+            margin-left: 20px;
+        }
+        .btn-mission {
+            padding: 12px 25px;
+            background: transparent;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        .btn-mission:hover, .btn-mission.ar-hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon);
+        }
+        .btn-mission.completed {
+            border-color: var(--green);
+            color: var(--green);
+            cursor: default;
+        }
+        .btn-mission.completed:hover {
+            background: transparent;
+            box-shadow: none;
+        }
+
+        /* 已完成的任务样式 */
+        .mission-card.completed {
+            opacity: 0.6;
+        }
+        .mission-card.completed::after {
+            content: 'COMPLETED';
+            position: absolute;
+            right: 150px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            color: var(--green);
+            letter-spacing: 2px;
+            padding: 3px 10px;
+            border: 1px solid var(--green);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        /* 连接状态 */
+        #gesture-status-text {
+            color: var(--neon);
+            font-family: 'Syncopate', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .mission-card {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .mission-type {
+                justify-self: start;
+            }
+            .mission-reward {
+                text-align: left;
+            }
+            .reward-items {
+                justify-content: flex-start;
+            }
+            .mission-action {
+                margin-left: 0;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/site-hud-topnav.css' %}">
+</head>
+<body>
+    <div class="top-nav">
+        <a href="{% url 'dashboard' %}" class="btn-return">◄ HUD</a>
+        <div class="page-title">MISSION CONTROL</div>
+        {% include "partials/hud_nav_center.html" %}
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="control-mode-switcher">
+                <button type="button" class="mode-btn" data-mode="desktop">⌨</button>
+                <button type="button" class="mode-btn" data-mode="gesture">🖐</button>
+                <button type="button" class="mode-btn" data-mode="vr">🥽</button>
+            </div>
+            <div id="gesture-status-text">CONNECTING...</div>
+        </div>
+    </div>
+
+    <!-- 任务统计概览（UserMission / Mission） -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.daily_total }}</div>
+            <div class="stat-label">日常任务数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.completed_total }}</div>
+            <div class="stat-label">已完成任务</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">₮ {{ stats.pending_credits }}</div>
+            <div class="stat-label">未完成可得信用点</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.daily_pct }}%</div>
+            <div class="stat-label">日常完成度</div>
+        </div>
+    </div>
+
+    <!-- 任务筛选 -->
+    <div class="filter-tabs">
+        <button class="filter-tab active">全部</button>
+        <button class="filter-tab">主线</button>
+        <button class="filter-tab">日常</button>
+        <button class="filter-tab">周常</button>
+        <button class="filter-tab">支线</button>
+    </div>
+
+    <!-- 任务列表（MySQL: Mission + UserMission） -->
+    <div class="missions-container">
+        {% for section in mission_sections %}
+        <div class="mission-section">
+            <div class="section-title">{{ section.title }}</div>
+            {% for row in section.rows %}
+            <div class="mission-card {{ row.kind_class }}{% if row.btn_done %} completed{% endif %}">
+                <div class="mission-type">{{ row.mission.kind|upper }}</div>
+                <div class="mission-info">
+                    <div class="mission-name">{{ row.mission.title }}</div>
+                    <div class="mission-desc">{{ row.mission.description }}</div>
+                    <div class="mission-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: {{ row.pct }}%;"></div></div>
+                        <div class="progress-text">{{ row.prog_text }}</div>
+                    </div>
+                </div>
+                <div class="mission-reward">
+                    <div class="reward-label">REWARDS</div>
+                    <div class="reward-value">+{{ row.mission.reward_exp }} EXP</div>
+                    <div class="reward-items">
+                        {% if row.mission.reward_credits %}
+                        <span class="reward-item">₮ {{ row.mission.reward_credits }}</span>
+                        {% endif %}
+                        {% if row.mission.reward_item_label %}
+                        <span class="reward-item">{{ row.mission.reward_item_label }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mission-action">
+                    <button type="button" class="btn-mission{% if row.btn_done %} completed{% endif %}"{% if row.btn_done %} disabled{% endif %}>{{ row.btn_text }}</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <p style="text-align:center; color:#666;">暂无任务配置，请运行 <code>python manage.py seed_realm_data</code>。</p>
+        {% endfor %}
+    </div>
+
+    <script src="{% static 'js/gesture.js' %}"></script>
+    <script src="{% static 'js/controls.js' %}"></script>
+    <script>
+        // 筛选按钮功能
+        document.querySelectorAll('.filter-tab').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // 移除所有 active 类
+                document.querySelectorAll('.filter-tab').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                // 添加 active 类到当前按钮
+                this.classList.add('active');
+
+                // 获取筛选类型
+                var filter = this.textContent;
+
+                // 显示/隐藏对应的任务卡片
+                document.querySelectorAll('.mission-card').forEach(function(card) {
+                    if (filter === '全部') {
+                        card.style.display = 'block';
+                    } else {
+                        var type = card.classList.contains('main') ? '主线' :
+                                   card.classList.contains('daily') ? '日常' :
+                                   card.classList.contains('weekly') ? '周常' : '支线';
+                        card.style.display = (type === filter) ? 'block' : 'none';
+                    }
+                });
+            });
+        });
+
+        // 任务按钮功能
+        document.querySelectorAll('.btn-mission').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var text = this.textContent.trim();
+                if (text === 'COMPLETED') {
+                    return;
+                }
+                // 模拟任务开始/继续
+                this.textContent = 'PROCESSING...';
+                this.style.opacity = '0.7';
+
+                setTimeout(() => {
+                    if (text === 'AVAILABLE' || text === 'START') {
+                        this.textContent = 'IN PROGRESS';
+                        this.style.opacity = '1';
+                    } else if (text === 'IN PROGRESS' || text === 'CONTINUE') {
+                        // 模拟任务完成
+                        var card = this.closest('.mission-card');
+                        this.textContent = 'COMPLETED';
+                        this.classList.add('completed');
+                        this.style.opacity = '1';
+                        card.classList.add('completed');
+                    }
+                }, 1000);
+            });
+        });
+    </script>
+</body>
+</html>

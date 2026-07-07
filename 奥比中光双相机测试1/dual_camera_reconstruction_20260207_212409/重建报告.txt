@@ -1,0 +1,108 @@
+======================================================================
+奥比中光Astra双相机彩色3D重建报告
+======================================================================
+
+重建时间: 2026-02-07 21:25:03
+相机标定: 成功
+标定质量: 49 个内点
+变换矩阵:
+  [1.0000, 0.0000, 0.0000, 0.1600]
+  [0.0000, 1.0000, 0.0000, 0.0000]
+  [0.0000, 0.0000, 1.0000, 0.0000]
+  [0.0000, 0.0000, 0.0000, 1.0000]
+
+重建参数:
+  capture_count: 20
+  capture_interval: 0.5
+  depth_scale: 0.001
+  depth_clip_min: 0.3
+  depth_clip_max: 5.0
+  voxel_size: 0.005
+  remove_outlier: True
+  outlier_neighbors: 20
+  outlier_std_ratio: 2.0
+  use_global_registration: True
+  registration_threshold: 0.05
+  icp_max_iterations: 50
+  fuse_pointclouds: True
+  color_blending: True
+  export_ply: True
+  export_obj: True
+  save_calibration: True
+  save_match_images: True
+
+📁 输出文件:
+dual_camera_reconstruction_20260207_212409/
+  camera1_merged.ply
+  camera1_registered.ply
+  camera2_merged.ply
+  camera2_registered.ply
+  config.json
+  fused_mesh.ply
+  fused_pointcloud.ply
+  重建报告.txt
+  calibration/
+    best_matches_00.png
+    calibration_result.json
+    calib_00_cam1_color.png
+    calib_00_cam2_color.png
+    calib_01_cam1_color.png
+    calib_01_cam2_color.png
+    calib_02_cam1_color.png
+    calib_02_cam2_color.png
+    calib_03_cam1_color.png
+    calib_03_cam2_color.png
+    calib_04_cam1_color.png
+    calib_04_cam2_color.png
+    calib_05_cam1_color.png
+    calib_05_cam2_color.png
+    calib_06_cam1_color.png
+    calib_06_cam2_color.png
+    calib_07_cam1_color.png
+    calib_07_cam2_color.png
+    calib_08_cam1_color.png
+    calib_08_cam2_color.png
+    calib_09_cam1_color.png
+    calib_09_cam2_color.png
+  capture/
+    frame_000_cam1_color.png
+    frame_000_cam2_color.png
+    frame_001_cam1_color.png
+    frame_001_cam2_color.png
+    frame_002_cam1_color.png
+    frame_002_cam2_color.png
+    frame_003_cam1_color.png
+    frame_003_cam2_color.png
+    frame_004_cam1_color.png
+    frame_004_cam2_color.png
+    frame_005_cam1_color.png
+    frame_005_cam2_color.png
+    frame_006_cam1_color.png
+    frame_006_cam2_color.png
+    frame_007_cam1_color.png
+    frame_007_cam2_color.png
+    frame_008_cam1_color.png
+    frame_008_cam2_color.png
+    frame_009_cam1_color.png
+    frame_009_cam2_color.png
+    frame_010_cam1_color.png
+    frame_010_cam2_color.png
+    frame_011_cam1_color.png
+    frame_011_cam2_color.png
+    frame_012_cam1_color.png
+    frame_012_cam2_color.png
+    frame_013_cam1_color.png
+    frame_013_cam2_color.png
+    frame_014_cam1_color.png
+    frame_014_cam2_color.png
+    frame_015_cam1_color.png
+    frame_015_cam2_color.png
+    frame_016_cam1_color.png
+    frame_016_cam2_color.png
+    frame_017_cam1_color.png
+    frame_017_cam2_color.png
+    frame_018_cam1_color.png
+    frame_018_cam2_color.png
+    frame_019_cam1_color.png
+    frame_019_cam2_color.png
+  visualization/

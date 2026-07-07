@@ -1,0 +1,16 @@
+{
+  "depth_scale": 0.001,
+  "depth_clip_min": 0.3,
+  "depth_clip_max": 8.0,
+  "median_filter_size": 1,
+  "bilateral_d": 3,
+  "bilateral_sigma_color": 5,
+  "bilateral_sigma_space": 5,
+  "tsdf_voxel_length": 0.005,
+  "tsdf_sdf_trunc": 0.025,
+  "tsdf_volume_length": 4.0,
+  "convergence_threshold": 0.001,
+  "max_iterations": 50,
+  "min_iterations": 10,
+  "stable_frames": 5
+}
